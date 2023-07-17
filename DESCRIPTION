@@ -1,0 +1,12 @@
+Package: thermal
+Title: Correction of thermal images from UAV data
+Version: 0.0.0.9000
+Authors@R: 
+    person("Marc-André", "Lemay", , "marc-andre.lemay@uqat.ca", role = c("aut", "cre"))
+Description: Correction of thermal images from UAV data
+License: `use_gpl3_license()`
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports: exifr,
+         terra

@@ -4,7 +4,13 @@
 \alias{thermclick}
 \title{Compare aligned images interactively}
 \usage{
-thermclick(visible, thermal, optimout, nclicks = 1)
+thermclick(
+  visible,
+  thermal,
+  optimout,
+  nclicks = 1,
+  distortion_center = c(2000, 1500)
+)
 }
 \arguments{
 \item{visible}{a terra raster representing a visible image}

@@ -104,7 +104,7 @@ plot_lm <- function(lmod) {
 #' NULL
 #'
 #' @export
-align_images <- function(visible, thermal, start_values, method = c("Nelder-Mead", "BFGS")) {
+align_images <- function(visible, thermal, start_values, method = c("Nelder-Mead", "BFGS"), distortion_center = c(2000, 1500)) {
 	# Getting the sum of the values from the visible raster
 	visible_sum <- sum(visible)
 
@@ -114,15 +114,20 @@ align_images <- function(visible, thermal, start_values, method = c("Nelder-Mead
 	tvalues <- extract(trast, tcoords)[[1]]
 
 	ofunct <- function(x, vsum, tcoords, tvalues) {
-		ax <- x[1]
+		slope <- x[1]
 		bx <- x[2]
-		ay <- x[3]
-		by <- x[4]
+		by <- x[3]
+		k <- x[4]
 
 		# Getting the corresponding position in visible raster given params
 		vcoords <- tcoords
-		vcoords[, 1] <- (vcoords[, 1] - bx) / ax
-		vcoords[, 2] <- (vcoords[, 2] - by) / ay
+		vcoords[, 1] <- (vcoords[, 1] - bx) / slope
+		vcoords[, 2] <- (vcoords[, 2] - by) / slope
+
+		# Correcting for the distortion of the visible image
+		euclid_distance <- sqrt((vcoords[, 1] - distortion_center[1])^2 + (vcoords[, 2] - distortion_center[2])^2)
+		vcoords[, 1] <- distortion_center[1] + (vcoords[, 1] - distortion_center[1]) / (1 + k * euclid_distance^2)
+		vcoords[, 2] <- distortion_center[2] + (vcoords[, 2] - distortion_center[2]) / (1 + k * euclid_distance^2)
 
 		# And extracting the corresponding values
 		vvalues <- extract(vsum, vcoords)[[1]]
@@ -138,6 +143,43 @@ align_images <- function(visible, thermal, start_values, method = c("Nelder-Mead
 
 	# We return the results of the optimization
 	optim(start_values, ofunct, method = method, control = list(trace = 3), vsum = visible_sum, tcoords = tcoords, tvalues = tvalues)
+}
+
+#' Convert visible image coordinates to thermal image coordinates
+#'
+#' To complete
+#'
+#' @param x A numeric vector of x pixel coordinates
+#' @param y A numeric vector of y pixel coordinates
+#' @param optimout The output of an alignment model optimization, as returned
+#'                 by the function align_images.
+#'
+#' @return A list of two vectors, x and y, with the coordinates of the
+#'         corresponding pixels in the thermal image.
+#'
+#' @examples
+#' NULL
+#'
+#' @export
+convert_coordinates <- function(x, y, optimout, distortion_center = c(2000, 1500)) {
+
+	# Extract the parameters of the optimized model
+	slope <- optimout$par[1]
+	bx <- optimout$par[2]
+	by <- optimout$par[3]
+	k <- optimout$par[4]
+
+	# We need to go the other way around compared to the optimization procedure
+	# So first we need to distort the coordinates before we apply the other parameters
+	euclid_distance <- sqrt((x - distortion_center[1])^2 + (y - distortion_center[2])^2)
+
+	xout <- distortion_center[1] + (x - distortion_center[1]) / (2 * k * euclid_distance^2) * (1 - sqrt(1 - 4 * k * euclid_distance^2))
+	yout <- distortion_center[2] + (y - distortion_center[2]) / (2 * k * euclid_distance^2) * (1 - sqrt(1 - 4 * k * euclid_distance^2))
+
+	xout <- xout * slope + bx
+	yout <- yout * slope + by
+
+	return(list(x = xout, y = yout))
 }
 
 #' Plot aligned images with corresponding points
@@ -157,15 +199,16 @@ align_images <- function(visible, thermal, start_values, method = c("Nelder-Mead
 #' NULL
 #' 
 #' @export
-plot_alignment <- function(visible, thermal, optimout, points_df) {
-	ax <- optimout$par[1]
-	bx <- optimout$par[2]
-	ay <- optimout$par[3]
-	by <- optimout$par[4]
+plot_alignment <- function(visible, thermal, optimout, points_df, distortion_center = c(2000, 1500)) {
+
+	thermal_coords <- convert_coordinates(x = points_df[, 1],
+					      y = points_df[, 2],
+					      optimout = optimout,
+					      distortion_center = distortion_center)
 
 	thermal_points <- points_df
-	thermal_points[, 1] <- thermal_points[, 1] * ax + bx
-	thermal_points[, 2] <- thermal_points[, 2] * ay + by
+	thermal_points[, 1] <- thermal_coords$x
+	thermal_points[, 2] <- thermal_coords$y
 
 	terra::plot(visible)
 	plot_colors <- colors()[sample(length(colors()), nrow(points_df))]
@@ -193,25 +236,12 @@ plot_alignment <- function(visible, thermal, optimout, points_df) {
 #' NULL
 #'
 #' @export
-thermclick <- function(visible, thermal, optimout, nclicks = 1) {
-
-	# Extracting the parameters from the optimization
-	ax <- optimout$par[1]
-	bx <- optimout$par[2]
-	ay <- optimout$par[3]
-	by <- optimout$par[4]
+thermclick <- function(visible, thermal, optimout, nclicks = 1, distortion_center = c(2000, 1500)) {
 
 	dev.new()
 	vdev <- dev.cur()
 
 	terra::plot(visible)
-
-	# Find the corners of the thermal image on the visible and plot them
-	xmin <- -bx / ax
-	xmax <- (640 - bx) / ax
-	ymin <- -by / ay
-	ymax <- (512 - by) / ay
-	polygon(c(xmin, xmin, xmax, xmax), c(ymin, ymax, ymax, ymin))
 
 	dev.new()
 	tdev <- dev.cur()
@@ -221,10 +251,13 @@ thermclick <- function(visible, thermal, optimout, nclicks = 1) {
 	for(i in 1:nclicks) {
 		dev.set(vdev)
 		vpoint <- terra::click(visible, n = 1, xy = TRUE, col = "red")
-		tx <- vpoint$x * ax + bx
-		ty <- vpoint$y * ay + by
+
+		tcoords <- convert_coordinates(x = vpoint$x,
+					       y = vpoint$y,
+					       optimout = optimout,
+					       distortion_center = distortion_center)
 
 		dev.set(tdev)
-		terra::points(data.frame(x = tx, y = ty), pch = 16, col = "blue")
+		terra::points(data.frame(x = tcoords$x, y = tcoords$y), pch = 16, col = "blue")
 	}
 }

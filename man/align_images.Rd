@@ -4,7 +4,13 @@
 \alias{align_images}
 \title{Align a thermal and a visible image}
 \usage{
-align_images(visible, thermal, start_values, method = c("Nelder-Mead", "BFGS"))
+align_images(
+  visible,
+  thermal,
+  start_values,
+  method = c("Nelder-Mead", "BFGS"),
+  distortion_center = c(2000, 1500)
+)
 }
 \arguments{
 \item{visible}{a terra raster representing a visible image}

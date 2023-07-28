@@ -4,7 +4,13 @@
 \alias{plot_alignment}
 \title{Plot aligned images with corresponding points}
 \usage{
-plot_alignment(visible, thermal, optimout, points_df)
+plot_alignment(
+  visible,
+  thermal,
+  optimout,
+  points_df,
+  distortion_center = c(2000, 1500)
+)
 }
 \arguments{
 \item{visible}{a terra raster representing a visible image}

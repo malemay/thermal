@@ -6,6 +6,11 @@
 #'
 #' @return A data.frame of temperature values with the time colum set
 #'         to the proper data type.
+#'
+#' @examples
+#' NULL
+#'
+#' @export
 read_temp <- function(filename) {
 	tempdata <- read.table(filename, sep = ",", skip = 4, na.strings = c("NA", "NAN"))
 	colnames(tempdata) <- c("time", "record", "battery", "devtemp", "temp")
@@ -113,6 +118,11 @@ extract_temp <- function(metadata, temperature) {
 #'         ID: the color of the panel
 #'         thermal: the value of the pixel
 #'         temp: the temperature of the pixel (fixed for a given panel color)
+#' 
+#' @examples
+#' NULL
+#'
+#' @export
 join_thermal <- function(thermal, polygons, black_temp, gray_temp, white_temp) {
 	# Extracting the values of the thermal pixels based on the polygons
 	pixel_values <- extract(thermal, polygons)
@@ -136,6 +146,11 @@ join_thermal <- function(thermal, polygons, black_temp, gray_temp, white_temp) {
 #'                     as returned by \code{\link{join_thermal}}
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting side-effect.
+#'
+#' @examples
+#' NULL
+#'
+#' @export
 plot_pixtemp <- function(pixel_values) {
 
 	# Creating a linear model of temperature as a function of thermal values

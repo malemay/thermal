@@ -16,3 +16,7 @@ NULL, invisibly. This function is invoked for its plotting side-effect.
 \description{
 To complete
 }
+\examples{
+NULL
+
+}

@@ -28,3 +28,7 @@ temp: the temperature of the pixel (fixed for a given panel color)
 \description{
 To complete
 }
+\examples{
+NULL
+
+}

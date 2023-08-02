@@ -9,7 +9,8 @@ find_panels(
   min_area = 800,
   max_area = 3000,
   max_ratio = 1.5,
-  max_distance = 2000
+  min_distance = 500,
+  max_distance = 1000
 )
 }
 \arguments{
@@ -22,6 +23,9 @@ find_panels(
 \item{max_ratio}{A numeric. The maximum ratio of the polygon perimeter to the perimeter
 of a perfect square that would have the same area as the polygon. The
 lower this value is, the more the shapes kept are close to a perfect square.}
+
+\item{min_distance}{A numeric. The minimum distance (as the sum of all values in the distance
+matrix) between the final set of three polygons for them to be considered.}
 
 \item{max_distance}{A numeric. The maximum distance (as the sum of all values in the distance
 matrix) between the final set of three polygons for them to be considered.}

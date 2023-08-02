@@ -48,6 +48,8 @@ find_surfaces <- function(input_file, output_file, canny_param = "5x1+5%+10%", k
 #' @param max_ratio A numeric. The maximum ratio of the polygon perimeter to the perimeter
 #'                  of a perfect square that would have the same area as the polygon. The
 #'                  lower this value is, the more the shapes kept are close to a perfect square.
+#' @param min_distance A numeric. The minimum distance (as the sum of all values in the distance
+#'                     matrix) between the final set of three polygons for them to be considered.
 #' @param max_distance A numeric. The maximum distance (as the sum of all values in the distance
 #'                     matrix) between the final set of three polygons for them to be considered.
 #'
@@ -60,7 +62,12 @@ find_surfaces <- function(input_file, output_file, canny_param = "5x1+5%+10%", k
 #' NULL
 #'
 #' @export
-find_panels <- function(filename, min_area = 800, max_area = 3000, max_ratio = 1.5, max_distance = 2000) {
+find_panels <- function(filename, min_area = 800, max_area = 3000, max_ratio = 1.5,
+			min_distance = 500, max_distance = 1000) {
+
+	# Sanity check
+	stopifnot(max_distance > min_distance)
+
 	# Reading the polygons
 	polygons <- sf::st_read(filename, quiet = TRUE)
 
@@ -90,16 +97,23 @@ find_panels <- function(filename, min_area = 800, max_area = 3000, max_ratio = 1
 
 	if(n_polygons < 3) return(list(all_polygons = all_polygons, filtered = filtered_polygons, selected = NULL))
 
-	# Finding the three such polygons with the smallest distance to each other
-	to_test <- t(combn(1:n_polygons, 3) )
+	# Finding the three such polygons with the distance to each other closest to expectation
+	candidates <- t(combn(1:n_polygons, 3) )
 
 	distance_matrix <- sf::st_distance(polygons)
 
-	distance_sum <- apply(to_test, 1, function(x) sum(distance_matrix[x, x]))
+	distance_sum <- apply(candidates, 1, function(x) sum(distance_matrix[x, x]))
 
-	output <- polygons[to_test[which.min(distance_sum), ],]
-
-	if(min(distance_sum) > max_distance) output <- NULL
+	if(!any(distance_sum >= min_distance & distance_sum <= max_distance)) {
+		output <- NULL
+	} else {
+		# If at least one set of candidates satistifies the requirements, we choose the
+		# set of three polygons whose total distance is closest to the mid-point between
+		# min and max
+		midpoint <- (max_distance + min_distance) / 2
+		dist_from_mid <- abs(distance_sum - midpoint)
+		output <- polygons[candidates[which.min(dist_from_mid), ], ]
+	}
 
 	return(list(all_polygons = all_polygons, filtered = filtered_polygons, selected = output))
 }

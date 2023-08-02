@@ -109,9 +109,9 @@ align_images <- function(visible, thermal, start_values, method = c("Nelder-Mead
 	visible_sum <- sum(visible)
 
 	# Setting the positions to query in the thermal raster
-	tcoords <- xyFromCell(trast, 1:ncell(trast))
+	tcoords <- xyFromCell(thermal, 1:ncell(thermal))
 	# And the corresponding values
-	tvalues <- extract(trast, tcoords)[[1]]
+	tvalues <- extract(thermal, tcoords)[[1]]
 
 	ofunct <- function(x, vsum, tcoords, tvalues) {
 		slope <- x[1]

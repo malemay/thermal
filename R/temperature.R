@@ -29,6 +29,8 @@ read_temp <- function(filename) {
 #'             If NULL, the whole data range is plotted.
 #' @param xmax A date object identifying the maximum value used for the x-axis.
 #'             If NULL, the whole data range is plotted.
+#' @param at A date object indicating the location of the x-axis labels.
+#'           If NULL, the default is used.
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting side-effect.
 #'
@@ -36,7 +38,7 @@ read_temp <- function(filename) {
 #' NULL
 #'
 #' @export
-plot_temp <- function(tempdata, xmin = NULL, xmax = NULL) {
+plot_temp <- function(tempdata, xmin = NULL, xmax = NULL, at = NULL) {
 	
 	# Subsetting the input data to the range of interest
 	# BUG: xmin and/or xmax should be set even if only one of them is NULL
@@ -52,16 +54,21 @@ plot_temp <- function(tempdata, xmin = NULL, xmax = NULL) {
 	yrange <- range(do.call("rbind", tempdata)$temp, na.rm = TRUE)
 
 	plot(1, type = "n", xlim = as.numeric(xrange), ylim = yrange,
+	     xlab = "Time", ylab = "Temperature (°C)",
 	     xaxt = "n")
 	
 	# Adding lines for each of the panels
 	# By default the white panel is plotted in skyblue (this should be allowed to vary as a parameter)
 	for(i in c("black", "gray", "white")) {
-		lines(tempdata[[i]]$time, tempdata[[i]]$temp, col = if(i == "white") "skyblue" else i)
+		lines(tempdata[[i]]$time, tempdata[[i]]$temp, col = if(i == "white") "blue" else i)
 	}
 
 	# Adding an axis for the time
-	axis.POSIXct(1, tempdata$black$time)
+	if(is.null(at)) {
+		axis.POSIXct(1, tempdata$black$time)
+	} else {
+		axis.POSIXct(1, tempdata$black$time, at = at)
+	}
 
 	invisible(NULL)
 }
@@ -138,12 +145,55 @@ join_thermal <- function(thermal, polygons, black_temp, gray_temp, white_temp) {
 	return(pixel_values)
 }
 
+#' Create a linear model of temperature as a function of thermal digital numbes
+#'
+#' @param pixel_values A data.frame linking thermal pixel values to temperature,
+#'                     as returned by \code{\link{join_thermal}}
+#' @param summary_functions A list with functions used to summarize the values
+#'              for a given panel color. Defaults to max for black and gray
+#'              panels and min for white panels.
+#'
+#' @return A list of two elements, the first one containing a data.frame of
+#'         DN and temperature values for each panel, and the second element
+#'         containing a linear model linking the two.
+#'
+#' @examples
+#' NULL
+#'
+#' @export
+thermal_model <- function(pixel_values,
+			  summary_functions = list(black = max, gray = max, white = min)) {
+
+	output <- data.frame(ID = unique(pixel_values$ID),
+			     pixel = NA,
+			     temp = NA)
+
+	for(i in 1:nrow(output)) {
+		i_value <- output[i, "ID"]
+		output[i, "pixel"] <- summary_functions[[i_value]](pixel_values[pixel_values$ID == i_value, "thermal"])
+		stopifnot(length(i_temp <- unique(pixel_values[pixel_values$ID == i_value, "temp"])) == 1)
+		output[i, "temp"] <- i_temp
+	}
+
+	# Now computing the linear model
+	output_lm <- lm(temp ~ pixel, data = output)
+
+	# Returning a list with the data and the linear model
+	list(data = output, model = output_lm)
+}
+
+
 #' Plot panel temperature as a function of thermal digital numbers
 #'
 #' To complete
 #'
 #' @param pixel_values A data.frame linking thermal pixel values to temperature,
 #'                     as returned by \code{\link{join_thermal}}
+#' @param summary_functions A list with functions used to summarize the values
+#'              for a given panel color. Defaults to max for black and gray
+#'              panels and min for white panels.
+#' @param plot_lm A logical value indicating whether a linear model should be computed
+#'                using the thermal_model function and plotted using abline.
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting side-effect.
 #'
@@ -151,13 +201,18 @@ join_thermal <- function(thermal, polygons, black_temp, gray_temp, white_temp) {
 #' NULL
 #'
 #' @export
-plot_pixtemp <- function(pixel_values) {
+plot_pixtemp <- function(pixel_values,
+			 summary_functions = list(black = max, gray = max, white = min),
+			 plot_lm = TRUE) {
 
-	# Creating a linear model of temperature as a function of thermal values
-	lmod <- lm(temp ~ thermal, data = pixel_values)
 
 	plot(pixel_values$thermal, pixel_values$temp, col = ifelse(pixel_values$ID == "white", "blue", pixel_values$ID))
-	abline(reg = lmod)
+
+	# Plotting a linear model of temperature as a function of thermal values if requested
+	if(plot_lm) {
+		lmod <- thermal_model(pixel_values, summary_functions = summary_functions)
+		abline(reg = lmod$model, lty = 3)
+	}
 
 	return(invisible(NULL))
 }

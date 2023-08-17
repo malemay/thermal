@@ -194,6 +194,8 @@ thermal_model <- function(pixel_values,
 #'              panels and min for white panels.
 #' @param plot_lm A logical value indicating whether a linear model should be computed
 #'                using the thermal_model function and plotted using abline.
+#' @param col.model.points The color(s) to use for the points used to compute the model.
+#' @param cex.model.points The cex parameter to use for the points used to compute the model.
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting side-effect.
 #'
@@ -203,7 +205,9 @@ thermal_model <- function(pixel_values,
 #' @export
 plot_pixtemp <- function(pixel_values,
 			 summary_functions = list(black = max, gray = max, white = min),
-			 plot_lm = TRUE) {
+			 plot_lm = TRUE,
+			 col.model.points = "red",
+			 cex.model.points = 2) {
 
 
 	plot(pixel_values$thermal, pixel_values$temp, col = ifelse(pixel_values$ID == "white", "blue", pixel_values$ID))
@@ -212,6 +216,10 @@ plot_pixtemp <- function(pixel_values,
 	if(plot_lm) {
 		lmod <- thermal_model(pixel_values, summary_functions = summary_functions)
 		abline(reg = lmod$model, lty = 3)
+		# Also plotting the points used for the model
+		points(x = lmod$data$pixel, y = lmod$data$temp,
+		       col = col.model.points,
+		       cex = cex.model.points)
 	}
 
 	return(invisible(NULL))

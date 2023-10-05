@@ -4,7 +4,7 @@
 \alias{plot_temp}
 \title{Plot panel temperature data over a given time range}
 \usage{
-plot_temp(tempdata, xmin = NULL, xmax = NULL, at = NULL)
+plot_temp(tempdata, xmin = NULL, xmax = NULL, at = NULL, main = NULL)
 }
 \arguments{
 \item{tempdata}{A list with three elements named "black", "gray" and "white" for
@@ -19,6 +19,8 @@ If NULL, the whole data range is plotted.}
 
 \item{at}{A date object indicating the location of the x-axis labels.
 If NULL, the default is used.}
+
+\item{main}{A character. The title of the plot.}
 }
 \value{
 NULL, invisibly. This function is invoked for its plotting side-effect.

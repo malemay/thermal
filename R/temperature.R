@@ -31,6 +31,7 @@ read_temp <- function(filename) {
 #'             If NULL, the whole data range is plotted.
 #' @param at A date object indicating the location of the x-axis labels.
 #'           If NULL, the default is used.
+#' @param main A character. The title of the plot.
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting side-effect.
 #'
@@ -38,7 +39,7 @@ read_temp <- function(filename) {
 #' NULL
 #'
 #' @export
-plot_temp <- function(tempdata, xmin = NULL, xmax = NULL, at = NULL) {
+plot_temp <- function(tempdata, xmin = NULL, xmax = NULL, at = NULL, main = NULL) {
 	
 	# Subsetting the input data to the range of interest
 	# BUG: xmin and/or xmax should be set even if only one of them is NULL
@@ -54,7 +55,7 @@ plot_temp <- function(tempdata, xmin = NULL, xmax = NULL, at = NULL) {
 	yrange <- range(do.call("rbind", tempdata)$temp, na.rm = TRUE)
 
 	plot(1, type = "n", xlim = as.numeric(xrange), ylim = yrange,
-	     xlab = "Time", ylab = "Temperature (°C)",
+	     xlab = "Time", ylab = "Temperature (°C)", main = main,
 	     xaxt = "n")
 	
 	# Adding lines for each of the panels

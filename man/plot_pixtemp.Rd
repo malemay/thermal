@@ -7,7 +7,9 @@
 plot_pixtemp(
   pixel_values,
   summary_functions = list(black = max, gray = max, white = min),
-  plot_lm = TRUE
+  plot_lm = TRUE,
+  col.model.points = "red",
+  cex.model.points = 2
 )
 }
 \arguments{
@@ -20,6 +22,10 @@ panels and min for white panels.}
 
 \item{plot_lm}{A logical value indicating whether a linear model should be computed
 using the thermal_model function and plotted using abline.}
+
+\item{col.model.points}{The color(s) to use for the points used to compute the model.}
+
+\item{cex.model.points}{The cex parameter to use for the points used to compute the model.}
 }
 \value{
 NULL, invisibly. This function is invoked for its plotting side-effect.

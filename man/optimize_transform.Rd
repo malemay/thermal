@@ -4,7 +4,7 @@
 \alias{optimize_transform}
 \title{Optimize the transformation for a raster to match its target}
 \usage{
-optimize_transform(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0)
+optimize_transform(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0, reltol = 10^-8)
 }
 \arguments{
 \item{x}{The target raster.}
@@ -16,6 +16,8 @@ optimize_transform(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0)
 \item{htrans1}{A numeric. The initial value for htrans.}
 
 \item{vtrans1}{A numeric. The initial value for vtrans.}
+
+\item{reltol}{A numeric. The relative tolerance for convergence in optim.}
 }
 \value{
 The result of running the optim function on the transformation

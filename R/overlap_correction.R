@@ -86,10 +86,6 @@ translate_coords <- function(coords, htrans = 0, vtrans = 0) {
 #' NULL
 apply_transform <- function(x, new_coords) {
 
-	# Creating a copy of the raster for output
-	output <- x
-	output[,] <- NA
-
 	# Filtering out coordinates that are outside the boundaries of the raster
 	coords_ok <- new_coords[, 1] > xmin(x) & new_coords[, 1] < xmax(x) & new_coords[, 2] > ymin(x) & new_coords[, 2] < ymax(x)
 
@@ -101,8 +97,11 @@ apply_transform <- function(x, new_coords) {
 	# - x coordinates index into columns, and y-coordinates into rows
 	# - the direction of y coordinates is inverted relative to the direction of indexing
 	new_coords[, 2] <- ymax(x) - new_coords[, 2]
-	output[new_coords[, c(2, 1)]] <- new_values
-	output
+
+	# Replacing the values of the raster
+	x[] <- NA
+	x[new_coords[, c(2, 1)]] <- new_values
+	x
 }
 
 #' Rotate the values in a raster
@@ -166,11 +165,9 @@ translate_raster <- function(x, htrans, vtrans) {
 transform_thermal <- function(x, theta, htrans, vtrans) {
 
 	# We extract the x-y coordinates of the cells
-	new_coords <- rotate_coords(xyFromCell(x, 1:ncell(x)),
-				    theta = theta,
-				    center = c((xmax(x) - xmin(x)) / 2, (ymax(x) - ymin(x)) / 2))
-
-	new_coords <- translate_coords(new_coords,
+	new_coords <- transform_coords(xyFromCell(x, 1:ncell(x)),
+				       theta = theta,
+				       center = c((xmax(x) - xmin(x)) / 2, (ymax(x) - ymin(x)) / 2),
 				       htrans = htrans,
 				       vtrans = vtrans)
 
@@ -196,13 +193,26 @@ transform_thermal <- function(x, theta, htrans, vtrans) {
 #' NULL
 transform_coords <- function(coords, theta, center, htrans, vtrans) {
 
-	# Performing the rotation
-	coords <- rotate_coords(coords, theta = theta, center = center)
+	# Creating the rotation matrix
+	rot_matrix <- create_rmat(theta)
 
-	# Performing the translation
-	coords <- translate_coords(coords, htrans = htrans, vtrans = vtrans)
+	# Appending a translation to it
+	transform_matrix <- cbind(rot_matrix, c(htrans, vtrans))
+	transform_matrix <- rbind(transform_matrix, c(0, 0, 1))
 
-	coords
+	# We transform the coordinates to rotate around the center of the image
+	coords[, 1] <- coords[, 1] - center[1]
+	coords[, 2] <- coords[, 2] - center[2]
+
+	# We embed the translation back to the original coordinates in the transformation matrix<
+	transform_matrix[1, 3] <- transform_matrix[1, 3] + center[1]
+	transform_matrix[2, 3] <- transform_matrix[2, 3] + center[2]
+
+	# Rotating the coordinates through matrix multiplication and converting them back to the original coordinate system
+	coords <- cbind(coords, rep(1, nrow(coords)))
+	coords <- t(transform_matrix %*% t(coords))
+
+	coords[, 1:2, drop = FALSE]
 }
 
 #' Assess accuracy of raster transformation by comparing to target raster
@@ -233,6 +243,7 @@ assess_transform <- function(x, y, theta, htrans, vtrans) {
 #' @param theta1 A numeric. The initial value for theta.
 #' @param htrans1 A numeric. The initial value for htrans.
 #' @param vtrans1 A numeric. The initial value for vtrans.
+#' @param reltol A numeric. The relative tolerance for convergence in optim.
 #'
 #' @return The result of running the optim function on the transformation
 #' of y to the target raster x.
@@ -241,7 +252,7 @@ assess_transform <- function(x, y, theta, htrans, vtrans) {
 #'
 #' @examples
 #' NULL
-optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0) {
+optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0, reltol = 10^-8) {
 	optim(c(theta1, htrans1, vtrans1),
 	      fn = function(param, x, y) {
 		      theta <- param[1]
@@ -250,7 +261,7 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0) {
 		      -assess_transform(x, y, theta, htrans, vtrans)
 	      },
 	      x = x, y = y,
-	      control = list(trace = 1))
+	      control = list(trace = 1, reltol = reltol))
 }
 
 #' Verify the accuracy of a raster transformation

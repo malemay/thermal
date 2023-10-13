@@ -243,6 +243,7 @@ assess_transform <- function(x, y, theta, htrans, vtrans) {
 #' @param theta1 A numeric. The initial value for theta.
 #' @param htrans1 A numeric. The initial value for htrans.
 #' @param vtrans1 A numeric. The initial value for vtrans.
+#' @param method A character. The method to use for optimization, passed to optim.
 #' @param reltol A numeric. The relative tolerance for convergence in optim.
 #'
 #' @return The result of running the optim function on the transformation
@@ -252,7 +253,7 @@ assess_transform <- function(x, y, theta, htrans, vtrans) {
 #'
 #' @examples
 #' NULL
-optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0, reltol = 10^-8) {
+optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0, method = "Nelder-Mead", reltol = 10^-8) {
 	optim(c(theta1, htrans1, vtrans1),
 	      fn = function(param, x, y) {
 		      theta <- param[1]
@@ -260,7 +261,7 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0, relto
 		      vtrans <- param[3]
 		      -assess_transform(x, y, theta, htrans, vtrans)
 	      },
-	      x = x, y = y,
+	      x = x, y = y, method = method,
 	      control = list(trace = 1, reltol = reltol))
 }
 

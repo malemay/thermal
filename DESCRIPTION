@@ -11,5 +11,6 @@ RoxygenNote: 7.2.3
 Imports: exifr,
          terra,
 	 magick,
+	 parallel,
 	 sf,
 	 lwgeom

@@ -233,7 +233,19 @@ transform_coords <- function(coords, theta, center, htrans, vtrans) {
 #' @examples
 #' NULL
 assess_transform <- function(x, y, theta, htrans, vtrans) {
-	as.numeric(cor(values(x), values(transform_thermal(y, theta, htrans, vtrans)), use = "complete.obs"))
+
+	# We extract the x-y coordinates of the cells
+	new_coords <- transform_coords(xyFromCell(y, 1:ncell(y)),
+				       theta = theta,
+				       center = c((xmax(y) - xmin(y)) / 2, (ymax(y) - ymin(y)) / 2),
+				       htrans = htrans,
+				       vtrans = vtrans)
+
+	# Filtering out coordinates that are outside the boundaries of the target raster
+	coords_ok <- new_coords[, 1] > xmin(x) & new_coords[, 1] < xmax(x) & new_coords[, 2] > ymin(x) & new_coords[, 2] < ymax(x)
+
+	# Computing the correlation
+	cor(terra::values(x)[terra::cellFromXY(x, new_coords[coords_ok, ])], terra::values(y)[coords_ok, ])
 }
 
 #' Optimize the transformation for a raster to match its target
@@ -304,5 +316,56 @@ check_transform <- function(x, y, theta, htrans, vtrans, n = 10) {
 	}
 
 	invisible(NULL)
+}
+
+#' Find initial values for thermal image overlap optimization using a brute-force approach
+#'
+#' This function will test several combinations of theta, htrans and vtrans for
+#' determining the optimal transformation between thermal images to find the best
+#' overlap. All combinations of the theta, htrans and vtrans values provided to
+#' the function will be tested, and the best combination returned.
+#'
+#' @param x The target raster.
+#' @param y A raster that will be transformed to match the target raster x.
+#' @param theta_vect A numeric vector of values to test for theta.
+#' @param htrans_vect A numeric vector of values to test for htrans.
+#' @param vtrans_vect A numeric vector of values to test for vtrans.
+#' @param fact A factor of aggregation for the rasters, passed on to
+#' \code{\link[terra]{aggregate}}.  Larger values will speed up computations
+#' but will result in less accurate estimates. Default value is 1, i.e. no aggregation.
+#' @param cores The number of cores to use when parallelizing the iterations,
+#' based on \code{\link[parallel]{mclapply}}. Defaults to 1, i.e. no parallel computing.
+#'
+#' @return A numeric vector of length 3, with the first value corresponding to theta,
+#' the second to htrans, and the third to vtrans.
+#'
+#' @export
+#'
+#' @examples
+#' NULL
+find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, fact = 1, cores = 1) {
+
+	# Reducing the size of the rasters
+	x <- terra::aggregate(x, fact = fact)
+	terra::ext(x) <- c(0, terra::ncol(x), 0, terra::nrow(x))
+
+	y <- terra::aggregate(y, fact = fact)
+	terra::ext(y) <- c(0, terra::ncol(y), 0, terra::nrow(y))
+
+	# Creating the data.frame of combinations to test and adjusting the values of htrans and vtrans
+	to_test <- expand.grid(theta = theta_vect, htrans = htrans_vect / fact, vtrans = vtrans_vect / fact)
+
+	# Initializing a vector for the correlations
+	correlations <- parallel::mclapply(1:nrow(to_test), function(i, x, y, params) {
+						   assess_transform(x = x, y = y, theta = params[i, 1], htrans = params[i, 2], vtrans = params[i, 3])
+						       }, x = x, y = y, params = to_test,
+						   mc.cores = cores)
+
+	# Extracting the combination of parameters that yielded the best results
+	output <- to_test[which.max(unlist(correlations)), ]
+	output$htrans <- output$htrans * fact
+	output$vtrans <- output$vtrans * fact
+
+	as.numeric(output)
 }
 

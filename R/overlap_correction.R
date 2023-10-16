@@ -209,10 +209,7 @@ transform_coords <- function(coords, theta, center, htrans, vtrans) {
 	transform_matrix[2, 3] <- transform_matrix[2, 3] + center[2]
 
 	# Rotating the coordinates through matrix multiplication and converting them back to the original coordinate system
-	coords <- cbind(coords, rep(1, nrow(coords)))
-	coords <- t(transform_matrix %*% t(coords))
-
-	coords[, 1:2, drop = FALSE]
+	(cbind(coords, rep(1, nrow(coords))) %*% t(transform_matrix))[, 1:2, drop = FALSE]
 }
 
 #' Assess accuracy of raster transformation by comparing to target raster

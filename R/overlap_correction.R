@@ -263,14 +263,27 @@ assess_transform <- function(x, y, theta, htrans, vtrans) {
 #' @examples
 #' NULL
 optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0, method = "Nelder-Mead", reltol = 10^-8) {
+
+	optim_coords <- terra::xyFromCell(y, 1:ncell(y))
+	center <- dim(y)[2:1] / 2
+	optim_coords <- cbind(optim_coords, rep(1, nrow(optim_coords)))
+	optim_coords[, 1] <- optim_coords[, 1] - center[1]
+	optim_coords[, 2] <- optim_coords[, 2] - center[2]
+
 	optim(c(theta1, htrans1, vtrans1),
-	      fn = function(param, x, y) {
+	      fn = function(param, xval, yval, coords, nrows, ncols, extent) {
 		      theta <- param[1]
 		      htrans <- param[2]
 		      vtrans <- param[3]
-		      -assess_transform(x, y, theta, htrans, vtrans)
+		      -assess_transform_cpp(xval, yval, coords, theta * pi / 180, htrans + center[1], vtrans + center[2], nrows, ncols, extent)
 	      },
-	      x = x, y = y, method = method,
+	      xval = values(x),
+	      yval = values(y),
+	      coords = optim_coords,
+	      nrows = nrow(x),
+	      ncols = ncol(x),
+	      extent = unlist(as.list(ext(x))),
+	      method = method,
 	      control = list(trace = 1, reltol = reltol))
 }
 
@@ -352,9 +365,23 @@ find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, fact = 1, c
 	# Creating the data.frame of combinations to test and adjusting the values of htrans and vtrans
 	to_test <- expand.grid(theta = theta_vect, htrans = htrans_vect / fact, vtrans = vtrans_vect / fact)
 
+	# Pre-processing the data for assess_transform_cpp
+	optim_coords <- terra::xyFromCell(y, 1:ncell(y))
+	center <- dim(y)[2:1] / 2
+	optim_coords <- cbind(optim_coords, rep(1, nrow(optim_coords)))
+	optim_coords[, 1] <- optim_coords[, 1] - center[1]
+	optim_coords[, 2] <- optim_coords[, 2] - center[2]
+
 	# Initializing a vector for the correlations
 	correlations <- parallel::mclapply(1:nrow(to_test), function(i, x, y, params) {
-						   assess_transform(x = x, y = y, theta = params[i, 1], htrans = params[i, 2], vtrans = params[i, 3])
+						   assess_transform_cpp(xval = values(x),
+									yval = values(y),
+									coords = optim_coords,
+									theta = params[i, 1] * pi / 180,
+									htrans = params[i, 2] + center[1],
+									vtrans = params[i, 3] + center[2],
+									nrows = nrow(x), ncols = ncol(x),
+									extent = unlist(as.list(ext(x))))
 						       }, x = x, y = y, params = to_test,
 						   mc.cores = cores)
 

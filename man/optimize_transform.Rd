@@ -10,8 +10,19 @@ optimize_transform(
   theta1 = 0,
   htrans1 = 0,
   vtrans1 = 0,
+  theta_range = 5,
+  theta_length = 9,
+  htrans_range = 20,
+  htrans_length = 5,
+  vtrans_range = 20,
+  vtrans_length = 5,
+  fact = 1,
+  cores = 1,
+  min_cor = 0.8,
+  maxiter = 2,
   method = "Nelder-Mead",
-  reltol = 10^-8
+  reltol = 10^-5,
+  trace = 1
 )
 }
 \arguments{
@@ -25,9 +36,41 @@ optimize_transform(
 
 \item{vtrans1}{A numeric. The initial value for vtrans.}
 
+\item{theta_range}{A numeric. The ± range of values to explore around
+theta1 should a call to find_initial be necessary.}
+
+\item{theta_length}{A numeric. The number of values of theta to test initially
+if a call to find_initial is required.}
+
+\item{htrans_range}{Similar to theta_range for the htrans parameter.}
+
+\item{htrans_length}{Similar to theta_length for the htrans parameter.}
+
+\item{vtrans_range}{Similar to theta_range for the vtrans parameter}
+
+\item{vtrans_length}{Similar to theta_length for the vtrans parameter.}
+
+\item{fact}{A numeric. The factor to use to reduce the resolution of the
+rasters to speed up the estimation of the best parameters in find_initial.
+Defaults to 1 (no aggregation is performed).}
+
+\item{min_cor}{A numeric. The minimum correlation that must be obtained
+from initial guesses to go on with optim.}
+
+\item{maxiter}{An integer. The maximum number of iterations of find_initial
+to go through. The number of parameter combinations texted increases by
+8 times for each iteration, so this number should be kept low otherwise
+computation time will become extremely long.}
+
 \item{method}{A character. The method to use for optimization, passed to optim.}
 
 \item{reltol}{A numeric. The relative tolerance for convergence in optim.}
+
+\item{trace}{A numeric value passed to optim to determine the level of
+output verbosity.}
+
+\item{cores.}{The number of cores to use for parallel computing in
+find_initial. Defaults to 1.}
 }
 \value{
 The result of running the optim function on the transformation

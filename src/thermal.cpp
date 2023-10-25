@@ -26,6 +26,9 @@ double assess_transform_cpp(const arma::vec & xval, const arma::vec & yval, cons
 			coords_indices[j++] = i;
 	}
 
+	// We return a correlation of 0 if there is no overlap
+	if(j == 0) return 0.0;
+
 	// Keeping only the the relevant values
 	coords_indices = coords_indices.head_rows(j);
 

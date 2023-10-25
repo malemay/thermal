@@ -252,8 +252,29 @@ assess_transform <- function(x, y, theta, htrans, vtrans) {
 #' @param theta1 A numeric. The initial value for theta.
 #' @param htrans1 A numeric. The initial value for htrans.
 #' @param vtrans1 A numeric. The initial value for vtrans.
+#' @param theta_range A numeric. The ± range of values to explore around
+#' theta1 should a call to find_initial be necessary.
+#' @param theta_length A numeric. The number of values of theta to test initially
+#' if a call to find_initial is required.
+#' @param htrans_range Similar to theta_range for the htrans parameter.
+#' @param htrans_length Similar to theta_length for the htrans parameter.
+#' @param vtrans_range Similar to theta_range for the vtrans parameter
+#' @param vtrans_length Similar to theta_length for the vtrans parameter.
+#' @param fact A numeric. The factor to use to reduce the resolution of the
+#' rasters to speed up the estimation of the best parameters in find_initial.
+#' Defaults to 1 (no aggregation is performed).
+#' @param cores. The number of cores to use for parallel computing in
+#' find_initial. Defaults to 1.
+#' @param min_cor A numeric. The minimum correlation that must be obtained
+#' from initial guesses to go on with optim.
+#' @param maxiter An integer. The maximum number of iterations of find_initial
+#' to go through. The number of parameter combinations texted increases by
+#' 8 times for each iteration, so this number should be kept low otherwise
+#' computation time will become extremely long.
 #' @param method A character. The method to use for optimization, passed to optim.
 #' @param reltol A numeric. The relative tolerance for convergence in optim.
+#' @param trace A numeric value passed to optim to determine the level of
+#' output verbosity.
 #'
 #' @return The result of running the optim function on the transformation
 #' of y to the target raster x.
@@ -262,29 +283,91 @@ assess_transform <- function(x, y, theta, htrans, vtrans) {
 #'
 #' @examples
 #' NULL
-optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0, method = "Nelder-Mead", reltol = 10^-8) {
+optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
+			       theta_range = 5, theta_length = 9,
+			       htrans_range = 20, htrans_length = 5,
+			       vtrans_range = 20, vtrans_length = 5,
+			       fact = 1, cores = 1, min_cor = 0.8, maxiter = 2,
+			       method = "Nelder-Mead", reltol = 10^-5, trace = 1) {
 
-	optim_coords <- terra::xyFromCell(y, 1:ncell(y))
-	center <- dim(y)[2:1] / 2
+	# Pre-processing the data that does not vary from one call to another
+	optim_coords <- terra::xyFromCell(y, 1:(terra::ncell(y)))
+	center <- c(terra::xmax(y) - terra::xmin(y), terra::ymax(y) - terra::ymin(y)) / 2
 	optim_coords <- cbind(optim_coords, rep(1, nrow(optim_coords)))
 	optim_coords[, 1] <- optim_coords[, 1] - center[1]
 	optim_coords[, 2] <- optim_coords[, 2] - center[2]
 
-	optim(c(theta1, htrans1, vtrans1),
-	      fn = function(param, xval, yval, coords, nrows, ncols, extent) {
-		      theta <- param[1]
-		      htrans <- param[2]
-		      vtrans <- param[3]
-		      -assess_transform_cpp(xval, yval, coords, theta * pi / 180, htrans + center[1], vtrans + center[2], nrows, ncols, extent)
-	      },
-	      xval = values(x),
-	      yval = values(y),
-	      coords = optim_coords,
-	      nrows = nrow(x),
-	      ncols = ncol(x),
-	      extent = unlist(as.list(ext(x))),
-	      method = method,
-	      control = list(trace = 1, reltol = reltol))
+	best_params <- c(theta1, htrans1, vtrans1)
+
+	best_cor <- assess_transform_cpp(xval = values(x), yval = values(y),
+					 coords = optim_coords,
+					 theta = theta1 * pi / 180, htrans = htrans1 + center[1], vtrans = vtrans1 + center[2],
+					 nrows = nrow(x), ncols = ncol(x),
+					 extent = unlist(as.list(ext(x))))
+
+	message("Initial guess: cor = ", best_cor)
+	message("Current best parameters: theta = ", best_params[1], ", htrans = ", best_params[2], ", vtrans = ", best_params[3])
+
+	# Keep track of the number of find_initial iterations that we have been through
+	niter <- 0
+
+	while(best_cor < min_cor && niter < maxiter) {
+		# Increment the number of iterations
+		niter <- niter + 1
+
+		# Create the vector of values to test
+		theta_vect <- seq(theta1 - theta_range, theta1 + theta_range, length.out = theta_length)
+		htrans_vect <- seq(htrans1 - htrans_range, htrans1 + htrans_range, length.out = htrans_length)
+		vtrans_vect <- seq(vtrans1 - vtrans_range, vtrans1 + vtrans_range, length.out = vtrans_length)
+
+		message("Running iteration ", niter, " of find_initial on ", theta_length * htrans_length * vtrans_length, " values.")
+
+		fi_output <- find_initial(x, y, theta_vect, htrans_vect, vtrans_vect, fact = fact, cores = cores)
+
+		message("find_initial iteration ", niter, ": cor = ", fi_output$value)
+
+		if(fi_output$value > best_cor) {
+			best_cor <- fi_output$value
+			best_params <- fi_output$param 
+		}
+
+		message("Current best parameters: theta = ", best_params[1], ", htrans = ", best_params[2], ", vtrans = ", best_params[3])
+
+		# Update the range and length values
+		theta_range <- theta_range * 2
+		htrans_range <- htrans_range * 2
+		vtrans_range <- vtrans_range * 2
+
+		theta_length <- theta_length * 2
+		htrans_length <- htrans_length * 2
+		vtrans_length <- vtrans_length * 2
+	}
+
+	optim_output <- 
+		optim(best_params,
+		      fn = function(param, xval, yval, coords, nrows, ncols, extent) {
+			      theta <- param[1]
+			      htrans <- param[2]
+			      vtrans <- param[3]
+			      -assess_transform_cpp(xval, yval, coords, theta * pi / 180, htrans + center[1], vtrans + center[2], nrows, ncols, extent)
+		      },
+		      xval = values(x),
+		      yval = values(y),
+		      coords = optim_coords,
+		      nrows = nrow(x),
+		      ncols = ncol(x),
+		      extent = unlist(as.list(ext(x))),
+		      method = method,
+		      control = list(trace = trace, reltol = reltol))
+
+	message("Final best parameters: theta = ", optim_output$par[1], ", htrans = ", optim_output$par[2], ", vtrans = ", optim_output$par[3])
+	message("Final cor: ", -optim_output$value)
+
+	# We return comprehensive information to allow debugging
+	list(optim = optim_output,
+	     init = c(theta1, htrans1, vtrans1),
+	     fi_params = best_params,
+	     niter = niter)
 }
 
 #' Verify the accuracy of a raster transformation
@@ -366,8 +449,8 @@ find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, fact = 1, c
 	to_test <- expand.grid(theta = theta_vect, htrans = htrans_vect / fact, vtrans = vtrans_vect / fact)
 
 	# Pre-processing the data for assess_transform_cpp
-	optim_coords <- terra::xyFromCell(y, 1:ncell(y))
-	center <- dim(y)[2:1] / 2
+	optim_coords <- terra::xyFromCell(y, 1:(terra::ncell(y)))
+	center <- c(terra::xmax(y) - terra::xmin(y), terra::ymax(y) - terra::ymin(y)) / 2
 	optim_coords <- cbind(optim_coords, rep(1, nrow(optim_coords)))
 	optim_coords[, 1] <- optim_coords[, 1] - center[1]
 	optim_coords[, 2] <- optim_coords[, 2] - center[2]
@@ -390,6 +473,6 @@ find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, fact = 1, c
 	output$htrans <- output$htrans * fact
 	output$vtrans <- output$vtrans * fact
 
-	as.numeric(output)
+	list(param = as.numeric(output), value = max(unlist(correlations)))
 }
 

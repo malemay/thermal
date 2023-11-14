@@ -184,6 +184,9 @@ transform_thermal <- function(x, theta, htrans, vtrans) {
 #' of the rotation center
 #' @param htrans A numeric. The translation along the x-axis.
 #' @param vtrans A numeric. The translation along the y-axis.
+#' @param reverse A logical. Whether the transformation (translation and rotation)
+#' should be inversed relative to the input parameters. If TRUE, then the inverse
+#' of the transformation matrix is used instead of the matrix itself.
 #'
 #' @return A raster similar to the input one, but whose values have been rotated.
 #'
@@ -191,7 +194,7 @@ transform_thermal <- function(x, theta, htrans, vtrans) {
 #'
 #' @examples
 #' NULL
-transform_coords <- function(coords, theta, center, htrans, vtrans) {
+transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FALSE) {
 
 	# Creating the rotation matrix
 	rot_matrix <- create_rmat(theta)
@@ -199,6 +202,7 @@ transform_coords <- function(coords, theta, center, htrans, vtrans) {
 	# Appending a translation to it
 	transform_matrix <- cbind(rot_matrix, c(htrans, vtrans))
 	transform_matrix <- rbind(transform_matrix, c(0, 0, 1))
+	if(reverse) transform_matrix <- solve(transform_matrix)
 
 	# We transform the coordinates to rotate around the center of the image
 	coords[, 1] <- coords[, 1] - center[1]

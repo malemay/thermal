@@ -4,7 +4,7 @@
 \alias{transform_coords}
 \title{Transform coordinates according to a rotation/translation model}
 \usage{
-transform_coords(coords, theta, center, htrans, vtrans)
+transform_coords(coords, theta, center, htrans, vtrans, reverse = FALSE)
 }
 \arguments{
 \item{coords}{A 2-column matrix with x-coordinates as the first column
@@ -19,6 +19,10 @@ of the rotation center}
 \item{htrans}{A numeric. The translation along the x-axis.}
 
 \item{vtrans}{A numeric. The translation along the y-axis.}
+
+\item{reverse}{A logical. Whether the transformation (translation and rotation)
+should be inversed relative to the input parameters. If TRUE, then the inverse
+of the transformation matrix is used instead of the matrix itself.}
 }
 \value{
 A raster similar to the input one, but whose values have been rotated.

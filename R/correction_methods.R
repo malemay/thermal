@@ -30,7 +30,7 @@ get_corners <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 	sf::st_as_sf(sf::st_sfc(sf::st_polygon(list(rbind(output, output[1, ])))))
 }
 
-#' Compute the ratio between the mean of the thermal regions in overlapping images
+#' Compute the difference between the mean of the thermal regions in overlapping images
 #'
 #' The transformation parameters (theta, htrans, and vtrans) apply to the transformation
 #' from y to x.
@@ -39,11 +39,11 @@ get_corners <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 #' from raster y to raster x.
 #' @inherit get_corners
 #'
-#' @return The ratio of the mean of raster y to that of raster x in their shared extent.
+#' @return The difference of the mean of raster y to that of raster x in their shared extent.
 #'
 #' @examples
 #' NULL
-get_ratio <- function(x, y, theta, htrans, vtrans) {
+get_diff <- function(x, y, theta, htrans, vtrans) {
 
 	x_corners <- get_corners(x = suppressWarnings(terra::rast(y)),
 				 theta = theta,
@@ -59,8 +59,8 @@ get_ratio <- function(x, y, theta, htrans, vtrans) {
 	x_mean <- mean(terra::extract(x, x_corners)$FLIR_RAW_THERMAL_IMAGE)
 	y_mean <- mean(terra::extract(y, y_corners)$FLIR_RAW_THERMAL_IMAGE)
 
-	# Getting the ratio of y to x
-	y_mean / x_mean
+	# Getting the difference of y relative to x
+	y_mean - x_mean
 }
 
 #' Add transformation parameters to a thermal picture dataset
@@ -89,7 +89,7 @@ add_tparams <- function(metadata, tparams) {
 	metadata <- cbind(metadata, rbind(NA, params))
 }
 
-#' Compute mean ratios for all thermal pictures in a dataset
+#' Compute difference in thermal values for all thermal pictures in a dataset
 #'
 #' @param metadata A data.frame of metadata on a set of thermal pictures, including
 #' transformation parameters (theta, htrans, vtrans).
@@ -103,26 +103,26 @@ add_tparams <- function(metadata, tparams) {
 #' @export
 #' @examples
 #' NULL
-compute_ratios <- function(metadata, ncores = 1, verbose = TRUE) {
+compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 	# Sanity checks
 	if(! all(c("theta", "htrans", "vtrans") %in% names(metadata))) {
 		stop("Metadata columns must include transformation parameters theta, htrans and vtrans.")
 	}
 
-	# Using mclapply to compute the ratios in parallel using multiple cores
-	ratios <- parallel::mclapply(2:nrow(metadata), FUN = function(i, params, verbose) {
+	# Using mclapply to compute the differences in parallel using multiple cores
+	diffs <- parallel::mclapply(2:nrow(metadata), FUN = function(i, params, verbose) {
 					     if(verbose) message("Processing row ", i, " out of ", nrow(params))
 
-					     get_ratio(x = terra::rast(params[i - 1, "SourceFile"]),
-						       y = terra::rast(params[i, "SourceFile"]),
-						       theta = params[i, "theta"],
-						       htrans = params[i, "htrans"],
-						       vtrans = params[i, "vtrans"])
+					     get_diff(x = terra::rast(params[i - 1, "SourceFile"]),
+						      y = terra::rast(params[i, "SourceFile"]),
+						      theta = params[i, "theta"],
+						      htrans = params[i, "htrans"],
+						      vtrans = params[i, "vtrans"])
 
 				 }, params = metadata, verbose = verbose, mc.cores = ncores)
 
-	# No ratio is available for the first image so we use NA
-	c(NA, unlist(ratios))
+	# No diff is available for the first image so we use NA
+	c(NA, unlist(diffs))
 }
 
 #' Compute the mean value of all thermal pictures in a dataset
@@ -186,20 +186,20 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 
 	# Overlap method adjusts the mean value of images based on the shared overlap between successive images
 	if(method == "overlap") {
-		if(! "ratio" %in% names(metadata)) stop("The ratio between successive images must be precomputed to use method = 'overlap'")
+		if(! "diff" %in% names(metadata)) stop("The difference between successive images must be precomputed to use method = 'overlap'")
 
 		# Setting the midpoint if it is not already set
 		if(is.null(midpoint)) midpoint <- floor(length(src_files) / 2)
 
-		# Precomputing the multiplication factors based on the ratios and midpoint
-		mult_factors <- numeric(length(src_files))
+		# Precomputing the adjustment factors based on the differences and midpoint
+		adj_factors <- numeric(length(src_files))
 
 		for(i in midpoint:1) {
-			mult_factors[i] <- ifelse(i == midpoint, 1, mult_factors[i + 1] * metadata[i + 1, "ratio"])
+			adj_factors[i] <- ifelse(i == midpoint, 0, adj_factors[i + 1] + metadata[i + 1, "diff"])
 		}
 
 		for(i in midpoint:length(src_files)) {
-			mult_factors[i] <- ifelse(i == midpoint, 1, mult_factors[i - 1] * 1 / metadata[i - 1, "ratio"])
+			adj_factors[i] <- ifelse(i == midpoint, 0, adj_factors[i - 1] - metadata[i, "diff"])
 		}
 
 		# Looping over all pictures in the dataset
@@ -209,9 +209,9 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 
 			raw_image <- suppressWarnings(terra::rast(src))
 
-			if(verbose) message("Processing index ", i, " with factor = ", mult_factors[i])
+			if(verbose) message("Processing index ", i, " with adjustment = ", adj_factors[i])
 
-			processed_image <- raw_image * mult_factors[i]
+			processed_image <- raw_image + adj_factors[i]
 
 			writeRaster(processed_image,
 				    filename = dst,

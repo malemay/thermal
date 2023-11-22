@@ -4,22 +4,29 @@
 \alias{read_metadata}
 \title{Read image metadata}
 \usage{
-read_metadata(files, tags = NULL, return_df = TRUE)
+read_metadata(files, camera_tz, display_tz = NULL, tags = NULL)
 }
 \arguments{
 \item{files}{a character vector of files for which exif metadata
-is to be read}
+is to be read.}
+
+\item{camera_tz}{A character that can be interpreted as a valid timezone
+corresponding to that of the date/time values written by the camera.
+It is mandatory to specify this value so that downstream functions
+know how to interpret the time values of the camera.}
+
+\item{display_tz}{A character that can be interpreted as a valid timezone
+to use when displaying the data. If NULL (the default), then the values
+are the same as camera_tz.}
 
 \item{tags}{A character vector of tags to extract or a single character
-value denoting a set of tags to extract. Supported values for single
-character are: "default". If NULL (the default), then all tags are
-extracted.}
-
-\item{return_df}{A logical, whether to return a data.frame instead of a
-tibble (defaults to TRUE)}
+string denoting a set of tags to extract. Supported values for single
+string are: "default" (set of tags that may be interesting or useful),
+"minimal" (minimal set of tags needed for downstream analyses). If NULL (the default),
+then all tags are extracted.}
 }
 \value{
-A data.frame with the metadata for each file
+A data.frame with the metadata for each file.
 }
 \description{
 Read EXIF metadta for a set of images

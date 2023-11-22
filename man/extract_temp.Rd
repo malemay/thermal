@@ -9,7 +9,7 @@ extract_temp(metadata, temperature)
 \arguments{
 \item{metadata}{A data.frame containing metadata on a set of thermal images,
 as returned by \code{\link{read_metadata}}. Must minimally
-contain a column called "CreateDate" which indicates when
+contain a column called "DateTimeOriginal" which indicates when
 the picture was taken.}
 
 \item{temperature}{A data.frame of panel temperature data, as returned by the

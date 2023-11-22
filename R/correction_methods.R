@@ -152,7 +152,7 @@ thermal_mean <- function(metadata, ncores = 1) {
 #' and replace the file extension by ".tiff".
 #'
 #' @param metadata A data.frame of metadata on a set of thermal pictures, sorted
-#' according to the time when the picture was taken ("CreateDate" column).
+#' according to the time when the picture was taken ("DateTimeOriginal" column).
 #' @param output_dir The directory to which the output images should be written.
 #' The function will not allow source files to be overwritten, thus the output
 #' directory should be different from the one containing the source data.
@@ -182,7 +182,7 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 	if(!overwrite_dst && any(file.exists(dst_files))) stop("Overwriting destination files not allowed with overwrite_dst = FALSE")
 
 	# Checking that all files are in increasing time order
-	stopifnot(!is.unsorted(metadata$CreateDate))
+	stopifnot(!is.unsorted(metadata$DateTimeOriginal))
 
 	# Overlap method adjusts the mean value of images based on the shared overlap between successive images
 	if(method == "overlap") {

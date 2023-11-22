@@ -4,10 +4,14 @@
 \alias{read_temp}
 \title{Load panel temperature data}
 \usage{
-read_temp(filename)
+read_temp(filename, tz)
 }
 \arguments{
 \item{filename}{A character, the name of the file}
+
+\item{tz}{A character which can be interpreted as a valid timezone.
+Must be supplied such that the proper time zone is used when matching
+the temperature data and images.}
 }
 \value{
 A data.frame of temperature values with the time colum set

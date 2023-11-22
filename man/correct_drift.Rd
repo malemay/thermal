@@ -15,7 +15,7 @@ correct_drift(
 }
 \arguments{
 \item{metadata}{A data.frame of metadata on a set of thermal pictures, sorted
-according to the time when the picture was taken ("CreateDate" column).}
+according to the time when the picture was taken ("DateTimeOriginal" column).}
 
 \item{output_dir}{The directory to which the output images should be written.
 The function will not allow source files to be overwritten, thus the output

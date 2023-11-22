@@ -3,6 +3,9 @@
 #' To complete
 #'
 #' @param filename A character, the name of the file
+#' @param tz A character which can be interpreted as a valid timezone.
+#' Must be supplied such that the proper time zone is used when matching
+#' the temperature data and images.
 #'
 #' @return A data.frame of temperature values with the time colum set
 #'         to the proper data type.
@@ -11,10 +14,10 @@
 #' NULL
 #'
 #' @export
-read_temp <- function(filename) {
+read_temp <- function(filename, tz) {
 	tempdata <- read.table(filename, sep = ",", skip = 4, na.strings = c("NA", "NAN"))
 	colnames(tempdata) <- c("time", "record", "battery", "devtemp", "temp")
-	tempdata$time <- strptime(tempdata$time, "%Y-%m-%d %H:%M:%S")
+	tempdata$time <- as.POSIXct(tempdata$time, format = "%Y-%m-%d %H:%M:%S", tz = tz)
 	tempdata
 }
 
@@ -80,7 +83,7 @@ plot_temp <- function(tempdata, xmin = NULL, xmax = NULL, at = NULL, main = NULL
 #'
 #' @param metadata A data.frame containing metadata on a set of thermal images,
 #'                 as returned by \code{\link{read_metadata}}. Must minimally
-#'                 contain a column called "CreateDate" which indicates when
+#'                 contain a column called "DateTimeOriginal" which indicates when
 #'                 the picture was taken.
 #' @param temperature A data.frame of panel temperature data, as returned by the
 #'                 function \code{\link{read_temp}}. Should contain a column called
@@ -99,7 +102,7 @@ extract_temp <- function(metadata, temperature) {
 
 	# Looping over all the rows
 	for(i in 1:nrow(metadata)) {
-		i_time <- metadata[i, "CreateDate"]
+		i_time <- metadata[i, "DateTimeOriginal"]
 		temperature$timediff <- abs(i_time - temperature$time)
 		# Adding a sanity check to ensure that no time difference is
 		# Greater than 10 seconds

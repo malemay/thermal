@@ -4,17 +4,16 @@
 \alias{read_metadata}
 \title{Read image metadata}
 \usage{
-read_metadata(
-  files,
-  exclude = c("ThumbnailImage", "RawThermalImage"),
-  return_df = TRUE
-)
+read_metadata(files, tags = NULL, return_df = TRUE)
 }
 \arguments{
 \item{files}{a character vector of files for which exif metadata
 is to be read}
 
-\item{exclude}{a character of columns to remove from the output}
+\item{tags}{A character vector of tags to extract or a single character
+value denoting a set of tags to extract. Supported values for single
+character are: "default". If NULL (the default), then all tags are
+extracted.}
 
 \item{return_df}{A logical, whether to return a data.frame instead of a
 tibble (defaults to TRUE)}

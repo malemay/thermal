@@ -3,8 +3,12 @@
 #' Read EXIF metadta for a set of images
 #'
 #' @param files a character vector of files for which exif metadata
-#'        is to be read
-#' @param exclude a character of columns to remove from the output
+#' is to be read
+#' @param tags A character vector of tags to extract or a single character
+#' value denoting a set of tags to extract. Supported values for single
+#' character are: "default" (set of tags that may be interesting or useful),
+#' "minimal" (minimal set of tags needed for downstream analyses). If NULL (the default),
+#' then all tags are extracted.
 #' @param return_df A logical, whether to return a data.frame instead of a
 #' 	            tibble (defaults to TRUE)
 #'
@@ -14,9 +18,20 @@
 #' NULL
 #'
 #' @export
-read_metadata <- function(files, exclude = c("ThumbnailImage", "RawThermalImage"), return_df = TRUE) {
-	output <- exifr::read_exif(files)
-	output <- output[, ! colnames(output) %in% exclude]
+read_metadata <- function(files, tags = NULL, return_df = TRUE) {
+
+	# Determining which EXIF tags to extract from the file
+	if(!is.null(tags)) {
+		if(length(tags) == 1) {
+			if(tags == "default") {
+				tags <- exif_tags("default")
+			} else if(tags == "minimal") {
+				tags <- exif_tags("minimal")
+			}
+		}
+	}
+
+	output <- exifr::read_exif(files, tags = tags)
 
 	# Format some of the columns
 	if("ModifyDate" %in% colnames(output)) {
@@ -33,7 +48,6 @@ read_metadata <- function(files, exclude = c("ThumbnailImage", "RawThermalImage"
 
 	# Sanity checks
 	stopifnot(max(abs(output$CreateDate - output$DateTimeOriginal)) < 2)
-
 
 	# Sorting according to creation date
 	output <- output[order(output$CreateDate), ]
@@ -67,5 +81,33 @@ match_images <- function(visible, thermal) {
 	}
 
 	output
+}
+
+#' Set the EXIF tags to extract
+#'
+#' @param option A character indicating which set of options to choose
+#'
+#' @return A character vector of tags to extract.
+#'
+#' @examples
+#' NULL
+exif_tags <- function(option) {
+	if(option == "default") {
+		output <- c("ExifToolVersion",
+			    "FileModifyDate", "FileAccessDate", "FileType", "FileTypeExtension",
+			    "Make", "Model", "Orientation", "XResolution", "YResolution", "ResolutionUnit",
+			    "ModifyDate", "AbsoluteAltitude", "RelativeAltitude",
+			    "GimbalRollDegree", "GimbalYawDegree", "GimbalPitchDegree",
+			    "FlightRollDegree", "FlightYawDegree", "FlightPitchDegree",
+			    "CreateDate", "FocalLength", "ExifImageWidth", "ExifImageHeight",
+			    "FocalPlaneXResolution", "FocalPlaneYResolution", "FocalPlaneResolutionUnit",
+			    "DateTimeOriginal", "GPSMapDatum", "GPSAltitude", "GPSLatitude", "GPSLongitude")
+	} else if(option == "minimal") {
+		output <- c("GimbalYawDegree", "CreateDate",
+			    "DateTimeOriginal", "GPSAltitude", "GPSLatitude",
+			    "GPSLongitude")
+	}
+
+	return(output)
 }
 

@@ -45,19 +45,19 @@ get_corners <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 #' NULL
 get_diff <- function(x, y, theta, htrans, vtrans) {
 
-	x_corners <- get_corners(x = suppressWarnings(terra::rast(y)),
+	x_corners <- get_corners(x = y,
 				 theta = theta,
 				 htrans = htrans,
 				 vtrans = vtrans)
 
-	y_corners <- get_corners(x = suppressWarnings(terra::rast(x)),
+	y_corners <- get_corners(x = x,
 				 theta = theta,
 				 htrans = htrans,
 				 vtrans = vtrans, 
 				 reverse = TRUE)
 
-	x_mean <- mean(terra::extract(x, x_corners)$FLIR_RAW_THERMAL_IMAGE)
-	y_mean <- mean(terra::extract(y, y_corners)$FLIR_RAW_THERMAL_IMAGE)
+	x_mean <- terra::extract(x, x_corners, mean, ID = FALSE)$FLIR_RAW_THERMAL_IMAGE
+	y_mean <- terra::extract(y, y_corners, mean, ID = FALSE)$FLIR_RAW_THERMAL_IMAGE
 
 	# Getting the difference of y relative to x
 	y_mean - x_mean
@@ -162,6 +162,7 @@ thermal_mean <- function(metadata, ncores = 1) {
 #' will be adjusted to match the image at that index. If NULL (the default), then
 #' the middle of the range is used.
 #' @param overwrite_dst A logical. Whether the destination files should be overwritten if they already exist.
+#' @param ncores An integer. The number of cores to use for parallel processing.
 #' @param verbose A logical. Whether the function should output information on its progress (default = TRUE).
 #'
 #' @return A character vector of the files that were written to disk, invisibly.
@@ -169,7 +170,7 @@ thermal_mean <- function(metadata, ncores = 1) {
 #' @export
 #' @examples
 #' NULL
-correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = NULL, overwrite_dst = FALSE, verbose = TRUE) {
+correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = NULL, overwrite_dst = FALSE, ncores = 1, verbose = TRUE) {
 	# Some sanity checks
 	stopifnot("SourceFile" %in% names(metadata))
 
@@ -177,6 +178,12 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 	src_files <- metadata$SourceFile
 	dst_files <- paste0(output_dir, "/", sub("\\..*$", ".tiff", basename(src_files)))
 	if(any(dst_files %in% src_files)) stop("correct_drift does not allow overwriting source files")
+
+	# Also extracting the directory part and the extension for later use in transfer_exif
+	src_dir <- unique(dirname(src_files))
+	src_ext <- paste0(".", unique(tools::file_ext(src_files)))
+
+	stopifnot(length(src_dir) == 1 && length(src_ext) == 1)
 
 	# Also checking whether we are going to overwrite destination files
 	if(!overwrite_dst && any(file.exists(dst_files))) stop("Overwriting destination files not allowed with overwrite_dst = FALSE")
@@ -191,55 +198,65 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 		# Setting the midpoint if it is not already set
 		if(is.null(midpoint)) midpoint <- floor(length(src_files) / 2)
 
+		# Computing the pre- and post-midpoint adjustment factors
+		pre_midpoint  <- if(midpoint == 1) c() else rev(cumsum(metadata[midpoint:2, "diff"]))
+		post_midpoint <- if(midpoint == nrow(metadata)) c() else cumsum(-metadata[(midpoint + 1):nrow(metadata), "diff"])
+
 		# Precomputing the adjustment factors based on the differences and midpoint
-		adj_factors <- numeric(length(src_files))
-
-		for(i in midpoint:1) {
-			adj_factors[i] <- ifelse(i == midpoint, 0, adj_factors[i + 1] + metadata[i + 1, "diff"])
-		}
-
-		for(i in midpoint:length(src_files)) {
-			adj_factors[i] <- ifelse(i == midpoint, 0, adj_factors[i - 1] - metadata[i, "diff"])
-		}
-
-		# Looping over all pictures in the dataset
-		for(i in 1:length(src_files)) {
-			src <- src_files[i]
-			dst <- dst_files[i]
-
-			raw_image <- suppressWarnings(terra::rast(src))
-
-			if(verbose) message("Processing index ", i, " with adjustment = ", adj_factors[i])
-
-			processed_image <- raw_image + adj_factors[i]
-
-			writeRaster(processed_image,
-				    filename = dst,
-				    datatype = "INT2U",
-				    overwrite = overwrite_dst)
-
-			transfer_exif(src, dst)
-		}
+		adj_factors <- c(pre_midpoint, 0, post_midpoint)
 
 	} else {
 		stop("Only method = 'overlap' is supported at the moment.")
 	}
+
+	# Looping over all pictures in the dataset
+	parallel::mclapply(1:length(src_files), FUN = function(i, src_files, dst_files, adj_factors, verbose, overwrite_dst) {
+				   src <- src_files[i]
+				   dst <- dst_files[i]
+
+				   raw_image <- suppressWarnings(terra::rast(src))
+
+				   if(verbose) message("Processing index ", i, " with adjustment = ", adj_factors[i])
+
+				   processed_image <- raw_image + adj_factors[i]
+
+				   terra::writeRaster(processed_image,
+						      filename = dst,
+						      datatype = "INT2U",
+						      overwrite = overwrite_dst)
+				     },
+				   src_files = src_files,
+				   dst_files = dst_files,
+				   adj_factors = adj_factors,
+				   verbose = verbose,
+				   overwrite_dst = overwrite_dst,
+				   mc.cores = ncores)
+
+	# Transfering the EXIF metadata from the source files to the destination files
+	transfer_exif(src_dir, src_ext, output_dir)
 
 	invisible(dst_files)
 }
 
 #' Transfer exif metadata from the original to corrected files
 #'
-#' @param src_file The file from which the exif data should be taken.
-#' @param dst_file The file to which the exif data will be transferred.
+#' @param src_dir The directory where the source files are found.
+#' @param src_ext The extension of the source files (including the dot prefix).
+#' @param dst_dir The directory containing the files to write the metadata to.
 #'
 #' @return NULL, invisibly
 #'
 #' @examples
 #' NULL
-transfer_exif <- function(src_file, dst_file) {
-	stopifnot(all(file.exists(c(src_file, dst_file))))
-	exifr::exiftool_call('-overwrite_original -tagsFromFile', c(src_file, dst_file))
+transfer_exif <- function(src_dir, src_ext, dst_dir) {
+
+	stopifnot(all(dir.exists(c(src_dir, dst_dir))))
+
+	# Using the batch format syntax to apply the command to all files at once
+	exifr::exiftool_call(args = paste0('-overwrite_original -tagsFromFile ',
+				    src_dir, "/%f", src_ext, " ",
+				    paste0("-", thermal:::exif_tags("minimal"), collapse = " ")),
+			     fnames = dst_dir)
 }
 
 #' Extract the vignetting pattern of a thermal dataset
@@ -277,6 +294,7 @@ compute_vignetting <- function(metadata) {
 #' @param method A character. The method to use for drift correction. At the moment
 #' only "overall" is supported.
 #' @param overwrite_dst A logical. Whether the destination files should be overwritten if they already exist.
+#' @param ncores An integer. The number of cores to use for parallel processing.
 #' @param verbose A logical. Whether the function should output information on its progress (default = TRUE).
 #'
 #' @return A character vector of the files that were written to disk, invisibly.
@@ -284,7 +302,7 @@ compute_vignetting <- function(metadata) {
 #' @export
 #' @examples
 #' NULL
-correct_vignetting <- function(metadata, output_dir, method = "overall", overwrite_dst = FALSE, verbose = TRUE) {
+correct_vignetting <- function(metadata, output_dir, method = "overall", overwrite_dst = FALSE, ncores = 1, verbose = TRUE) {
 
 	# Some sanity checks
 	stopifnot("SourceFile" %in% names(metadata))
@@ -293,6 +311,12 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 	src_files <- metadata$SourceFile
 	dst_files <- paste0(output_dir, "/", sub("\\..*$", ".tiff", basename(src_files)))
 	if(any(dst_files %in% src_files)) stop("correct_drift does not allow overwriting source files")
+
+	# Also extracting the directory part and the extension for later use in transfer_exif
+	src_dir <- unique(dirname(src_files))
+	src_ext <- paste0(".", unique(tools::file_ext(src_files)))
+
+	stopifnot(length(src_dir) == 1 && length(src_ext) == 1)
 
 	# Also checking whether we are going to overwrite destination files
 	if(!overwrite_dst && any(file.exists(dst_files))) stop("Overwriting destination files not allowed with overwrite_dst = FALSE")
@@ -305,26 +329,32 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 		vignetting_adjustment <- terra::global(vignetting_pattern, mean)$mean -  vignetting_pattern
 
 		# Looping from the first to the last picture in the dataset
-		for(i in 1:length(src_files)) {
-			src <- src_files[i]
-			dst <- dst_files[i]
+		parallel::mclapply(1:length(src_files), FUN = function(i, src_files, dst_files, verbose, vignetting_adjustment, overwrite_dst) {
+					   src <- src_files[i]
+					   dst <- dst_files[i]
 
-			if(verbose) message("Processing index ", i)
+					   if(verbose) message("Processing index ", i)
 
-			raw_image <- suppressWarnings(terra::rast(src))
-			processed_image <- raw_image + vignetting_adjustment
+					   raw_image <- suppressWarnings(terra::rast(src))
+					   processed_image <- raw_image + vignetting_adjustment
 
-			writeRaster(processed_image,
-				    filename = dst,
-				    datatype = "INT2U",
-				    overwrite = overwrite_dst)
-
-			transfer_exif(src, dst)
-		}
+					   writeRaster(processed_image,
+						       filename = dst,
+						       datatype = "INT2U",
+						       overwrite = overwrite_dst)
+			     },
+			     src_files = src_files,
+			     dst_files = dst_files,
+			     verbose = verbose,
+			     vignetting_adjustment = vignetting_adjustment,
+			     overwrite_dst = overwrite_dst,
+			     mc.cores = ncores)
 
 	} else {
 		stop("Only method = 'overall' is supported at the moment.")
 	}
+
+	transfer_exif(src_dir, src_ext, output_dir)
 
 	invisible(dst_files)
 }

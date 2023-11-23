@@ -10,6 +10,7 @@ correct_drift(
   method = "overlap",
   midpoint = NULL,
   overwrite_dst = FALSE,
+  ncores = 1,
   verbose = TRUE
 )
 }
@@ -29,6 +30,8 @@ will be adjusted to match the image at that index. If NULL (the default), then
 the middle of the range is used.}
 
 \item{overwrite_dst}{A logical. Whether the destination files should be overwritten if they already exist.}
+
+\item{ncores}{An integer. The number of cores to use for parallel processing.}
 
 \item{verbose}{A logical. Whether the function should output information on its progress (default = TRUE).}
 }

@@ -9,6 +9,7 @@ correct_vignetting(
   output_dir,
   method = "overall",
   overwrite_dst = FALSE,
+  ncores = 1,
   verbose = TRUE
 )
 }
@@ -23,6 +24,8 @@ directory should be different from the one containing the source data.}
 only "overall" is supported.}
 
 \item{overwrite_dst}{A logical. Whether the destination files should be overwritten if they already exist.}
+
+\item{ncores}{An integer. The number of cores to use for parallel processing.}
 
 \item{verbose}{A logical. Whether the function should output information on its progress (default = TRUE).}
 }

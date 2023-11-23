@@ -4,12 +4,14 @@
 \alias{transfer_exif}
 \title{Transfer exif metadata from the original to corrected files}
 \usage{
-transfer_exif(src_file, dst_file)
+transfer_exif(src_dir, src_ext, dst_dir)
 }
 \arguments{
-\item{src_file}{The file from which the exif data should be taken.}
+\item{src_dir}{The directory where the source files are found.}
 
-\item{dst_file}{The file to which the exif data will be transferred.}
+\item{src_ext}{The extension of the source files (including the dot prefix).}
+
+\item{dst_dir}{The directory containing the files to write the metadata to.}
 }
 \value{
 NULL, invisibly

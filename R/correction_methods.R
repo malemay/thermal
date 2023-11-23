@@ -325,7 +325,7 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 	if(method == "overall") {
 
 		# We compute the vignetting adjustment as the difference between the pattern of each pixel and the overall mean
-		vignetting_pattern <- compute_vignetting(tmeta_params)
+		vignetting_pattern <- compute_vignetting(metadata)
 		vignetting_adjustment <- terra::global(vignetting_pattern, mean)$mean -  vignetting_pattern
 
 		# Looping from the first to the last picture in the dataset
@@ -338,10 +338,10 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 					   raw_image <- suppressWarnings(terra::rast(src))
 					   processed_image <- raw_image + vignetting_adjustment
 
-					   writeRaster(processed_image,
-						       filename = dst,
-						       datatype = "INT2U",
-						       overwrite = overwrite_dst)
+					   terra::writeRaster(processed_image,
+							      filename = dst,
+							      datatype = "INT2U",
+							      overwrite = overwrite_dst)
 			     },
 			     src_files = src_files,
 			     dst_files = dst_files,

@@ -15,61 +15,6 @@ create_rmat <- function(theta) {
 	rot_matrix
 }
 
-#' Rotate x-y coordinates using matrix algebra
-#'
-#' @param coords A 2-column matrix with x-coordinates as the first column
-#' and y-coordinates as the second column
-#' @param theta A numeric. The angle (in degrees) to rotate counterclockwise.
-#' @param center A numeric vector of length 2 indicating the x, y coordinates
-#' of the rotation center
-#'
-#' @return A matrix of coordinates similar to the input one, but with
-#' rotated coordinates.
-#'
-#' @export
-#'
-#' @examples
-#' NULL
-rotate_coords <- function(coords, theta = 0, center = c(0, 0)) {
-
-	# Creating the rotation matrix
-	rot_matrix <- create_rmat(theta)
-
-	# We transform the coordinates to rotate around the center of the image
-	coords[, 1] <- coords[, 1] - center[1]
-	coords[, 2] <- coords[, 2] - center[2]
-
-	# Rotating the coordinates through matrix multiplication and converting them back to the original coordinate system
-	coords <- t(rot_matrix %*% t(coords))
-	coords[, 1] <- coords[, 1] + center[1]
-	coords[, 2] <- coords[, 2] + center[2]
-
-	coords
-}
-
-#' A function that performs coordinate translation
-#'
-#' @param coords A 2-column matrix with x-coordinates as the first column
-#' and y-coordinates as the second column
-#' @param htrans A numeric. The translation along the x-axis.
-#' @param vtrans A numeric. The translation along the y-axis.
-#'
-#' @return A matrix of coordinates similar to the input one, but with
-#' rotated coordinates.
-#'
-#' @export
-#'
-#' @examples
-#' NULL
-translate_coords <- function(coords, htrans = 0, vtrans = 0) {
-
-	# Translating the coordinates
-	coords[, 1] <- coords[, 1] + htrans
-	coords[, 2] <- coords[, 2] + vtrans
-
-	coords
-}
-
 #' Apply a coordinate transformation to raster values
 #'
 #' @param x A template raster whose values will be changed.
@@ -104,50 +49,6 @@ apply_transform <- function(x, new_coords) {
 	x
 }
 
-#' Rotate the values in a raster
-#'
-#' @param x A raster whose values will be rotated
-#' @param theta A numeric. The number of degrees to rotate the raster
-#' values, counterclockwise.
-#'
-#' @return A raster similar to the input one, but whose values have been rotated.
-#'
-#' @export
-#'
-#' @examples
-#' NULL
-rotate_raster <- function(x, theta) {
-
-	# We extract the x-y coordinates of the cells
-	new_coords <- rotate_coords(xyFromCell(x, 1:ncell(x)),
-				    theta = theta,
-				    center = c((xmax(x) - xmin(x)) / 2, (ymax(x) - ymin(x)) / 2))
-
-	apply_transform(x, new_coords)
-}
-
-#' Translates the values of a raster
-#'
-#' @param x A raster whose values will be rotated
-#' @param htrans A numeric. The translation along the x-axis.
-#' @param vtrans A numeric. The translation along the y-axis.
-#'
-#' @return A raster similar to the input one, but whose values have been rotated.
-#'
-#' @export
-#'
-#' @examples
-#' NULL
-translate_raster <- function(x, htrans, vtrans) {
-
-	# We extract the coordinates of the cells
-	new_coords <- translate_coords(xyFromCell(x, 1:ncell(x)),
-				       htrans = htrans,
-				       vtrans = vtrans)
-
-	apply_transform(x, new_coords)
-}
-
 #' Transform a raster by rotation and translation
 #'
 #' @param x A raster whose values will be rotated
@@ -155,6 +56,9 @@ translate_raster <- function(x, htrans, vtrans) {
 #' values, counterclockwise.
 #' @param htrans A numeric. The translation along the x-axis.
 #' @param vtrans A numeric. The translation along the y-axis.
+#' @param reverse A logical. Whether the transformation (translation and rotation)
+#' should be inversed relative to the input parameters. If TRUE, then the inverse
+#' of the transformation matrix is used instead of the matrix itself.
 #'
 #' @return A raster similar to the input one, but whose values have been rotated.
 #'
@@ -162,14 +66,15 @@ translate_raster <- function(x, htrans, vtrans) {
 #'
 #' @examples
 #' NULL
-transform_thermal <- function(x, theta, htrans, vtrans) {
+transform_raster <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 
 	# We extract the x-y coordinates of the cells
 	new_coords <- transform_coords(xyFromCell(x, 1:ncell(x)),
 				       theta = theta,
 				       center = c((xmax(x) - xmin(x)) / 2, (ymax(x) - ymin(x)) / 2),
 				       htrans = htrans,
-				       vtrans = vtrans)
+				       vtrans = vtrans,
+				       reverse = reverse)
 
 	apply_transform(x, new_coords)
 }
@@ -214,39 +119,6 @@ transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FA
 
 	# Rotating the coordinates through matrix multiplication and converting them back to the original coordinate system
 	(cbind(coords, rep(1, nrow(coords))) %*% t(transform_matrix))[, 1:2, drop = FALSE]
-}
-
-#' Assess accuracy of raster transformation by comparing to target raster
-#'
-#' @param x The target raster.
-#' @param y A raster whose coordinates are to be transformed to match the
-#' target raster.
-#' @param theta A numeric. The number of degrees to rotate the raster
-#' values, counterclockwise.
-#' @param htrans A numeric. The translation along the x-axis.
-#' @param vtrans A numeric. The translation along the y-axis.
-#'
-#' @return The correlation between the values of the transformed raster
-#' and the target raster.
-#'
-#' @export
-#'
-#' @examples
-#' NULL
-assess_transform <- function(x, y, theta, htrans, vtrans) {
-
-	# We extract the x-y coordinates of the cells
-	new_coords <- transform_coords(xyFromCell(y, 1:ncell(y)),
-				       theta = theta,
-				       center = c((xmax(y) - xmin(y)) / 2, (ymax(y) - ymin(y)) / 2),
-				       htrans = htrans,
-				       vtrans = vtrans)
-
-	# Filtering out coordinates that are outside the boundaries of the target raster
-	coords_ok <- new_coords[, 1] > xmin(x) & new_coords[, 1] < xmax(x) & new_coords[, 2] > ymin(x) & new_coords[, 2] < ymax(x)
-
-	# Computing the correlation
-	cor(terra::values(x)[terra::cellFromXY(x, new_coords[coords_ok, ])], terra::values(y)[coords_ok, ])
 }
 
 #' Optimize the transformation for a raster to match its target
@@ -380,7 +252,14 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 #' to match another raster and verify where the clicks land on the target
 #' raster.
 #'
-#' @inheritParams assess_transform
+#' @param x,y Rasters.
+#' @param theta A numeric. The number of degrees to rotate the raster
+#' values, counterclockwise.
+#' @param htrans A numeric. The translation along the x-axis.
+#' @param vtrans A numeric. The translation along the y-axis.
+#' @param reverse A logical. Whether the transformation (translation and rotation)
+#' should be inversed relative to the input parameters. If TRUE, then the inverse
+#' of the transformation matrix is used instead of the matrix itself.
 #' @param n An integer. The number of clicks to query for.
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting side-effect.
@@ -389,7 +268,7 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 #'
 #' @examples
 #' NULL
-check_transform <- function(x, y, theta, htrans, vtrans, n = 10) {
+check_transform <- function(x, y, theta, htrans, vtrans, reverse = FALSE, n = 10) {
 	# Initalizing the plotting regions
 	terra::plot(x)
 	dev.new()
@@ -406,7 +285,8 @@ check_transform <- function(x, y, theta, htrans, vtrans, n = 10) {
 						       theta = theta,
 						       center = dim(x)[2:1] / 2,
 						       htrans = htrans,
-						       vtrans = vtrans)
+						       vtrans = vtrans,
+						       reverse = reverse)
 
 		points(x = transformed_coords[, 1], y = transformed_coords[, 2])
 		dev.set(dev.prev())

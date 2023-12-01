@@ -126,3 +126,24 @@ exif_tags <- function(option) {
 	return(output)
 }
 
+#' Transfer exif metadata from the original to corrected files
+#'
+#' @param src_dir The directory where the source files are found.
+#' @param src_ext The extension of the source files (including the dot prefix).
+#' @param dst_dir The directory containing the files to write the metadata to.
+#'
+#' @return NULL, invisibly
+#'
+#' @examples
+#' NULL
+transfer_exif <- function(src_dir, src_ext, dst_dir) {
+
+	stopifnot(all(dir.exists(c(src_dir, dst_dir))))
+
+	# Using the batch format syntax to apply the command to all files at once
+	exifr::exiftool_call(args = paste0('-overwrite_original -tagsFromFile ',
+				    src_dir, "/%f", src_ext, " ",
+				    paste0("-", thermal:::exif_tags("minimal"), collapse = " ")),
+			     fnames = dst_dir)
+}
+

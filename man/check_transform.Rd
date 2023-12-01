@@ -4,13 +4,10 @@
 \alias{check_transform}
 \title{Verify the accuracy of a raster transformation}
 \usage{
-check_transform(x, y, theta, htrans, vtrans, n = 10)
+check_transform(x, y, theta, htrans, vtrans, reverse = FALSE, n = 10)
 }
 \arguments{
-\item{x}{The target raster.}
-
-\item{y}{A raster whose coordinates are to be transformed to match the
-target raster.}
+\item{x, y}{Rasters.}
 
 \item{theta}{A numeric. The number of degrees to rotate the raster
 values, counterclockwise.}
@@ -18,6 +15,10 @@ values, counterclockwise.}
 \item{htrans}{A numeric. The translation along the x-axis.}
 
 \item{vtrans}{A numeric. The translation along the y-axis.}
+
+\item{reverse}{A logical. Whether the transformation (translation and rotation)
+should be inversed relative to the input parameters. If TRUE, then the inverse
+of the transformation matrix is used instead of the matrix itself.}
 
 \item{n}{An integer. The number of clicks to query for.}
 }

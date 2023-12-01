@@ -477,6 +477,6 @@ find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, fact = 1, c
 	output$htrans <- output$htrans * fact
 	output$vtrans <- output$vtrans * fact
 
-	list(param = as.numeric(output), value = max(unlist(correlations)))
+	list(param = as.numeric(output), value = max(unlist(correlations), na.rm = TRUE))
 }
 

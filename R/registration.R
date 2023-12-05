@@ -108,41 +108,38 @@ align_images <- function(visible, thermal, start_values, method = c("Nelder-Mead
 	# Getting the sum of the values from the visible raster
 	visible_sum <- sum(visible)
 
-	# Setting the positions to query in the thermal raster
-	tcoords <- xyFromCell(thermal, 1:ncell(thermal))
+	# Setting the positions to query in the visible raster
+	vcoords <- xyFromCell(visible_sum, 1:ncell(visible_sum))
+
+	# Subsetting the coordinates (for testing)
+	set.seed(123)
+	vcoords <- vcoords[sample(nrow(vcoords), 327680), ]
+
 	# And the corresponding values
-	tvalues <- extract(thermal, tcoords)[[1]]
+	vvalues <- extract(visible_sum, vcoords)[[1]]
+	tvalues <- values(thermal, mat = FALSE)
 
-	ofunct <- function(x, vsum, tcoords, tvalues) {
-		slope <- x[1]
-		bx <- x[2]
-		by <- x[3]
-		k <- x[4]
+	ofunct <- function(x, thermal, vcoords, vvalues, tvalues) {
 
-		# Getting the corresponding position in visible raster given params
-		vcoords <- tcoords
-		vcoords[, 1] <- (vcoords[, 1] - bx) / slope
-		vcoords[, 2] <- (vcoords[, 2] - by) / slope
+		tcoords <- convert_coordinates(vcoords[, 1], vcoords[, 2], x, distortion_center = distortion_center)
 
-		# Correcting for the distortion of the visible image
-		euclid_distance <- sqrt((vcoords[, 1] - distortion_center[1])^2 + (vcoords[, 2] - distortion_center[2])^2)
-		vcoords[, 1] <- distortion_center[1] + (vcoords[, 1] - distortion_center[1]) / (1 + k * euclid_distance^2)
-		vcoords[, 2] <- distortion_center[2] + (vcoords[, 2] - distortion_center[2]) / (1 + k * euclid_distance^2)
+		# Subsetting to positions that are valid on the thermal raster
+		valid_positions <- tcoords[, 1] > xmin(thermal) & tcoords[, 1] < xmax(thermal) & tcoords[, 2] > ymin(thermal) & tcoords[, 2] < ymax(thermal)
+		if(sum(valid_positions) == 0) return(0)
+		tcoords <- tcoords[valid_positions, ]
+		vvalues <- vvalues[valid_positions]
 
 		# And extracting the corresponding values
-		vvalues <- extract(vsum, vcoords)[[1]]
+		tvalues <- tvalues[cellFromXY(thermal, tcoords)]
 
-		# We return 0 if the correlation would be NA
-		if(all(is.na(tvalues) | is.na(vvalues))) {
-			return(0)
-		} else {
-			# Getting the negative correlation because we want to minimize
-			return(-cor(tvalues, vvalues, use = "complete.obs"))
-		}
+		if(any(is.na(tvalues)) || any(is.na(vvalues))) stop("NA values not supported")
+
+		# Getting the negative correlation because we want to minimize
+		return(-cor(vvalues, tvalues))
 	}
 
 	# We return the results of the optimization
-	optim(start_values, ofunct, method = method, control = list(trace = 3), vsum = visible_sum, tcoords = tcoords, tvalues = tvalues)
+	optim(start_values, ofunct, method = method, control = list(trace = 3), thermal = thermal, vcoords = vcoords, vvalues = vvalues, tvalues = tvalues)
 }
 
 #' Convert visible image coordinates to thermal image coordinates
@@ -164,22 +161,21 @@ align_images <- function(visible, thermal, start_values, method = c("Nelder-Mead
 convert_coordinates <- function(x, y, optimout, distortion_center = c(2000, 1500)) {
 
 	# Extract the parameters of the optimized model
-	slope <- optimout$par[1]
-	bx <- optimout$par[2]
-	by <- optimout$par[3]
-	k <- optimout$par[4]
+	slope <- optimout[1]
+	bx <- optimout[2]
+	by <- optimout[3]
+	k <- optimout[4]
 
-	# We need to go the other way around compared to the optimization procedure
-	# So first we need to distort the coordinates before we apply the other parameters
-	euclid_distance <- sqrt((x - distortion_center[1])^2 + (y - distortion_center[2])^2)
+	# Removing the distortion in the visible image coordinates
+	r2 <- (x - distortion_center[1])^2 + (y - distortion_center[2])^2
+	xout <- distortion_center[1] + (x - distortion_center[1]) / (1 + k * r2)
+	yout <- distortion_center[2] + (y - distortion_center[2]) / (1 + k * r2)
 
-	xout <- distortion_center[1] + (x - distortion_center[1]) / (2 * k * euclid_distance^2) * (1 - sqrt(1 - 4 * k * euclid_distance^2))
-	yout <- distortion_center[2] + (y - distortion_center[2]) / (2 * k * euclid_distance^2) * (1 - sqrt(1 - 4 * k * euclid_distance^2))
-
+	# Adjusting for the thermal image coordinates
 	xout <- xout * slope + bx
 	yout <- yout * slope + by
 
-	return(list(x = xout, y = yout))
+	return(cbind(xout, yout))
 }
 
 #' Plot aligned images with corresponding points
@@ -254,11 +250,11 @@ thermclick <- function(visible, thermal, optimout, nclicks = 1, distortion_cente
 
 		tcoords <- convert_coordinates(x = vpoint$x,
 					       y = vpoint$y,
-					       optimout = optimout,
+					       optimout = optimout$par,
 					       distortion_center = distortion_center)
 
 		dev.set(tdev)
-		terra::points(data.frame(x = tcoords$x, y = tcoords$y), pch = 16, col = "blue")
+		terra::points(data.frame(x = tcoords[, 1], y = tcoords[, 2]), pch = 16, col = "blue")
 	}
 }
 

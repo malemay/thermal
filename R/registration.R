@@ -104,19 +104,26 @@ plot_lm <- function(lmod) {
 #' NULL
 #'
 #' @export
-align_images <- function(visible, thermal, start_values, method = c("Nelder-Mead", "BFGS"), distortion_center = c(2000, 1500)) {
+align_images <- function(visible, thermal, start_values,
+			 aggregate_factor = 1, crop_values = c(0, 0),
+			 method = c("Nelder-Mead", "BFGS"), distortion_center = c(2000, 1500)) {
 	# Getting the sum of the values from the visible raster
 	visible_sum <- sum(visible)
+
+	# Aggregating the values if provided
+	if(aggregate_factor != 1) visible_sum <- terra::aggregate(visible_sum, fact = aggregate_factor)
 
 	# Setting the positions to query in the visible raster
 	vcoords <- xyFromCell(visible_sum, 1:ncell(visible_sum))
 
-	# Subsetting the coordinates (for testing)
-	set.seed(123)
-	vcoords <- vcoords[sample(nrow(vcoords), 327680), ]
+	# Cropping some of the coordinates if provided
+	if(! all(crop_values == 0)) {
+		vcoords <- vcoords[vcoords[, 1] > crop_values[1] & vcoords[, 1] < (xmax(visible_sum) - crop_values[1]) &
+				   vcoords[, 2] > crop_values[2] & vcoords[, 2] < (ymax(visible_sum) - crop_values[2]), ]
+	}
 
 	# And the corresponding values
-	vvalues <- extract(visible_sum, vcoords)[[1]]
+	vvalues <- values(visible_sum, mat = FALSE)[cellFromXY(visible_sum, vcoords)]
 	tvalues <- values(thermal, mat = FALSE)
 
 	ofunct <- function(x, thermal, vcoords, vvalues, tvalues) {

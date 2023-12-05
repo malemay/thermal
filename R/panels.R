@@ -1,3 +1,96 @@
+#' Get panel coordinates through interactive clicking
+#'
+#' Panel corners are to be clicked on clockwise.
+#'
+#' @param x A SpatRaster object to query for coordinates.
+#'
+#' @return An polygon object of class sfc that representes the coordinates of a
+#' panel in a reference coordinate system.
+#'
+#' @examples
+#' NULL
+get_panel_coords <- function(x) {
+
+	# Interactively getting the coordinates of the panel
+	coords <- terra::click(x, n = 4, xy = TRUE)
+
+	# Formatting the coordinates and closing the shape by repeating the first row
+	coords <- rbind(coords[, c("x", "y")], coords[1, c("x", "y")])
+
+	# Creating an object of the sfc class from the supplied coordinates
+	output <- sf::st_as_sfc(sf::st_as_binary(sf::st_polygon(list(as.matrix(coords)))))
+
+	# Setting the coordinate reference system (same as the raster)
+	sf::st_crs(output) <- sf::st_crs(x)
+
+	output
+}
+
+#' Interactively identify and write panel coordinates from a georeferenced raster
+#'
+#' This function will write the polygons representing the reference panels in
+#' ESRI Shapefile format to the specified output directory. The names of the
+#' files are hard-coded as "black.shp", "gray.shp" and "white.shp" and will not
+#' be overwritten unless otherwise specified.
+#'
+#' @param image_file A character. The path to a georeferenced raster file.
+#' @param output_dir A character representing a directory path to which the
+#' files will be written. The directory will be created if it does not exist.
+#' @param overwrite A logical value indicating whether existing files should
+#' be overwritten by this function.
+#'
+#' @return A named list of polygon objects representing each of the three
+#' panels.
+#'
+#' @export
+#' @examples
+#' NULL
+write_panel_coords <- function(filepath, output_dir, overwrite = FALSE) {
+
+	# Reading an georeferenced picture and interactively zooming into it
+	ortho <- terra::rast(filepath)
+	terra::RGB(ortho) <- 1:4
+	terra::plot(ortho)
+
+	message("Click on the image to zoom on an area of interest")
+	panel_region <- terra::zoom(ortho)
+
+	# Getting the coordinates for each of the panels
+	message("Click clockwise on the four corners of the black panel")
+	black <- get_panel_coords(terra::crop(ortho, panel_region))
+
+	message("Click clockwise on the four corners of the gray panel")
+	gray <- get_panel_coords(terra::crop(ortho, panel_region))
+
+	message("Click clockwise on the four corners of the white panel")
+	white <- get_panel_coords(terra::crop(ortho, panel_region))
+
+	# Exporting the results as shapefiles
+	dir.create(output_dir, recursive = TRUE)
+	sf::st_write(black, paste0(output_dir, "/black.shp"), delete_layer = overwrite)
+	sf::st_write(gray, paste0(output_dir, "/gray.shp"), delete_layer = overwrite)
+	sf::st_write(white, paste0(output_dir, "/white.shp"), delete_layer = overwrite)
+
+	return(list(black = black, gray = gray, white = white))
+}
+
+#' Compare panel area to expectations
+#'
+#' @param panels A list of polygons representing reference panel coordinates.
+#' @param expected_area A numeric of lenght one indicating the expected area of
+#' each panel. The function only supports cases where all panels are expected to
+#' be of the same size.
+#'
+#' @return A numeric vector of the same length as the input list, showing the
+#' difference between each panel's area and the expected area
+#'
+#' @export
+#' @examples
+#' NULL
+check_panels <- function(panels, expected_area = 2.25) {
+	sapply(panels, sf::st_area) - expected_area
+}
+
 #' Convert polygons from visible to thermal coordinates
 #'
 #' To complete

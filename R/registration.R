@@ -106,17 +106,17 @@ align_images <- function(visible, thermal, start_values, distortion_center = c(2
 	if(aggregate_factor != 1) visible_sum <- terra::aggregate(visible_sum, fact = aggregate_factor)
 
 	# Setting the positions to query in the visible raster
-	vcoords <- xyFromCell(visible_sum, 1:ncell(visible_sum))
+	vcoords <- terra::xyFromCell(visible_sum, 1:(terra::ncell(visible_sum)))
 
 	# Cropping some of the coordinates if provided
 	if(! all(crop_values == 0)) {
-		vcoords <- vcoords[vcoords[, 1] > crop_values[1] & vcoords[, 1] < (xmax(visible_sum) - crop_values[1]) &
-				   vcoords[, 2] > crop_values[2] & vcoords[, 2] < (ymax(visible_sum) - crop_values[2]), ]
+		vcoords <- vcoords[vcoords[, 1] > crop_values[1] & vcoords[, 1] < (terra::xmax(visible_sum) - crop_values[1]) &
+				   vcoords[, 2] > crop_values[2] & vcoords[, 2] < (terra::ymax(visible_sum) - crop_values[2]), ]
 	}
 
 	# And the corresponding values
-	vvalues <- values(visible_sum, mat = FALSE)[cellFromXY(visible_sum, vcoords)]
-	tvalues <- values(thermal, mat = FALSE)
+	vvalues <- terra::values(visible_sum, mat = FALSE)[terra::cellFromXY(visible_sum, vcoords)]
+	tvalues <- terra::values(thermal, mat = FALSE)
 
 	# Pre-compute r2 distances prior to input to convert_coords_optim
 	r2 <- (vcoords[, 1] - distortion_center[1])^2 + (vcoords[, 2] - distortion_center[2])^2
@@ -132,8 +132,8 @@ align_images <- function(visible, thermal, start_values, distortion_center = c(2
 		      vcoords = vcoords, r2 = r2,
 		      distortion_center = distortion_center,
 		      vvalues = vvalues, tvalues = tvalues,
-		      nrows = nrow(thermal), ncols = ncol(thermal),
-		      extent = unlist(as.list(ext(thermal))),
+		      nrows = terra::nrow(thermal), ncols = terra::ncol(thermal),
+		      extent = unlist(as.list(terra::ext(thermal))),
 		      min_overlap = min_overlap,
 		      method = method,
 		      control = list(trace = 3, reltol = reltol))

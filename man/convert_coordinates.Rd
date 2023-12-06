@@ -9,13 +9,19 @@ convert_coordinates(coords, params, distortion_center = c(2000, 1500))
 \arguments{
 \item{coords}{A two-column (x-y) matrix of coordinates to convert.}
 
-\item{params}{A numeric vector of transformation parameters (slope, bx, by, k).}
+\item{params}{A numeric vector of length 4 representing transformation
+parameters (slope, bx, by, k).}
+
+\item{distortion_center}{A numeric vector of length two containing coordinates
+of the center of the visible image for the purposes of asjusting distortion.}
 }
 \value{
 A matrix similar to the input with converted coordinates.
 }
 \description{
-To complete
+This function converts visible image coordinates to their corresponding
+position on a matching thermal image using a 4-parameter transformation
+model described in detail in \link{\code{align_images}}.
 }
 \examples{
 NULL

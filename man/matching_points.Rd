@@ -7,18 +7,19 @@
 matching_points(visible, thermal, npoints = 10)
 }
 \arguments{
-\item{visible}{A terra raster with a visible image}
+\item{visible}{A terra raster representing a visible image.}
 
-\item{thermal}{A terra raster with the corresponding thermal image}
+\item{thermal}{A terra raster representing the corresponding thermal image}
 
-\item{npoints}{Integer. The number of values to query.}
+\item{npoints}{an integer. The number of values to query.}
 }
 \value{
-A data.frame with the pixel coordinates of matching points
+A list with the pixel coordinates of matching points
 on both pictures
 }
 \description{
-To be completed
+To complete. Functionality should eventually be added to fit a coordinate
+conversion model to manually identified points.
 }
 \examples{
 NULL

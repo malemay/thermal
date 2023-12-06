@@ -13,20 +13,29 @@ thermclick(
 )
 }
 \arguments{
-\item{visible}{a terra raster representing a visible image}
+\item{visible}{a terra raster representing a visible image.}
 
-\item{thermal}{a terra raster representing a thermal image}
+\item{thermal}{a terra raster representing a thermal image.}
 
-\item{params}{a list of optimization results as returned by
-align_images.}
+\item{params}{A numeric vector of length 4 representing transformation
+parameters (slope, bx, by, k).}
 
-\item{nclicks}{the number of clicks before the function returns.}
+\item{nclicks}{the number of clicks that the user is prompted for before the
+function returns.}
+
+\item{distortion_center}{A numeric vector of length two containing coordinates
+of the center of the visible image for the purposes of asjusting distortion.}
 }
 \value{
-NULL, invisibly. This function is invoked for its plotting.
+NULL, invisibly. This function is invoked for its plotting side-effect.
 }
 \description{
-To complete
+Given a set of transformation parameters from visible image to thermal image
+coordinates, this function allows to interactively and graphically check the
+quality of transformation parameters. Both the visible and thermal image
+will be displayed, and the user is then prompted to click on the visible
+image. The corresponding position on the thermal raster will then be
+displayed automatically.
 }
 \examples{
 NULL

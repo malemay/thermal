@@ -1,18 +1,19 @@
 #' Identify matching points on visible and thermal images
 #'
-#' To be completed
+#' To complete. Functionality should eventually be added to fit a coordinate
+#' conversion model to manually identified points.
 #'
-#' @param visible A terra raster with a visible image
-#' @param thermal A terra raster with the corresponding thermal image
-#' @param npoints Integer. The number of values to query.
+#' @param visible A terra raster representing a visible image.
+#' @param thermal A terra raster representing the corresponding thermal image
+#' @param npoints an integer. The number of values to query.
 #'
-#' @return A data.frame with the pixel coordinates of matching points
+#' @return A list with the pixel coordinates of matching points
 #'         on both pictures
 #'
+#' @export
 #' @examples
 #' NULL
 #'
-#' @export
 matching_points <- function(visible, thermal, npoints = 10) {
 	vlist <- list()
 	tlist <- list()
@@ -33,27 +34,70 @@ matching_points <- function(visible, thermal, npoints = 10) {
 
 #' Align a thermal and a visible image
 #'
-#' To be completed
+#' This function aims to identify transformation parameters that allow to
+#' convert the coordinates on a visible raster to corresponding coordinates
+#' on a thermal raster.
 #'
-#' @param visible a terra raster representing a visible image
-#' @param thermal a terra raster representing a thermal image
-#' @param start_values a numeric of length 4, the starting values for
-#'          the optimization procedure. The algorithm optimizes a linear
-#'          model that translates coordinates on the visible image to
-#'          coordinates on the thermal image. The four parameters to
-#'          optimize are the slope and intercept of the translation
-#'          in x and the slope and intercept of the translation in y.
-#' @param the method to use for the optim function.
+#' The coordinate transformation model implemented is relatively simple
+#' and involves four parameters:
+#' - slope: this parameter adjusts the resolution of the visible image
+#' to that of the thermal image, and is the same in the x- and y- directions.
+#' - bx: this is the offset of the left margin of the thermal image relative
+#' to that of the visible image
+#' - by: similar to bx, but for the top margin
+#' - k: a distortion parameter as implemented in the Brown-Conrady model of
+#' image distortion
+#'
+#' In the coordinate transformation framework, the visible image is first
+#' adjusted for distortion using the k parameter and the Brown-Conrady model.
+#' x- and y- coordinates are then adjusted based on simple linear models
+#' that relate the visible and thermal coordinates according to the following
+#' equations:
+#' thermal_x = visible_x * slope + bx
+#' thermal_y = visible_y * slope + by
+#'
+#' Optimization is performed by finding the parameters that maximize the
+#' correlation between the sum of all visible channels and the thermal values.
+#'
+#' The coordinate transformation of the optimization procedure described here
+#' is implemented in C++ for maximum speed. For more general R code to compute
+#' transformed coordinates based on a given set of parameters, see \code{\link{convert_coordinates}}.
+#'
+#' @param visible a terra raster representing a visible image.
+#' @param thermal a terra raster representing a thermal image.
+#' @param start_values a numeric vector of length 4 containing the starting
+#' values for the optimization procedure. The elements are in the following
+#' order: slope, bx, by, k (see details for explanations).
+#' @param distortion_center A numeric vector of length two containing coordinates
+#' of the center of the visible image for the purposes of computing distortion
+#' parameters.
+#' @param aggregate_factor A numeric of length one. If the value is different
+#' from 1 (the default value), the visible image will be aggregated according
+#' to this factor (passed to \code{\link[terra]{aggregate}}) to speed up computation
+#' and allow consistency with the resolution of the thermal raster.
+#' @param crop_values A numeric vector of length 2 specifying the extent of coordinates
+#' to crop from the visible image in the horizontal (x) direction and vertical (y)
+#' direction. Cropping can be useful to speed up computation in cases where the
+#' thermal raster is expected to cover a reduced area compared to the visible image.
+#' If both values are 0 (the default), then no cropping is done.
+#' @param min_overlap A numeric of length one. The minimal number of visible and thermal
+#' raster values that must be compared for the correlation to be valid. Otherwise,
+#' correlation is set to 0 and the algorithm therefore will not converge towards parameters
+#' that result in a low number of overlapping raster cells.
+#' @param method the method to use for the \code{\link{optim}} function.
+#' @param reltol A numeric of length one. The relative tolerance for the optimization
+#' procedure implemented by \code{\link{optim}}. Lower values should yield a more
+#' precise result at the cost of longer computation.
 #'
 #' @return A list of optimization results, as returned by optim.
 #'
+#' @export
 #' @examples
 #' NULL
 #'
-#' @export
 align_images <- function(visible, thermal, start_values, distortion_center = c(2000, 1500),
 			 aggregate_factor = 1, crop_values = c(0, 0), min_overlap = 10000,
-			 method = c("Nelder-Mead", "BFGS"), reltol = 10^-8) {
+			 method = "Nelder-Mead", reltol = 10^-8) {
 
 	# Getting the sum of the values from the visible raster
 	visible_sum <- sum(visible)
@@ -97,20 +141,26 @@ align_images <- function(visible, thermal, start_values, distortion_center = c(2
 
 #' Convert visible image coordinates to thermal image coordinates
 #'
-#' To complete
+#' This function converts visible image coordinates to their corresponding
+#' position on a matching thermal image using a 4-parameter transformation
+#' model described in detail in \link{\code{align_images}}.
 #'
 #' @param coords A two-column (x-y) matrix of coordinates to convert.
-#' @param params A numeric vector of transformation parameters (slope, bx, by, k).
+#' @param params A numeric vector of length 4 representing transformation
+#' parameters (slope, bx, by, k).
+#' @param distortion_center A numeric vector of length two containing coordinates
+#' of the center of the visible image for the purposes of asjusting distortion.
 #'
 #' @return A matrix similar to the input with converted coordinates.
 #'
+#' @export
 #' @examples
 #' NULL
 #'
-#' @export
 convert_coordinates <- function(coords, params, distortion_center = c(2000, 1500)) {
 
 	# Extract the parameters of the optimized model
+	stopifnot(length(params) == 4)
 	slope <- params[1]
 	bx <- params[2]
 	by <- params[3]
@@ -131,20 +181,28 @@ convert_coordinates <- function(coords, params, distortion_center = c(2000, 1500
 
 #' Compare aligned images interactively
 #'
-#' To complete
+#' Given a set of transformation parameters from visible image to thermal image
+#' coordinates, this function allows to interactively and graphically check the
+#' quality of transformation parameters. Both the visible and thermal image
+#' will be displayed, and the user is then prompted to click on the visible
+#' image. The corresponding position on the thermal raster will then be
+#' displayed automatically.
 #'
-#' @param visible a terra raster representing a visible image
-#' @param thermal a terra raster representing a thermal image
-#' @param params a list of optimization results as returned by
-#'          align_images.
-#' @param nclicks the number of clicks before the function returns.
+#' @param visible a terra raster representing a visible image.
+#' @param thermal a terra raster representing a thermal image.
+#' @param params A numeric vector of length 4 representing transformation
+#' parameters (slope, bx, by, k).
+#' @param distortion_center A numeric vector of length two containing coordinates
+#' of the center of the visible image for the purposes of asjusting distortion.
+#' @param nclicks the number of clicks that the user is prompted for before the
+#' function returns.
 #'
-#' @return NULL, invisibly. This function is invoked for its plotting.
+#' @return NULL, invisibly. This function is invoked for its plotting side-effect.
 #'
+#' @export
 #' @examples
 #' NULL
 #'
-#' @export
 thermclick <- function(visible, thermal, params, nclicks = 1, distortion_center = c(2000, 1500)) {
 
 	dev.new()
@@ -158,6 +216,8 @@ thermclick <- function(visible, thermal, params, nclicks = 1, distortion_center 
 
 	for(i in 1:nclicks) {
 		dev.set(vdev)
+
+		message("Click on the visible image")
 		vpoint <- terra::click(visible, n = 1, xy = TRUE, col = "red")
 
 		tcoords <- convert_coordinates(coords = as.matrix(vpoint[, c("x", "y")]),

@@ -12,29 +12,80 @@ align_images(
   aggregate_factor = 1,
   crop_values = c(0, 0),
   min_overlap = 10000,
-  method = c("Nelder-Mead", "BFGS"),
+  method = "Nelder-Mead",
   reltol = 10^-8
 )
 }
 \arguments{
-\item{visible}{a terra raster representing a visible image}
+\item{visible}{a terra raster representing a visible image.}
 
-\item{thermal}{a terra raster representing a thermal image}
+\item{thermal}{a terra raster representing a thermal image.}
 
-\item{start_values}{a numeric of length 4, the starting values for
-the optimization procedure. The algorithm optimizes a linear
-model that translates coordinates on the visible image to
-coordinates on the thermal image. The four parameters to
-optimize are the slope and intercept of the translation
-in x and the slope and intercept of the translation in y.}
+\item{start_values}{a numeric vector of length 4 containing the starting
+values for the optimization procedure. The elements are in the following
+order: slope, bx, by, k (see details for explanations).}
 
-\item{the}{method to use for the optim function.}
+\item{distortion_center}{A numeric vector of length two containing coordinates
+of the center of the visible image for the purposes of computing distortion
+parameters.}
+
+\item{aggregate_factor}{A numeric of length one. If the value is different
+from 1 (the default value), the visible image will be aggregated according
+to this factor (passed to \code{\link[terra]{aggregate}}) to speed up computation
+and allow consistency with the resolution of the thermal raster.}
+
+\item{crop_values}{A numeric vector of length 2 specifying the extent of coordinates
+to crop from the visible image in the horizontal (x) direction and vertical (y)
+direction. Cropping can be useful to speed up computation in cases where the
+thermal raster is expected to cover a reduced area compared to the visible image.
+If both values are 0 (the default), then no cropping is done.}
+
+\item{min_overlap}{A numeric of length one. The minimal number of visible and thermal
+raster values that must be compared for the correlation to be valid. Otherwise,
+correlation is set to 0 and the algorithm therefore will not converge towards parameters
+that result in a low number of overlapping raster cells.}
+
+\item{method}{the method to use for the \code{\link{optim}} function.}
+
+\item{reltol}{A numeric of length one. The relative tolerance for the optimization
+procedure implemented by \code{\link{optim}}. Lower values should yield a more
+precise result at the cost of longer computation.}
 }
 \value{
 A list of optimization results, as returned by optim.
 }
 \description{
-To be completed
+This function aims to identify transformation parameters that allow to
+convert the coordinates on a visible raster to corresponding coordinates
+on a thermal raster.
+}
+\details{
+The coordinate transformation model implemented is relatively simple
+and involves four parameters:
+\itemize{
+\item slope: this parameter adjusts the resolution of the visible image
+to that of the thermal image, and is the same in the x- and y- directions.
+\item bx: this is the offset of the left margin of the thermal image relative
+to that of the visible image
+\item by: similar to bx, but for the top margin
+\item k: a distortion parameter as implemented in the Brown-Conrady model of
+image distortion
+}
+
+In the coordinate transformation framework, the visible image is first
+adjusted for distortion using the k parameter and the Brown-Conrady model.
+x- and y- coordinates are then adjusted based on simple linear models
+that relate the visible and thermal coordinates according to the following
+equations:
+thermal_x = visible_x * slope + bx
+thermal_y = visible_y * slope + by
+
+Optimization is performed by finding the parameters that maximize the
+correlation between the sum of all visible channels and the thermal values.
+
+The coordinate transformation of the optimization procedure described here
+is implemented in C++ for maximum speed. For more general R code to compute
+transformed coordinates based on a given set of parameters, see \code{\link{convert_coordinates}}.
 }
 \examples{
 NULL

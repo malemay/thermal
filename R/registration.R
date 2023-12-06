@@ -107,6 +107,7 @@ plot_lm <- function(lmod) {
 align_images <- function(visible, thermal, start_values,
 			 aggregate_factor = 1, crop_values = c(0, 0),
 			 method = c("Nelder-Mead", "BFGS"), distortion_center = c(2000, 1500)) {
+
 	# Getting the sum of the values from the visible raster
 	visible_sum <- sum(visible)
 
@@ -133,27 +134,17 @@ align_images <- function(visible, thermal, start_values,
 	vcoords[, 1] <- vcoords[, 1] - distortion_center[1]
 	vcoords[, 2] <- vcoords[, 2] - distortion_center[2]
 
-	ofunct <- function(x, thermal, vcoords, r2, vvalues, tvalues) {
-
-		tcoords <- convert_coords_optim_cpp(vcoords, x, r2 = r2, distortion_center = distortion_center)
-
-		# Subsetting to positions that are valid on the thermal raster
-		valid_positions <- tcoords[, 1] > xmin(thermal) & tcoords[, 1] < xmax(thermal) & tcoords[, 2] > ymin(thermal) & tcoords[, 2] < ymax(thermal)
-		if(sum(valid_positions) == 0) return(0)
-		tcoords <- tcoords[valid_positions, ]
-		vvalues <- vvalues[valid_positions]
-
-		# And extracting the corresponding values
-		tvalues <- tvalues[cellFromXY(thermal, tcoords)]
-
-		if(any(is.na(tvalues)) || any(is.na(vvalues))) stop("NA values not supported")
-
-		# Getting the negative correlation because we want to minimize
-		return(-cor(vvalues, tvalues))
-	}
-
 	# We return the results of the optimization
-	optim(start_values, ofunct, method = method, control = list(trace = 3), thermal = thermal, vcoords = vcoords, r2 = r2, vvalues = vvalues, tvalues = tvalues)
+	optim(start_values, function(x, vcoords, r2, distortion_center, vvalues, tvalues, nrows, ncols, extent) {
+		      -assess_registration_cpp(x, vcoords, r2, distortion_center, vvalues, tvalues, nrows, ncols, extent)
+			 },
+		      vcoords = vcoords, r2 = r2,
+		      distortion_center = distortion_center,
+		      vvalues = vvalues, tvalues = tvalues,
+		      nrows = nrow(thermal), ncols = ncol(thermal),
+		      extent = unlist(as.list(ext(thermal))),
+		      method = method,
+		      control = list(trace = 3))
 }
 
 #' Convert visible image coordinates to thermal image coordinates

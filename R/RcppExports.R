@@ -5,6 +5,10 @@ assess_transform_cpp <- function(xval, yval, coords, theta, htrans, vtrans, nrow
     .Call(`_thermal_assess_transform_cpp`, xval, yval, coords, theta, htrans, vtrans, nrows, ncols, extent)
 }
 
+assess_registration_cpp <- function(params, vcoords, r2, distortion_center, vvalues, tvalues, nrows, ncols, extent) {
+    .Call(`_thermal_assess_registration_cpp`, params, vcoords, r2, distortion_center, vvalues, tvalues, nrows, ncols, extent)
+}
+
 convert_coords_optim_cpp <- function(coords, optimout, r2, distortion_center) {
     .Call(`_thermal_convert_coords_optim_cpp`, coords, optimout, r2, distortion_center)
 }

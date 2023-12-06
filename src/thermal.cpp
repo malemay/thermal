@@ -3,6 +3,7 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 //
 arma::Col<arma::uword> cellFromXY (const arma::mat & coords, int rast_rows, int rast_cols, arma::vec extent);
+arma::mat convert_coords_optim_cpp(arma::mat & coords, const arma::vec & optimout, const arma::vec & r2, const arma::vec & distortion_center);
 
 // [[Rcpp::export]]
 double assess_transform_cpp(const arma::vec & xval, const arma::vec & yval, const arma::mat & coords,
@@ -45,10 +46,51 @@ double assess_transform_cpp(const arma::vec & xval, const arma::vec & yval, cons
 	return output[0];
 }
 
+// A function that computes the correlation between a visible and a thermal image
+// given some transformation parameters
+// [[Rcpp::export]]
+double assess_registration_cpp(const arma::vec & params, arma::mat vcoords,
+		const arma::vec & r2, const arma::vec & distortion_center,
+		const arma::vec & vvalues, const arma::vec & tvalues,
+		int nrows, int ncols, const arma::vec & extent) {
+
+	// First we transform the visible coordinates to thermal coordinates according to the model
+	vcoords = convert_coords_optim_cpp(vcoords, params, r2, distortion_center);
+
+	// We need to keep only the coordinates that correspond to valid positions on the thermal raster
+	// Creating a vector that will hold the indices of the coordinates that are within the raster
+	arma::Col<arma::uword> coords_indices(vcoords.n_rows);
+	int j = 0;
+
+	// Identifying the rows that contain coordinates within the bounds of the target raster
+	for(arma::uword i = 0; i < vcoords.n_rows; i++) {
+		if(vcoords(i, 0) > extent[0] && vcoords(i, 0) < extent[1] && vcoords(i, 1) > extent[2] && vcoords(i, 1) < extent[3])
+			coords_indices[j++] = i;
+	}
+
+	// We return a correlation of 0 if there is no overlap
+	if(j == 0) return 0.0;
+
+	// Keeping only the relevant values
+	coords_indices = coords_indices.head_rows(j);
+
+	// Keeping only the coordinates that are within the bounds of the raster
+	vcoords = vcoords.rows(coords_indices);
+
+	// Computing the indices of the target raster that correspond to the coordinates
+	arma::Col<arma::uword> x_indices = cellFromXY(vcoords, nrows, ncols, extent);
+
+	// Computing the correlation from the relevant raster values
+	arma::mat output = cor(tvalues.rows(x_indices), vvalues.rows(coords_indices));
+
+	// Returning the result
+	return output[0];
+}
+
 // A function that transforms coordinates from a visible to a thermal image
 // Taking distortion and transformation parameters into account
 // [[Rcpp::export]]
-arma::mat convert_coords_optim_cpp(arma::mat coords, const arma::vec & optimout, const arma::vec & r2, const arma::vec & distortion_center) {
+arma::mat convert_coords_optim_cpp(arma::mat & coords, const arma::vec & optimout, const arma::vec & r2, const arma::vec & distortion_center) {
 
 	// Extract the parameters of the model
 	double slope = optimout(0);

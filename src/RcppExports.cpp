@@ -30,9 +30,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// convert_coords_optim_cpp
+arma::mat convert_coords_optim_cpp(arma::mat coords, const arma::vec& optimout, const arma::vec& r2, const arma::vec& distortion_center);
+RcppExport SEXP _thermal_convert_coords_optim_cpp(SEXP coordsSEXP, SEXP optimoutSEXP, SEXP r2SEXP, SEXP distortion_centerSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type optimout(optimoutSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type r2(r2SEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type distortion_center(distortion_centerSEXP);
+    rcpp_result_gen = Rcpp::wrap(convert_coords_optim_cpp(coords, optimout, r2, distortion_center));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_thermal_assess_transform_cpp", (DL_FUNC) &_thermal_assess_transform_cpp, 9},
+    {"_thermal_convert_coords_optim_cpp", (DL_FUNC) &_thermal_convert_coords_optim_cpp, 4},
     {NULL, NULL, 0}
 };
 

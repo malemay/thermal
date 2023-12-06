@@ -45,6 +45,30 @@ double assess_transform_cpp(const arma::vec & xval, const arma::vec & yval, cons
 	return output[0];
 }
 
+// A function that transforms coordinates from a visible to a thermal image
+// Taking distortion and transformation parameters into account
+// [[Rcpp::export]]
+arma::mat convert_coords_optim_cpp(arma::mat coords, const arma::vec & optimout, const arma::vec & r2, const arma::vec & distortion_center) {
+
+	// Extract the parameters of the model
+	double slope = optimout(0);
+	double bx = optimout(1);
+	double by = optimout(2);
+	double k  = optimout(3);
+
+	// Removing the distortion in the visible image coordinates
+	// and adjusting for the thermal image coordinates
+	double denom = 0;
+
+	for(arma::uword i = 0; i < r2.n_elem; i++) {
+		denom = 1.0 + k * r2(i);
+		coords(i, 0) = (distortion_center(0) + coords(i, 0) / denom) * slope + bx;
+		coords(i, 1) = (distortion_center(1) + coords(i, 1) / denom) * slope + by;
+	}
+
+	return coords;
+}
+
 arma::Col<arma::uword> cellFromXY (const arma::mat & coords, int rast_rows, int rast_cols, arma::vec extent) {
 // size of x and y should be the same
 

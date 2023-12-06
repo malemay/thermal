@@ -126,9 +126,16 @@ align_images <- function(visible, thermal, start_values,
 	vvalues <- values(visible_sum, mat = FALSE)[cellFromXY(visible_sum, vcoords)]
 	tvalues <- values(thermal, mat = FALSE)
 
-	ofunct <- function(x, thermal, vcoords, vvalues, tvalues) {
+	# Pre-compute r2 distances prior to input to convert_coords_optim
+	r2 <- (vcoords[, 1] - distortion_center[1])^2 + (vcoords[, 2] - distortion_center[2])^2
 
-		tcoords <- convert_coordinates(vcoords[, 1], vcoords[, 2], x, distortion_center = distortion_center)
+	# Also pre-transform the visible coordinates
+	vcoords[, 1] <- vcoords[, 1] - distortion_center[1]
+	vcoords[, 2] <- vcoords[, 2] - distortion_center[2]
+
+	ofunct <- function(x, thermal, vcoords, r2, vvalues, tvalues) {
+
+		tcoords <- convert_coords_optim_cpp(vcoords, x, r2 = r2, distortion_center = distortion_center)
 
 		# Subsetting to positions that are valid on the thermal raster
 		valid_positions <- tcoords[, 1] > xmin(thermal) & tcoords[, 1] < xmax(thermal) & tcoords[, 2] > ymin(thermal) & tcoords[, 2] < ymax(thermal)
@@ -146,7 +153,7 @@ align_images <- function(visible, thermal, start_values,
 	}
 
 	# We return the results of the optimization
-	optim(start_values, ofunct, method = method, control = list(trace = 3), thermal = thermal, vcoords = vcoords, vvalues = vvalues, tvalues = tvalues)
+	optim(start_values, ofunct, method = method, control = list(trace = 3), thermal = thermal, vcoords = vcoords, r2 = r2, vvalues = vvalues, tvalues = tvalues)
 }
 
 #' Convert visible image coordinates to thermal image coordinates
@@ -183,6 +190,24 @@ convert_coordinates <- function(x, y, optimout, distortion_center = c(2000, 1500
 	yout <- yout * slope + by
 
 	return(cbind(xout, yout))
+}
+
+#' Faster visible to thermal coordinate transform for performance-critical code
+convert_coords_optim <- function(coords, optimout, r2, distortion_center = c(2000, 1500)) {
+
+	# Extract the parameters of the optimized model
+	slope <- optimout[1]
+	bx <- optimout[2]
+	by <- optimout[3]
+	k <- optimout[4]
+
+	# Removing the distortion in the visible image coordinates
+	# and adjusting for the thermal image coordinates
+	denom <- 1 + k * r2
+	coords[, 1] <- (distortion_center[1] + coords[, 1] / denom) * slope + bx
+	coords[, 2] <- (distortion_center[2] + coords[, 2] / denom) * slope + by
+
+	return(coords)
 }
 
 #' Plot aligned images with corresponding points

@@ -31,59 +31,6 @@ matching_points <- function(visible, thermal, npoints = 10) {
 	list(vlist, tlist)
 }
 
-#' Create linear models to convert from visible to thermal coordinates
-#'
-#' To complete
-#'
-#' @param coords A list of matching points in visible and thermal images, such as returned by
-#'               the function matching_points.
-#'
-#' @return A list of two linear models, the first one allowing to convert x coordinates
-#'         and the other allowing to convert y coordinates
-#'
-#' @examples
-#' NULL
-#'
-#' @export
-match_lm <- function(coords) {
-	list(x = lm(coords[[2]]$x ~ coords[[1]]$x),
-	     x = lm(coords[[2]]$y ~ coords[[1]]$y))
-}
-
-#' Plot the results of a linear model that converts from visible to thermal coordinates
-#'
-#' To be completed
-#'
-#' @param coord_lm A list of two linear models such as returned by match_lm.
-#'
-#' @return NULL. This function is only invoked for its plotting side-effect.
-#'
-#' @examples
-#' NULL
-#'
-#' @export
-plot_lm <- function(lmod) {
-	par(mfrow = c(1, length(lmod)))
-
-	for(i in 1:length(lmod)) {
-		plot(lmod[[i]]$model[[2]], lmod[[i]]$model[[1]],
-		     xlab = "Visible image coordinates",
-		     ylab = "Thermal image coordinates",
-		     main = "")
-		     abline(lmod[[i]], lty = 2)
-
-		     slope <- as.character(round(coef(lmod[[i]])[2], 3))
-		     intercept <- as.character(round(coef(lmod[[i]])[1], 3))
-		     rsquared <- as.character(round(summary(lmod[[i]])$r.squared, 2))
-		     resid_sum <- as.character(round(mean(abs(residuals(lmod[[i]]))), 3))
-
-		     mtext(text = paste0("y = ", slope, "x + ", intercept, " r2 = ", rsquared, " Mean of resid. = ", resid_sum),
-			   side = 3)
-	}
-
-	invisible(NULL)
-}
-
 #' Align a thermal and a visible image
 #'
 #' To be completed
@@ -152,92 +99,34 @@ align_images <- function(visible, thermal, start_values, distortion_center = c(2
 #'
 #' To complete
 #'
-#' @param x A numeric vector of x pixel coordinates
-#' @param y A numeric vector of y pixel coordinates
-#' @param optimout The output of an alignment model optimization, as returned
-#'                 by the function align_images.
+#' @param coords A two-column (x-y) matrix of coordinates to convert.
+#' @param params A numeric vector of transformation parameters (slope, bx, by, k).
 #'
-#' @return A list of two vectors, x and y, with the coordinates of the
-#'         corresponding pixels in the thermal image.
+#' @return A matrix similar to the input with converted coordinates.
 #'
 #' @examples
 #' NULL
 #'
 #' @export
-convert_coordinates <- function(x, y, optimout, distortion_center = c(2000, 1500)) {
+convert_coordinates <- function(coords, params, distortion_center = c(2000, 1500)) {
 
 	# Extract the parameters of the optimized model
-	slope <- optimout[1]
-	bx <- optimout[2]
-	by <- optimout[3]
-	k <- optimout[4]
+	slope <- params[1]
+	bx <- params[2]
+	by <- params[3]
+	k <- params[4]
 
 	# Removing the distortion in the visible image coordinates
-	r2 <- (x - distortion_center[1])^2 + (y - distortion_center[2])^2
-	xout <- distortion_center[1] + (x - distortion_center[1]) / (1 + k * r2)
-	yout <- distortion_center[2] + (y - distortion_center[2]) / (1 + k * r2)
+	r2 <- (coords[, 1] - distortion_center[1])^2 + (coords[, 2] - distortion_center[2])^2
+	denom <- 1 + k * r2
+	coords[, 1] <- distortion_center[1] + (coords[, 1] - distortion_center[1]) / denom
+	coords[, 2] <- distortion_center[2] + (coords[, 2] - distortion_center[2]) / denom
 
 	# Adjusting for the thermal image coordinates
-	xout <- xout * slope + bx
-	yout <- yout * slope + by
-
-	return(cbind(xout, yout))
-}
-
-#' Faster visible to thermal coordinate transform for performance-critical code
-convert_coords_optim <- function(coords, optimout, r2, distortion_center = c(2000, 1500)) {
-
-	# Extract the parameters of the optimized model
-	slope <- optimout[1]
-	bx <- optimout[2]
-	by <- optimout[3]
-	k <- optimout[4]
-
-	# Removing the distortion in the visible image coordinates
-	# and adjusting for the thermal image coordinates
-	denom <- 1 + k * r2
-	coords[, 1] <- (distortion_center[1] + coords[, 1] / denom) * slope + bx
-	coords[, 2] <- (distortion_center[2] + coords[, 2] / denom) * slope + by
+	coords[, 1] <- coords[, 1] * slope + bx
+	coords[, 2] <- coords[, 2] * slope + by
 
 	return(coords)
-}
-
-#' Plot aligned images with corresponding points
-#'
-#' To complete
-#'
-#' @param visible a terra raster representing a visible image
-#' @param thermal a terra raster representing a thermal image
-#' @param optimout a list of optimization results as returned by
-#'          align_images.
-#' @param points_df A data.frame with the location of points
-#'          to plot, with a column named x and other named y.
-#'
-#' @return NULL, invisibly. This function is invoked for plotting.
-#'
-#' @examples
-#' NULL
-#' 
-#' @export
-plot_alignment <- function(visible, thermal, optimout, points_df, distortion_center = c(2000, 1500)) {
-
-	thermal_coords <- convert_coordinates(x = points_df[, 1],
-					      y = points_df[, 2],
-					      optimout = optimout,
-					      distortion_center = distortion_center)
-
-	thermal_points <- points_df
-	thermal_points[, 1] <- thermal_coords$x
-	thermal_points[, 2] <- thermal_coords$y
-
-	terra::plot(visible)
-	plot_colors <- colors()[sample(length(colors()), nrow(points_df))]
-	points(points_df, pch = 16, col = plot_colors)
-	dev.new()
-	terra::plot(thermal)
-	points(thermal_points, pch = 16, col = plot_colors)
-
-	invisible(NULL)
 }
 
 #' Compare aligned images interactively
@@ -246,7 +135,7 @@ plot_alignment <- function(visible, thermal, optimout, points_df, distortion_cen
 #'
 #' @param visible a terra raster representing a visible image
 #' @param thermal a terra raster representing a thermal image
-#' @param optimout a list of optimization results as returned by
+#' @param params a list of optimization results as returned by
 #'          align_images.
 #' @param nclicks the number of clicks before the function returns.
 #'
@@ -256,7 +145,7 @@ plot_alignment <- function(visible, thermal, optimout, points_df, distortion_cen
 #' NULL
 #'
 #' @export
-thermclick <- function(visible, thermal, optimout, nclicks = 1, distortion_center = c(2000, 1500)) {
+thermclick <- function(visible, thermal, params, nclicks = 1, distortion_center = c(2000, 1500)) {
 
 	dev.new()
 	vdev <- dev.cur()
@@ -267,14 +156,12 @@ thermclick <- function(visible, thermal, optimout, nclicks = 1, distortion_cente
 	tdev <- dev.cur()
 	terra::plot(thermal)
 
-
 	for(i in 1:nclicks) {
 		dev.set(vdev)
 		vpoint <- terra::click(visible, n = 1, xy = TRUE, col = "red")
 
-		tcoords <- convert_coordinates(x = vpoint$x,
-					       y = vpoint$y,
-					       optimout = optimout$par,
+		tcoords <- convert_coordinates(coords = as.matrix(vpoint[, c("x", "y")]),
+					       params = params,
 					       distortion_center = distortion_center)
 
 		dev.set(tdev)

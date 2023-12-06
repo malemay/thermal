@@ -4,19 +4,15 @@
 \alias{convert_coordinates}
 \title{Convert visible image coordinates to thermal image coordinates}
 \usage{
-convert_coordinates(x, y, optimout, distortion_center = c(2000, 1500))
+convert_coordinates(coords, params, distortion_center = c(2000, 1500))
 }
 \arguments{
-\item{x}{A numeric vector of x pixel coordinates}
+\item{coords}{A two-column (x-y) matrix of coordinates to convert.}
 
-\item{y}{A numeric vector of y pixel coordinates}
-
-\item{optimout}{The output of an alignment model optimization, as returned
-by the function align_images.}
+\item{params}{A numeric vector of transformation parameters (slope, bx, by, k).}
 }
 \value{
-A list of two vectors, x and y, with the coordinates of the
-corresponding pixels in the thermal image.
+A matrix similar to the input with converted coordinates.
 }
 \description{
 To complete

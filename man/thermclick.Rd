@@ -7,7 +7,7 @@
 thermclick(
   visible,
   thermal,
-  optimout,
+  params,
   nclicks = 1,
   distortion_center = c(2000, 1500)
 )
@@ -17,7 +17,7 @@ thermclick(
 
 \item{thermal}{a terra raster representing a thermal image}
 
-\item{optimout}{a list of optimization results as returned by
+\item{params}{a list of optimization results as returned by
 align_images.}
 
 \item{nclicks}{the number of clicks before the function returns.}

@@ -104,9 +104,9 @@ plot_lm <- function(lmod) {
 #' NULL
 #'
 #' @export
-align_images <- function(visible, thermal, start_values,
-			 aggregate_factor = 1, crop_values = c(0, 0),
-			 method = c("Nelder-Mead", "BFGS"), distortion_center = c(2000, 1500)) {
+align_images <- function(visible, thermal, start_values, distortion_center = c(2000, 1500),
+			 aggregate_factor = 1, crop_values = c(0, 0), min_overlap = 10000,
+			 method = c("Nelder-Mead", "BFGS"), reltol = 10^-8) {
 
 	# Getting the sum of the values from the visible raster
 	visible_sum <- sum(visible)
@@ -135,16 +135,17 @@ align_images <- function(visible, thermal, start_values,
 	vcoords[, 2] <- vcoords[, 2] - distortion_center[2]
 
 	# We return the results of the optimization
-	optim(start_values, function(x, vcoords, r2, distortion_center, vvalues, tvalues, nrows, ncols, extent) {
-		      -assess_registration_cpp(x, vcoords, r2, distortion_center, vvalues, tvalues, nrows, ncols, extent)
+	optim(start_values, function(x, vcoords, r2, distortion_center, vvalues, tvalues, nrows, ncols, extent, min_overlap) {
+		      -assess_registration_cpp(x, vcoords, r2, distortion_center, vvalues, tvalues, nrows, ncols, extent, min_overlap)
 			 },
 		      vcoords = vcoords, r2 = r2,
 		      distortion_center = distortion_center,
 		      vvalues = vvalues, tvalues = tvalues,
 		      nrows = nrow(thermal), ncols = ncol(thermal),
 		      extent = unlist(as.list(ext(thermal))),
+		      min_overlap = min_overlap,
 		      method = method,
-		      control = list(trace = 3))
+		      control = list(trace = 3, reltol = reltol))
 }
 
 #' Convert visible image coordinates to thermal image coordinates

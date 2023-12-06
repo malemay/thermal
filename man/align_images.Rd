@@ -8,10 +8,12 @@ align_images(
   visible,
   thermal,
   start_values,
+  distortion_center = c(2000, 1500),
   aggregate_factor = 1,
   crop_values = c(0, 0),
+  min_overlap = 10000,
   method = c("Nelder-Mead", "BFGS"),
-  distortion_center = c(2000, 1500)
+  reltol = 10^-8
 )
 }
 \arguments{

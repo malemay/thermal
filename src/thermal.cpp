@@ -52,7 +52,7 @@ double assess_transform_cpp(const arma::vec & xval, const arma::vec & yval, cons
 double assess_registration_cpp(const arma::vec & params, arma::mat vcoords,
 		const arma::vec & r2, const arma::vec & distortion_center,
 		const arma::vec & vvalues, const arma::vec & tvalues,
-		int nrows, int ncols, const arma::vec & extent) {
+		int nrows, int ncols, const arma::vec & extent, int min_overlap) {
 
 	// First we transform the visible coordinates to thermal coordinates according to the model
 	vcoords = convert_coords_optim_cpp(vcoords, params, r2, distortion_center);
@@ -68,8 +68,8 @@ double assess_registration_cpp(const arma::vec & params, arma::mat vcoords,
 			coords_indices[j++] = i;
 	}
 
-	// We return a correlation of 0 if there is no overlap
-	if(j == 0) return 0.0;
+	// We return a correlation of 0 if there is no or little overlap
+	if(j < min_overlap) return 0.0;
 
 	// Keeping only the relevant values
 	coords_indices = coords_indices.head_rows(j);

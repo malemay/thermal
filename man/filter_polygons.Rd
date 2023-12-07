@@ -4,25 +4,25 @@
 \alias{filter_polygons}
 \title{Remove polygons outside the bounds of an image}
 \usage{
-filter_polygons(polygons, xmin = 0, xmax = 640, ymin = 0, ymax = 512)
+filter_polygons(polygons, extent, overlap = 1)
 }
 \arguments{
-\item{polygons}{A set of polygons with coordinates expressed as pixel positions in the image}
+\item{polygons}{A set of polygons in image coordinates (pixel positions)
+relative to the image that they were extracted from.}
 
-\item{xmin}{A numeric. The minimum allowed position on the x-axis.}
+\item{extent}{A SpatExtent object representing the extent of the raster on
+which the polygons are located.}
 
-\item{xmax}{A numeric. The maximum allowed position on the x-axis.}
-
-\item{ymin}{A numeric. The minimum allowed position on the y-axis.}
-
-\item{ymax}{A numeric. The maximum allowed position on the y-axis.}
+\item{overlap}{A numeric of length 1 indicating the proportion (between 0 and 1)
+of the input polygons that must overlap the input extent to be kept in the
+output.}
 }
 \value{
 A list of polygons similar to that input, but with polygons located
 partially or fully outside the bounds of the image removed.
 }
 \description{
-To complete
+Remove polygons outside the bounds of an image
 }
 \examples{
 NULL

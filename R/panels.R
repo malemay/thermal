@@ -193,31 +193,38 @@ parse_panels <- function(coord_dir, image_height, flip_y = TRUE) {
 	output
 }
 
-#' Convert polygons from visible to thermal coordinates
+#' Translate polygons from visible to thermal coordinates
 #'
-#' To complete
+#' This function computes the position of a given set of polygons on a thermal
+#' image based on their positions on a visible image. This transformation
+#' depends on a set of four transformation parameters that must be supplied
+#' as input. More details on the transformation model used can be found in
+#' the documentation for \code{\link{align_images}}.
 #'
-#' @param x The polygons to which the conversion should be applied
-#' @param optimout A model that describes the translation from visible to thermal
-#'                 coordinates, as output by \code{\link{align_images}}
-#' @param distortion_center A numeric vector of length two. The position of the center
-#'                 of the image to be assumed for the distortion model.
+#' This function has been developed with the coordinates of reference thermal
+#' panels in mind and may need to be improved for more general usage.
 #'
-#' @return An polygon object of the same length as the input, with coordinates
-#'         transformed to their equivalent on the thermal image.
+#' @param x The sf polygons to which the translation should be applied.
+#' @param params A numeric vector of length 4 that describes the translation
+#' from visible to thermal coordinates, as computed by \code{\link{align_images}}.
+#' @param distortion_center A numeric vector of length two. The position of the
+#' center of the image to be used for the distortion model.
 #'
+#' @return A polygon object of the same length as the input, with coordinates
+#' transformed to their equivalent on the thermal image.
+#'
+#' @export
 #' @examples
 #' NULL
 #'
-#' @export
-convert_polygons <- function(x, optimout, distortion_center = c(2000, 1500)) {
+translate_polygons <- function(x, params, distortion_center = c(2000, 1500)) {
 	# Converting the coordinates according to the optimized model
 	xcoords <- sf::st_coordinates(x)
-	new_coords <- convert_coordinates(x = xcoords[, 1], y = xcoords[, 2],
-					  optimout = optimout,
+	new_coords <- convert_coordinates(as.matrix(xcoords[, 1:2]),
+					  params = params,
 					  distortion_center = distortion_center)
-	xcoords[, 1] <- new_coords$x
-	xcoords[, 2] <- new_coords$y
+	xcoords[, 1] <- new_coords[, 1]
+	xcoords[, 2] <- new_coords[, 2]
 
 	# Creating new polygons with this geometry
 	new_poly <- lapply(split(as.data.frame(xcoords[, 1:2]), xcoords[, 4]), function(x) sf::st_polygon(list(as.matrix(x))))
@@ -230,26 +237,51 @@ convert_polygons <- function(x, optimout, distortion_center = c(2000, 1500)) {
 
 #' Remove polygons outside the bounds of an image
 #'
-#' To complete
-#'
-#' @param polygons A set of polygons with coordinates expressed as pixel positions in the image
-#' @param xmin A numeric. The minimum allowed position on the x-axis.
-#' @param xmax A numeric. The maximum allowed position on the x-axis.
-#' @param ymin A numeric. The minimum allowed position on the y-axis.
-#' @param ymax A numeric. The maximum allowed position on the y-axis.
+#' @param polygons A set of polygons in image coordinates (pixel positions)
+#' relative to the image that they were extracted from.
+#' @param extent A SpatExtent object representing the extent of the raster on
+#' which the polygons are located.
+#' @param overlap A numeric of length 1 indicating the proportion (between 0 and 1)
+#' of the input polygons that must overlap the input extent to be kept in the
+#' output.
 #'
 #' @return A list of polygons similar to that input, but with polygons located
-#'         partially or fully outside the bounds of the image removed.
+#' partially or fully outside the bounds of the image removed.
 #'
+#' @export
 #' @examples
 #' NULL
 #'
-#' @export
-filter_polygons <- function(polygons, xmin = 0, xmax = 640, ymin = 0, ymax = 512) {
-	filtered <- sapply(polygons, function(x, xmin, xmax, ymin, ymax) {
-				   xcoords <- sf::st_coordinates(x)
-				   any(xcoords[, 1] < xmin | xcoords[, 1] > xmax | xcoords[, 2] < ymin | xcoords[, 2] > ymax) },
-				   xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax)
-	polygons[!filtered]
+filter_polygons <- function(polygons, extent, overlap = 1) {
+	# Convert the extent region to an sf polygon object such that the intersection can be computed
+	ext_poly <- sf::st_as_sfc(sf::st_bbox(extent))
+
+	# Compute the proportion of overlap for each set of polygons
+	overlaps <- sapply(polygons, polygon_overlap, ext_poly = ext_poly)
+
+	# Return the polygons that meet the output criterion
+	polygons[overlaps >= overlap]
+}
+
+#' Determine the proportion of a set of polygons that overlaps an image
+#'
+#' @param polygon An sf object representing polygons.
+#' @param ext_poly An sf object representing an area whose intersection
+#' with the input polygons will be computed.
+#'
+#' @return A single numeric value between 0 and 1 describing the proportion
+#' of the input polygon object that overlaps the extent.
+#'
+#' @examples
+#' NULL
+polygon_overlap <- function(polygon, ext_poly) {
+	# Find the total area of the input polygons
+	total_area <- sum(sf::st_area(polygon))
+
+	# Find the area that overlaps the image
+	overlap_area <- sum(sf::st_area(suppressWarnings(sf::st_intersection(polygon, ext_poly))))
+
+	# Return the ratio of the overlapping to the total area
+	overlap_area / total_area
 }
 

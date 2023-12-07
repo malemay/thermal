@@ -4,19 +4,40 @@
 \alias{match_images}
 \title{Match thermal and visible images}
 \usage{
-match_images(visible, thermal)
+match_images(
+  visible,
+  thermal,
+  match_func,
+  max_difftime = as.difftime(1, units = "secs")
+)
 }
 \arguments{
-\item{visible}{A data.frame with metadata on visible files}
+\item{visible}{A data.frame with metadata on visible files.}
 
-\item{thermal}{A data.frame with metadata on thermal files}
+\item{thermal}{A data.frame with metadata on thermal files.}
+
+\item{match_func}{A function that takes both the visible and
+thermal data.frames as input and returns an integer vector
+of the indices in thermal that correspond to indices in
+visible.}
 }
 \value{
-A data.frame with the correspondence between the images
+A data.frame with the correspondence between the images and
+the time difference between both pictures.
 }
 \description{
 Takes metadata on thermal and visible images and returns a data.frame
-with their correspondence
+with their correspondence.
+}
+\details{
+There may not be a universal way to match visible and thermal images
+with 100\% certainty in the quality of the output. Therefore, this
+function provides a general framework for provding functions that
+do the matching. It also provides sanity checks to make sure that
+the output data makes sense. The function \code{\link{dji_filename_match}}
+may provided an appropriate match_func for some camera models.
+Otherwise, users will need to write their own function or file
+a bug report to have the requested functionality added.
 }
 \examples{
 NULL

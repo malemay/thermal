@@ -73,30 +73,97 @@ read_metadata <- function(files, camera_tz, display_tz = NULL, tags = NULL) {
 #' Match thermal and visible images
 #'
 #' Takes metadata on thermal and visible images and returns a data.frame
-#' with their correspondence
+#' with their correspondence.
 #'
-#' @param visible A data.frame with metadata on visible files
-#' @param thermal A data.frame with metadata on thermal files
+#' There may not be a universal way to match visible and thermal images
+#' with 100% certainty in the quality of the output. Therefore, this
+#' function provides a general framework for provding functions that
+#' do the matching. It also provides sanity checks to make sure that
+#' the output data makes sense. The function \code{\link{dji_filename_match}}
+#' may provided an appropriate match_func for some camera models.
+#' Otherwise, users will need to write their own function or file
+#' a bug report to have the requested functionality added.
 #'
-#' @return A data.frame with the correspondence between the images
+#' @param visible A data.frame with metadata on visible files.
+#' @param thermal A data.frame with metadata on thermal files.
+#' @param match_func A function that takes both the visible and
+#' thermal data.frames as input and returns an integer vector
+#' of the indices in thermal that correspond to indices in
+#' visible.
+#'
+#' @return A data.frame with the correspondence between the images and
+#' the time difference between both pictures.
 #'
 #' @examples
 #' NULL
 #'
 #' @export
-match_images <- function(visible, thermal) {
-	output <- data.frame(visible_file = visible$SourceFile)
-	output$thermal_file <- NA
-	output$timediff <- NA
+match_images <- function(visible, thermal, match_func, max_difftime = as.difftime(1, units = "secs")) {
 
-	for(i in 1:nrow(visible)) {
-		time_diff <- abs(visible[i, "DateTimeOriginal"] - thermal$DateTimeOriginal)
-		output[i, "thermal_file"] <- thermal[which.min(time_diff), "SourceFile"]
-		output[i, "timediff"] <- min(time_diff)
-	}
+	# A first sanity check
+	stopifnot(nrow(visible) == nrow(thermal))
+
+	# Using the provided function to compute the matches
+	indices <- match_func(visible, thermal)
+
+	# Adding the names of the corresponding thermal images to the output
+	output <- data.frame(visible_file = visible$SourceFile)
+	output$thermal_file <- thermal[indices, "SourceFile"]
+
+	# Doing some sanity checks
+	stopifnot(all(file.exists(output$thermal_file)))
+	stopifnot(length(output$thermal_file) == length(unique(output$thermal_file)))
+
+	# Computing the time difference between the two files
+	output$difftime <- difftime(visible[, "DateTimeOriginal"], thermal[indices, "DateTimeOriginal"], units = "secs")
+	stopifnot(all(abs(output$difftime < max_difftime)))
 
 	output
 }
+
+#' Find the thermal image paired with a given visible image based on DJI file names
+#'
+#' This function is meant to be provded as the match_func argument to
+#' function match_images. It works for file names as written by the
+#' DJI Zenmuse XT2 camera, for which the thermal images are written
+#' with a number right before the one for the visible camera, but different
+#' functions may need to be written for other cameras.
+#'
+#' @param visible A data.frame of metadata on a set of visible images,
+#' such as returned by \code{\link{read_metadata}}.
+#' @param thermal Similar to visible, but for a set of thermal images.
+#'
+#' @return An integer vector of indices in the thermal dataset that correspond
+#' to rows in the visible dataset.
+#'
+#' @export
+#' @examples
+#' NULL
+dji_filename_match <- function(visible, thermal) {
+	# Checking that all files are in the same directory
+	vdir <- unique(dirname(visible$SourceFile))
+	tdir <- unique(dirname(thermal$SourceFile))
+	stopifnot(length(vdir) == 1 && length(tdir) == 1 && vdir == tdir)
+
+	# Extracting the numeric ID from the visible files
+	vdji <- regmatches(basename(visible$SourceFile), regexpr("[0-9]{4}", basename(visible$SourceFile)))
+
+	# The thermal ID is this number minus 1, which we must prefix with a 0
+	tdji <- formatC(as.numeric(vdji) - 1, width = 4, flag = 0)
+
+	# The value "0000" is a special case which must be wrapped back to "0999"
+	tdji[tdji == "0000"] <- "0999"
+
+	# Reassembling the thermal IDs into file names
+	thermal_files <- paste0(tdir, "/", "DJI_", tdji, "_R.JPG")
+
+	# At this point we must check that all files are indeed in the thermal data.frame (and the other way around)
+	stopifnot(all(thermal_files %in% thermal$SourceFile) && all(thermal$SourceFile %in% thermal_files))
+
+	# Returning the indices of thermal files in the visible data.frame
+	match(thermal_files, thermal$SourceFile)
+}
+
 
 #' Set the EXIF tags to extract
 #'

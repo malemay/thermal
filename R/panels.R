@@ -91,6 +91,108 @@ check_panels <- function(panels, expected_area = 2.25) {
 	sapply(panels, sf::st_area) - expected_area
 }
 
+#' Parse panel coordinates returned by the panel_coordinates.py script
+#'
+#' This function parses the coordinates of a given panel (black, gray or white)
+#' on different pictures as written out by the Python script that translates
+#' panel coordinates from the oprthorectified images to the undistorted images.
+#' The coordinates on the undistorted images will then be transferred to
+#' thermal coordinates through the visible/thermal image registration
+#' functions.
+#'
+#' @param filename A character. The name of the file containing the panel coordinates.
+#' @param color A character indicating the color of the panel being read.  will
+#' be stored as metadata in the output data.frames.
+#' @param image_height The height of the image. Used for the purposes of
+#' flipping y coordinates from image coordinates (origin is top-right corner)
+#' to raster coordinates (origin is bottom-left corner) for proper use in
+#' downstream applications.
+#' @param flip_y A logical. Whether the y coordinates should be flipped to
+#' convert from image to raster coordinates. Defaults to TRUE.
+#'
+#' @return A named list of data.frames, each with the x- and y-coordinates of
+#' the panels and their color. The list is named according to the index of the
+#' image that the coordinates refer to.
+#'
+#' @examples
+#' NULL
+parse_coords <- function(filename, color, image_height, flip_y = TRUE) {
+
+	# Sanity checks
+	stopifnot(is.character(color) && color %in% c("black", "gray", "white"))
+
+	# Reading the file and properly splitting along images and newlines
+	coords <- paste(readLines(filename), collapse = "\n")
+	coords <- strsplit(coords, "ID:")[[1]]
+	coords <- lapply(coords, function(x) strsplit(x, "\n")[[1]])
+	coords <- Filter(length, coords)
+
+	# Naming the list elements after image ID and formatting as matrices
+	names(coords) <- sapply(coords, function(x) x[1])
+	coords <- lapply(coords, function(x) x[-1])
+	coords <- lapply(coords, function(x) do.call("rbind", strsplit(x, ",")))
+
+	# Properly formatting each coordinates matrix as a data.frame with color as a column
+	coords <- lapply(coords, function(x) {
+				 x <- as.data.frame(x)
+				 names(x) <- c("x", "y")
+				 x$x <- as.numeric(x$x)
+				 x$y <- as.numeric(x$y)
+				 if(flip_y) x$y <- image_height - x$y
+				 x$color <- color
+				 x
+	     })
+
+	# Returning the list of data.frames
+	coords
+}
+
+#' Parse all panel coordinates in a given directory
+#'
+#' This function is a wrapper for \code{\link{parse_coords}} which properly
+#' reads all panel coordinates files (black, gray and white panels) in a
+#' directory and formats them as sf polygon objects for use in downstream
+#' processing. This function makes a lot of assumptions about the format of the
+#' coordinates files (they must have been output by panel_coordinates.py) and
+#' their names (black_image_coords.txt, gray_image_coords.txt,
+#' white_image_coords.txt).
+#'
+#' @param coord_dir A character. The path to the directory where the
+#' coordinates files are.
+#' @inheritParams parse_coords
+#'
+#' @return A names list with as many elements as there are pictures in the
+#' dataset, with the sf-formatted polygons describing the coordinates of the
+#' black, gray and white panels.
+#'
+#' @export
+#' @examples
+#' NULL
+parse_panels <- function(coord_dir, image_height, flip_y = TRUE) {
+
+	# Read the coordinates of all three panels
+	black_coords <- parse_coords(paste0(coord_dir, "/black_image_coords.txt"), "black", image_height, flip_y)
+	gray_coords <-  parse_coords(paste0(coord_dir, "/gray_image_coords.txt"),  "gray", image_height, flip_y)
+	white_coords <- parse_coords(paste0(coord_dir, "/white_image_coords.txt"), "white", image_height, flip_y)
+
+	# Initializing the output list (will have one element per image)
+	output <- list()
+
+	# Sanity check
+	stopifnot(identical(names(black_coords), names(gray_coords)) && identical(names(black_coords), names(white_coords)))
+
+	# Looping over all the images
+	for(i in names(black_coords)) {
+		output[[i]] <- rbind(black_coords[[i]], gray_coords[[i]], white_coords[[i]])
+		output[[i]] <- lapply(split(as.data.frame(output[[i]][, 1:2]), output[[i]][, 3]), function(x) sf::st_polygon(list(as.matrix(x))))
+		output[[i]] <- do.call(sf::st_sfc, output[[i]])
+		output[[i]] <- st_as_sf(output[[i]])
+		output[[i]]$color <- c("black", "gray", "white")
+	}
+
+	output
+}
+
 #' Convert polygons from visible to thermal coordinates
 #'
 #' To complete

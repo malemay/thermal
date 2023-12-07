@@ -186,7 +186,7 @@ parse_panels <- function(coord_dir, image_height, flip_y = TRUE) {
 		output[[i]] <- rbind(black_coords[[i]], gray_coords[[i]], white_coords[[i]])
 		output[[i]] <- lapply(split(as.data.frame(output[[i]][, 1:2]), output[[i]][, 3]), function(x) sf::st_polygon(list(as.matrix(x))))
 		output[[i]] <- do.call(sf::st_sfc, output[[i]])
-		output[[i]] <- st_as_sf(output[[i]])
+		output[[i]] <- sf::st_as_sf(output[[i]])
 		output[[i]]$color <- c("black", "gray", "white")
 	}
 

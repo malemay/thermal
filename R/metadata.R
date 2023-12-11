@@ -116,7 +116,7 @@ match_images <- function(visible, thermal, match_func, max_difftime = as.difftim
 
 	# Computing the time difference between the two files
 	output$difftime <- difftime(visible[, "DateTimeOriginal"], thermal[indices, "DateTimeOriginal"], units = "secs")
-	stopifnot(all(abs(output$difftime < max_difftime)))
+	stopifnot(all(abs(output$difftime) < max_difftime))
 
 	output
 }

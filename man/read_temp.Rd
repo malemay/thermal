@@ -7,18 +7,21 @@
 read_temp(filename, tz)
 }
 \arguments{
-\item{filename}{A character, the name of the file}
+\item{filename}{A character, the name of the file.}
 
 \item{tz}{A character which can be interpreted as a valid timezone.
 Must be supplied such that the proper time zone is used when matching
 the temperature data and images.}
 }
 \value{
-A data.frame of temperature values with the time colum set
+A data.frame of temperature values with the time column set
 to the proper data type.
 }
 \description{
-To complete
+At the moment, this function is specific to output produced by a CR1000X
+data logger in a very specific format. Support for other data formats
+could be added upon request. Otherwise, temperature data simply needs
+to be provided as a data.frame with "time" and "temp" columns.
 }
 \examples{
 NULL

@@ -11,6 +11,7 @@ adjust_panels(
   gray_value,
   white_value,
   avg_value,
+  rounding_precision = 5,
   theta1 = 0,
   htrans1 = 0,
   vtrans1 = 0,
@@ -45,6 +46,10 @@ to the black panel should be given.}
 
 \item{avg_value}{A numeric of length one. The value given to background pixels that
 do not correspond to any panel.}
+
+\item{rounding_precision}{An single integer indicating the decimal to round the
+transformed coordinates to before converting to polygons. This is to prevent
+small numerical differences from resulting in apparently open polygons}
 
 \item{theta1}{A numeric. The initial value for theta.}
 

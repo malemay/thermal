@@ -4,7 +4,7 @@
 \alias{transform_polygons}
 \title{Transform polygon positions based on a translation-rotation model}
 \usage{
-transform_polygons(x, theta, center, htrans, vtrans)
+transform_polygons(x, theta, center, htrans, vtrans, rounding_precision = 5)
 }
 \arguments{
 \item{x}{An sf object representing polygons.}
@@ -17,6 +17,10 @@ rotation should be performed.}
 \item{htrans}{A numeric of length one. The horizontal translation parameter.}
 
 \item{vtrans}{A numeric of length one. The vertical translation parameter.}
+
+\item{rounding_precision}{An single integer indicating the decimal to round the
+transformed coordinates to before converting to polygons. This is to prevent
+small numerical differences from resulting in apparently open polygons}
 }
 \value{
 An sf polygon object similar to the input one, but with updated

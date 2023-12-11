@@ -2,26 +2,32 @@
 % Please edit documentation in R/temperature.R
 \name{extract_temp}
 \alias{extract_temp}
-\title{Extracts the temperature at the nearest time point to a thermal image}
+\title{Extract the temperature at the nearest time point to a thermal image}
 \usage{
-extract_temp(metadata, temperature)
+extract_temp(metadata, temperature, tolerance = as.difftime(10, "secs"))
 }
 \arguments{
 \item{metadata}{A data.frame containing metadata on a set of thermal images,
-as returned by \code{\link{read_metadata}}. Must minimally
-contain a column called "DateTimeOriginal" which indicates when
-the picture was taken.}
+as returned by \code{\link{read_metadata}}. Must minimally contain a column
+called "DateTimeOriginal" which indicates when the picture was taken.}
 
-\item{temperature}{A data.frame of panel temperature data, as returned by the
-function \code{\link{read_temp}}. Should contain a column called
-"time" to allow matching the time stamps of both datasets.}
+\item{temperature}{A data.frame of panel temperature data, as returned by
+the function \code{\link{read_temp}}. Should contain a column called "time"
+to allow matching the time stamps of both datasets and a "temp" column for
+the temperature.}
+
+\item{tolerance}{A difftime object of length 1 indicating the maximum time
+difference acceptable between a picture and a temperature measurement to allow
+both values to be matched.}
 }
 \value{
-A numeric vector containing the temperature at the nearest time point
-for every row in the metadata input.
+A numeric vector containing the temperature at the nearest time
+point for every row in the metadata input.
 }
 \description{
-To complete
+This function can be used to populate the columns in a flight metadata
+data.frame with the temperatures associated to a given panel as measured
+by a datalogger.
 }
 \examples{
 NULL

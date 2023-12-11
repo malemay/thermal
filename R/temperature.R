@@ -1,19 +1,22 @@
 #' Load panel temperature data
 #'
-#' To complete
+#' At the moment, this function is specific to output produced by a CR1000X
+#' data logger in a very specific format. Support for other data formats
+#' could be added upon request. Otherwise, temperature data simply needs
+#' to be provided as a data.frame with "time" and "temp" columns.
 #'
-#' @param filename A character, the name of the file
+#' @param filename A character, the name of the file.
 #' @param tz A character which can be interpreted as a valid timezone.
 #' Must be supplied such that the proper time zone is used when matching
 #' the temperature data and images.
 #'
-#' @return A data.frame of temperature values with the time colum set
+#' @return A data.frame of temperature values with the time column set
 #'         to the proper data type.
 #'
+#' @export
 #' @examples
 #' NULL
 #'
-#' @export
 read_temp <- function(filename, tz) {
 	tempdata <- read.table(filename, sep = ",", skip = 4, na.strings = c("NA", "NAN"))
 	colnames(tempdata) <- c("time", "record", "battery", "devtemp", "temp")
@@ -23,49 +26,54 @@ read_temp <- function(filename, tz) {
 
 #' Plot panel temperature data over a given time range
 #'
-#' To complete
+#' A function used to simplify the plotting of temperature data for the three
+#' reference panels over a given time range. Since this function uses base R
+#' graphics functionality, further lines or points can be drawn on top of the
+#' graph produced by this one after the function returns.
 #'
-#' @param tempdata A list with three elements named "black", "gray" and "white" for
-#'                 each of the three panel colors. Each element is a data.frame of
-#'                 temperature data as read with \code{\link{read_temp}}
-#' @param xmin A date object identifying the minimum value used for the x-axis.
-#'             If NULL, the whole data range is plotted.
-#' @param xmax A date object identifying the maximum value used for the x-axis.
-#'             If NULL, the whole data range is plotted.
-#' @param at A date object indicating the location of the x-axis labels.
-#'           If NULL, the default is used.
+#' @param tempdata A list with three elements named "black", "gray" and "white"
+#' for each of the three panel colors. Each element is a data.frame of
+#' temperature data as read with \code{\link{read_temp}}.
+#' @param xmin A pair of dates identifying the minimum and maximum values used
+#' for the x-axis.  If NULL, the whole input range is plotted.
+#' @param at A date object indicating the location of the x-axis labels.  If
+#' NULL, the default is used.
 #' @param main A character. The title of the plot.
+#' @param lcol A named ("black", "gray", "white") character vector indicating
+#' the colors to use for plotting the temperature values of each panel.
 #'
-#' @return NULL, invisibly. This function is invoked for its plotting side-effect.
+#' @return NULL, invisibly. This function is invoked for its plotting
+#' side-effect.
 #'
+#' @export
 #' @examples
 #' NULL
 #'
-#' @export
-plot_temp <- function(tempdata, xmin = NULL, xmax = NULL, at = NULL, main = NULL) {
+plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
+		      lcol = c(black = "black", gray = "gray", white = "blue")) {
 	
 	# Subsetting the input data to the range of interest
-	# BUG: xmin and/or xmax should be set even if only one of them is NULL
-	if(!is.null(xmin) && !is.null(xmax)) {
-		tempdata <- lapply(tempdata, function(x, xmin, xmax) {
-					   x <- x[x$time >= xmin & x$time <= xmax, ]
-					   x
-				   }, xmin = xmin, xmax = xmax)
+	if(!is.null(xrange)) {
+		stopifnot(length(xrange) == 2)
+		stopifnot(xrange[1] < xrange[2])
+
+		tempdata <- lapply(tempdata,
+				   function(x, xrange) x[x$time >= xrange[1] & x$time <= xrange[2], ],
+				   xrange = xrange)
 	}
 
 	# Getting the limits of the x- and y-axes and setting the plotting region accordingly
-	xrange <- range(do.call("rbind", tempdata)$time)
-	yrange <- range(do.call("rbind", tempdata)$temp, na.rm = TRUE)
+	xlim <- range(do.call("rbind", tempdata)$time)
+	ylim <- range(do.call("rbind", tempdata)$temp, na.rm = TRUE)
 
-	plot(1, type = "n", xlim = as.numeric(xrange), ylim = yrange,
+	# Creating a blank canvas for the plot
+	plot(1, type = "n", xlim = as.numeric(xlim), ylim = ylim,
 	     xlab = "Time", ylab = "Temperature (°C)", main = main,
 	     xaxt = "n")
 	
 	# Adding lines for each of the panels
 	# By default the white panel is plotted in skyblue (this should be allowed to vary as a parameter)
-	for(i in c("black", "gray", "white")) {
-		lines(tempdata[[i]]$time, tempdata[[i]]$temp, col = if(i == "white") "blue" else i)
-	}
+	for(i in c("black", "gray", "white")) lines(tempdata[[i]]$time, tempdata[[i]]$temp, col = lcol[i])
 
 	# Adding an axis for the time
 	if(is.null(at)) {
@@ -77,40 +85,50 @@ plot_temp <- function(tempdata, xmin = NULL, xmax = NULL, at = NULL, main = NULL
 	invisible(NULL)
 }
 
-#' Extracts the temperature at the nearest time point to a thermal image
+#' Extract the temperature at the nearest time point to a thermal image
 #'
-#' To complete
+#' This function can be used to populate the columns in a flight metadata
+#' data.frame with the temperatures associated to a given panel as measured
+#' by a datalogger.
 #'
 #' @param metadata A data.frame containing metadata on a set of thermal images,
-#'                 as returned by \code{\link{read_metadata}}. Must minimally
-#'                 contain a column called "DateTimeOriginal" which indicates when
-#'                 the picture was taken.
-#' @param temperature A data.frame of panel temperature data, as returned by the
-#'                 function \code{\link{read_temp}}. Should contain a column called
-#'                 "time" to allow matching the time stamps of both datasets.
+#' as returned by \code{\link{read_metadata}}. Must minimally contain a column
+#' called "DateTimeOriginal" which indicates when the picture was taken.
+#' @param temperature A data.frame of panel temperature data, as returned by
+#' the function \code{\link{read_temp}}. Should contain a column called "time"
+#' to allow matching the time stamps of both datasets and a "temp" column for
+#' the temperature.
+#' @param tolerance A difftime object of length 1 indicating the maximum time
+#' difference acceptable between a picture and a temperature measurement to allow
+#' both values to be matched.
 #'
-#' @return A numeric vector containing the temperature at the nearest time point
-#'         for every row in the metadata input.
+#' @return A numeric vector containing the temperature at the nearest time
+#' point for every row in the metadata input.
 #'
+#' @export
 #' @examples
 #' NULL
 #'
-#' @export
-extract_temp <- function(metadata, temperature) {
-	# Creating the output vector
-	output_temp <- numeric(nrow(metadata))
+extract_temp <- function(metadata, temperature, tolerance = as.difftime(10, units = "secs")) {
 
-	# Looping over all the rows
-	for(i in 1:nrow(metadata)) {
-		i_time <- metadata[i, "DateTimeOriginal"]
-		temperature$timediff <- abs(i_time - temperature$time)
-		# Adding a sanity check to ensure that no time difference is
-		# Greater than 10 seconds
-		if(min(temperature$timediff) > 10) stop("No temperature taken less than 10 seconds from row ", i)
-		output_temp[i] <- temperature[which.min(temperature$timediff), "temp"]
-	}
+	# Creating a vector of matches in the temperature data.frame
+	indices <- numeric(nrow(metadata))
 
-	output_temp
+	# Subsetting the temperature data to the range in the metadata
+	time_range <- range(metadata$DateTimeOriginal) + c(-tolerance, tolerance)
+	temperature <- temperature[temperature$time >= time_range[1] & temperature$time <= time_range[2], ]
+
+	# Performing operations on numeric vectors because it is faster
+	metadata_times <- as.numeric(metadata$DateTimeOriginal)
+	temperature_times <- as.numeric(temperature$time)
+
+	# Getting the minimum match for each row of metadata
+	for(i in 1:length(indices)) indices[i] <- which.min(abs(metadata_times[i] - temperature_times))
+
+	# Adding a sanity check to ensure that no time difference is greater than the tolerance
+	if(any(abs(metadata$DateTimeOriginal - temperature[indices, "time"]) > tolerance)) stop("No temperature available given tolerance value.")
+
+	temperature[indices, "temp"]
 }
 
 #' Join thermal values to panel temperatures

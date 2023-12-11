@@ -4,29 +4,39 @@
 \alias{plot_temp}
 \title{Plot panel temperature data over a given time range}
 \usage{
-plot_temp(tempdata, xmin = NULL, xmax = NULL, at = NULL, main = NULL)
+plot_temp(
+  tempdata,
+  xrange = NULL,
+  at = NULL,
+  main = NULL,
+  lcol = c(black = "black", gray = "gray", white = "blue")
+)
 }
 \arguments{
-\item{tempdata}{A list with three elements named "black", "gray" and "white" for
-each of the three panel colors. Each element is a data.frame of
-temperature data as read with \code{\link{read_temp}}}
+\item{tempdata}{A list with three elements named "black", "gray" and "white"
+for each of the three panel colors. Each element is a data.frame of
+temperature data as read with \code{\link{read_temp}}.}
 
-\item{xmin}{A date object identifying the minimum value used for the x-axis.
-If NULL, the whole data range is plotted.}
-
-\item{xmax}{A date object identifying the maximum value used for the x-axis.
-If NULL, the whole data range is plotted.}
-
-\item{at}{A date object indicating the location of the x-axis labels.
-If NULL, the default is used.}
+\item{at}{A date object indicating the location of the x-axis labels.  If
+NULL, the default is used.}
 
 \item{main}{A character. The title of the plot.}
+
+\item{lcol}{A named ("black", "gray", "white") character vector indicating
+the colors to use for plotting the temperature values of each panel.}
+
+\item{xmin}{A pair of dates identifying the minimum and maximum values used
+for the x-axis.  If NULL, the whole input range is plotted.}
 }
 \value{
-NULL, invisibly. This function is invoked for its plotting side-effect.
+NULL, invisibly. This function is invoked for its plotting
+side-effect.
 }
 \description{
-To complete
+A function used to simplify the plotting of temperature data for the three
+reference panels over a given time range. Since this function uses base R
+graphics functionality, further lines or points can be drawn on top of the
+graph produced by this one after the function returns.
 }
 \examples{
 NULL

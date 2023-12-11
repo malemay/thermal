@@ -285,3 +285,156 @@ polygon_overlap <- function(polygon, ext_poly) {
 	overlap_area / total_area
 }
 
+#' Transform polygon positions based on a translation-rotation model
+#'
+#' This function can be used to transform polygon coordinates given rotation
+#' and translation parameters, as obtained from the function
+#' \code{\link{optimize_transform}}. Not to be confused with the function
+#' \code{\link{translate_polygons}}, which modifies polygon coordinates
+#' according to a visible/thermal image registraition model.
+#'
+#' This function can be used, for example, to adjust panel coordinates
+#' such that they align properly with panels on thermal images if
+#' the coordinates following visible to thermal translation has not worked
+#' perfectly.
+#'
+#' @param x An sf object representing polygons.
+#' @param theta A numeric value representing the angle of rotation (in degrees).
+#' @param center A numeric vector of length two. The center around which the
+#' rotation should be performed.
+#' @param htrans A numeric of length one. The horizontal translation parameter.
+#' @param vtrans A numeric of length one. The vertical translation parameter.
+#'
+#' @return An sf polygon object similar to the input one, but with updated
+#' coordinates.
+#'
+#' @export
+#' @examples
+#' NULL
+transform_polygons <- function(x, theta, center, htrans, vtrans) {
+	# Converting the coordinates according to the optimized model
+	xcoords <- sf::st_coordinates(x)
+
+	new_coords <- transform_coords(xcoords[, 1:2],
+				       center = center,
+				       theta = theta,
+				       htrans = htrans,
+				       vtrans = vtrans,
+				       reverse = FALSE)
+
+	# Putting the coordinates back in the original matrix
+	xcoords[, 1] <- new_coords[, 1]
+	xcoords[, 2] <- new_coords[, 2]
+
+	# Creating new polygons with this geometry
+	new_poly <- lapply(split(as.data.frame(xcoords[, 1:2]), xcoords[, 4]), function(x) sf::st_polygon(list(as.matrix(x))))
+	new_poly <- do.call(sf::st_sfc, new_poly)
+
+	# Giving that geometry to the input polygons
+	sf::st_geometry(x) <- new_poly
+	x
+}
+
+#' Create a raster representation from reference panel coordinates
+#'
+#' This function creates a raster from reference panel coordinates such
+#' that this raster can be used to find the coordnates of the reference panels
+#' that best align to the thermal image. This function is not exported and not
+#' meant to be called onits own. See \code{\link{adjust_panels}} for more details.
+#'
+#' @param panels An sf object of polygons representing reference panel coordinates.
+#' @param template A SpatRaster object to be used as a template (for dimensions and
+#' resolution) for creating the new SpatRaster from the panel positions.
+#' @param black_value A numeric of length one. The value that thermal pixels corresponding
+#' to the black panel should be given.
+#' @param gray_value Similar to black_value, but for the gray panel.
+#' @param white_value Similar to black_value, but for the white panel.
+#' @param avg_value A numeric of length one. The value given to background pixels that
+#' do not correspond to any panel.
+#'
+#' @return A SpatRaster object that contains values consistent with the positions of
+#' reference panels. This raster object can be used to find the best alignment between
+#' panel coordinates and the target thermal image.
+#'
+#' @examples
+#' NULL
+rasterize_panels <- function(panels, template, black_value, gray_value, white_value, avg_value) {
+
+	# Creating a raster from the template using the average background value
+	panel_raster <- template
+	panel_raster[] <- avg_value
+
+	# Extracting the cell indices of each panel
+	vect_panels <- terra::vect(panels)
+	black_vect <- vect_panels[terra::values(vect_panels)$color == "black"]
+	gray_vect <- vect_panels[terra::values(vect_panels)$color == "gray"]
+	white_vect <- vect_panels[terra::values(vect_panels)$color == "white"]
+
+	black_cells <- terra::cells(panel_raster, black_vect)[, 2]
+	gray_cells <- terra::cells(panel_raster, gray_vect)[, 2]
+	white_cells <- terra::cells(panel_raster, white_vect)[, 2]
+
+	# Using these indices to
+	panel_raster[black_cells] <- black_value
+	panel_raster[gray_cells] <- gray_value
+	panel_raster[white_cells] <- white_value
+
+	panel_raster
+}
+
+#' Adjust the positions of reference panels on a thermal image
+#'
+#' This function aims to enable the use of \code{\link{optimize_transform}} for
+#' finding the transformation of reference panel coordinates that best
+#' matches the thermal image that they are associated with. The idea is to
+#' create a raster that will best correlate to the thermal image when the panel
+#' positions are aligned with their actual position with the image. To achieve this,
+#' higher values should be attributed to the black and gray panels, and lower values
+#' to the white panel. This rasterized form of the panel coordinates is then passed
+#' to \code{\link{optimize_transform}} to find the rotation/translation parameters
+#' that best align the panel coordinates to the target thermal image.
+#'
+#' @param target_raster A SpatRaster object representing a thermal image to which the
+#' coordinates of the reference panels should be aligned.
+#' @inheritParams rasterize_panels
+#' @inheritParams optimize_transform
+#'
+#' @return An sf polygon object similar to the input one, but with updated
+#' coordinates corresponding to the optimized panel positions.
+#'
+#' @export
+#' @examples
+#' NULL
+adjust_panels <- function(panels, target_raster, black_value, gray_value, white_value, avg_value,
+			  theta1 = 0, htrans1 = 0, vtrans1 = 0,
+			  theta_range = 3, theta_length = 3,
+			  htrans_range = 5, htrans_length = 5,
+			  vtrans_range = 5, vtrans_length = 5,
+			  min_overlap = 100,
+			  fact = 1, cores = 1, min_cor = 0.5, maxiter = 3,
+			  method = "Nelder-Mead", reltol = 10^-5, trace = 1) {
+
+	# Creating a raster from the panel coordiantes, to used for optimization
+	panel_raster <- rasterize_panels(panels = panels, template = target_raster,
+					 black_value = black_value, gray_value = gray_value,
+					 white_value = white_value, avg_value = avg_value)
+
+	# Finding the optimized transform from the panel raster to the target raster
+	panel_transform <- optimize_transform(x = target_raster, y = panel_raster,
+					      theta1 = theta1, htrans1 = htrans1, vtrans1 = vtrans1,
+					      theta_range = theta_range, theta_length = theta_length,
+					      htrans_range = htrans_range, htrans_length = htrans_length,
+					      vtrans_range = vtrans_range, vtrans_length = vtrans_length,
+					      min_overlap = min_overlap,
+					      fact = fact, cores = cores, min_cor = min_cor, maxiter = maxiter,
+					      method = method, reltol = reltol, trace = trace)
+
+	params <- panel_transform$optim$par
+
+	# Transforming the coordinates of the input panels using the optimized parameters
+	transform_polygons(panels,
+			   center = c(terra::xmax(panel_raster) - terra::xmin(panel_raster),
+				      terra::ymax(panel_raster) - terra::ymin(panel_raster)) / 2,
+			   theta = params[1], htrans = params[2], vtrans = params[3])
+}
+

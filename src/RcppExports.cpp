@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // assess_transform_cpp
-double assess_transform_cpp(const arma::vec& xval, const arma::vec& yval, const arma::mat& coords, double theta, double htrans, double vtrans, int nrows, int ncols, arma::vec extent);
-RcppExport SEXP _thermal_assess_transform_cpp(SEXP xvalSEXP, SEXP yvalSEXP, SEXP coordsSEXP, SEXP thetaSEXP, SEXP htransSEXP, SEXP vtransSEXP, SEXP nrowsSEXP, SEXP ncolsSEXP, SEXP extentSEXP) {
+double assess_transform_cpp(const arma::vec& xval, const arma::vec& yval, const arma::mat& coords, double theta, double htrans, double vtrans, int nrows, int ncols, arma::vec extent, int min_overlap);
+RcppExport SEXP _thermal_assess_transform_cpp(SEXP xvalSEXP, SEXP yvalSEXP, SEXP coordsSEXP, SEXP thetaSEXP, SEXP htransSEXP, SEXP vtransSEXP, SEXP nrowsSEXP, SEXP ncolsSEXP, SEXP extentSEXP, SEXP min_overlapSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -26,7 +26,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type nrows(nrowsSEXP);
     Rcpp::traits::input_parameter< int >::type ncols(ncolsSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type extent(extentSEXP);
-    rcpp_result_gen = Rcpp::wrap(assess_transform_cpp(xval, yval, coords, theta, htrans, vtrans, nrows, ncols, extent));
+    Rcpp::traits::input_parameter< int >::type min_overlap(min_overlapSEXP);
+    rcpp_result_gen = Rcpp::wrap(assess_transform_cpp(xval, yval, coords, theta, htrans, vtrans, nrows, ncols, extent, min_overlap));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -66,7 +67,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_thermal_assess_transform_cpp", (DL_FUNC) &_thermal_assess_transform_cpp, 9},
+    {"_thermal_assess_transform_cpp", (DL_FUNC) &_thermal_assess_transform_cpp, 10},
     {"_thermal_assess_registration_cpp", (DL_FUNC) &_thermal_assess_registration_cpp, 10},
     {"_thermal_convert_coords_optim_cpp", (DL_FUNC) &_thermal_convert_coords_optim_cpp, 4},
     {NULL, NULL, 0}

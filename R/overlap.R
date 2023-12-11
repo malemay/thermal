@@ -136,6 +136,9 @@ transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FA
 #' @param htrans_length Similar to theta_length for the htrans parameter.
 #' @param vtrans_range Similar to theta_range for the vtrans parameter
 #' @param vtrans_length Similar to theta_length for the vtrans parameter.
+#' @param min_overlap A numeric value of length one. The minimum number of values
+#' that must be compared between two rasters for the correlation to be considered
+#' valid. Otherwise, a correlation of 0 is returned.
 #' @param fact A numeric. The factor to use to reduce the resolution of the
 #' rasters to speed up the estimation of the best parameters in find_initial.
 #' Defaults to 1 (no aggregation is performed).
@@ -163,6 +166,7 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 			       theta_range = 5, theta_length = 9,
 			       htrans_range = 20, htrans_length = 5,
 			       vtrans_range = 20, vtrans_length = 5,
+			       min_overlap = 100,
 			       fact = 1, cores = 1, min_cor = 0.8, maxiter = 2,
 			       method = "Nelder-Mead", reltol = 10^-5, trace = 1) {
 
@@ -179,7 +183,8 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 					 coords = optim_coords,
 					 theta = theta1 * pi / 180, htrans = htrans1 + center[1], vtrans = vtrans1 + center[2],
 					 nrows = nrow(x), ncols = ncol(x),
-					 extent = unlist(as.list(ext(x))))
+					 extent = unlist(as.list(ext(x))),
+					 min_overlap = min_overlap)
 
 	message("Initial guess: cor = ", best_cor)
 	message("Current best parameters: theta = ", best_params[1], ", htrans = ", best_params[2], ", vtrans = ", best_params[3])
@@ -221,11 +226,11 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 
 	optim_output <- 
 		optim(best_params,
-		      fn = function(param, xval, yval, coords, nrows, ncols, extent) {
+		      fn = function(param, xval, yval, coords, nrows, ncols, extent, min_overlap) {
 			      theta <- param[1]
 			      htrans <- param[2]
 			      vtrans <- param[3]
-			      -assess_transform_cpp(xval, yval, coords, theta * pi / 180, htrans + center[1], vtrans + center[2], nrows, ncols, extent)
+			      -assess_transform_cpp(xval, yval, coords, theta * pi / 180, htrans + center[1], vtrans + center[2], nrows, ncols, extent, min_overlap)
 		      },
 		      xval = values(x),
 		      yval = values(y),
@@ -233,6 +238,7 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 		      nrows = nrow(x),
 		      ncols = ncol(x),
 		      extent = unlist(as.list(ext(x))),
+		      min_overlap = min_overlap,
 		      method = method,
 		      control = list(trace = trace, reltol = reltol))
 
@@ -307,6 +313,9 @@ check_transform <- function(x, y, theta, htrans, vtrans, reverse = FALSE, n = 10
 #' @param theta_vect A numeric vector of values to test for theta.
 #' @param htrans_vect A numeric vector of values to test for htrans.
 #' @param vtrans_vect A numeric vector of values to test for vtrans.
+#' @param min_overlap A numeric value of length one. The minimum number of values
+#' that must be compared between two rasters for the correlation to be considered
+#' valid. Otherwise, a correlation of 0 is returned.
 #' @param fact A factor of aggregation for the rasters, passed on to
 #' \code{\link[terra]{aggregate}}.  Larger values will speed up computations
 #' but will result in less accurate estimates. Default value is 1, i.e. no aggregation.
@@ -320,7 +329,7 @@ check_transform <- function(x, y, theta, htrans, vtrans, reverse = FALSE, n = 10
 #'
 #' @examples
 #' NULL
-find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, fact = 1, cores = 1) {
+find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, min_overlap = 100, fact = 1, cores = 1) {
 
 	# Reducing the size of the rasters
 	x <- terra::aggregate(x, fact = fact)
@@ -340,7 +349,7 @@ find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, fact = 1, c
 	optim_coords[, 2] <- optim_coords[, 2] - center[2]
 
 	# Initializing a vector for the correlations
-	correlations <- parallel::mclapply(1:nrow(to_test), function(i, x, y, params) {
+	correlations <- parallel::mclapply(1:nrow(to_test), function(i, x, y, params, min_overlap) {
 						   assess_transform_cpp(xval = values(x),
 									yval = values(y),
 									coords = optim_coords,
@@ -348,8 +357,10 @@ find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, fact = 1, c
 									htrans = params[i, 2] + center[1],
 									vtrans = params[i, 3] + center[2],
 									nrows = nrow(x), ncols = ncol(x),
-									extent = unlist(as.list(ext(x))))
-						       }, x = x, y = y, params = to_test,
+									extent = unlist(as.list(ext(x))),
+									min_overlap = min_overlap)
+						       },
+						   x = x, y = y, params = to_test, min_overlap = min_overlap,
 						   mc.cores = cores)
 
 	# Extracting the combination of parameters that yielded the best results

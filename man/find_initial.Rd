@@ -4,7 +4,16 @@
 \alias{find_initial}
 \title{Find initial values for thermal image overlap optimization using a brute-force approach}
 \usage{
-find_initial(x, y, theta_vect, htrans_vect, vtrans_vect, fact = 1, cores = 1)
+find_initial(
+  x,
+  y,
+  theta_vect,
+  htrans_vect,
+  vtrans_vect,
+  min_overlap = 100,
+  fact = 1,
+  cores = 1
+)
 }
 \arguments{
 \item{x}{The target raster.}
@@ -16,6 +25,10 @@ find_initial(x, y, theta_vect, htrans_vect, vtrans_vect, fact = 1, cores = 1)
 \item{htrans_vect}{A numeric vector of values to test for htrans.}
 
 \item{vtrans_vect}{A numeric vector of values to test for vtrans.}
+
+\item{min_overlap}{A numeric value of length one. The minimum number of values
+that must be compared between two rasters for the correlation to be considered
+valid. Otherwise, a correlation of 0 is returned.}
 
 \item{fact}{A factor of aggregation for the rasters, passed on to
 \code{\link[terra]{aggregate}}.  Larger values will speed up computations

@@ -7,7 +7,8 @@ arma::mat convert_coords_optim_cpp(arma::mat & coords, const arma::vec & optimou
 
 // [[Rcpp::export]]
 double assess_transform_cpp(const arma::vec & xval, const arma::vec & yval, const arma::mat & coords,
-		double theta, double htrans, double vtrans, int nrows, int ncols, arma::vec extent) {
+		double theta, double htrans, double vtrans, int nrows, int ncols, arma::vec extent,
+		int min_overlap) {
 
 	// Creating the transformation matrix from the supplied transformation parameters
 	arma::mat tmat = {{cos(theta),  sin(theta),     0.0},
@@ -28,7 +29,7 @@ double assess_transform_cpp(const arma::vec & xval, const arma::vec & yval, cons
 	}
 
 	// We return a correlation of 0 if there is no overlap
-	if(j == 0) return 0.0;
+	if(j < min_overlap) return 0.0;
 
 	// Keeping only the the relevant values
 	coords_indices = coords_indices.head_rows(j);

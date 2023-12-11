@@ -304,6 +304,9 @@ polygon_overlap <- function(polygon, ext_poly) {
 #' rotation should be performed.
 #' @param htrans A numeric of length one. The horizontal translation parameter.
 #' @param vtrans A numeric of length one. The vertical translation parameter.
+#' @param rounding_precision An single integer indicating the decimal to round the
+#' transformed coordinates to before converting to polygons. This is to prevent
+#' small numerical differences from resulting in apparently open polygons
 #'
 #' @return An sf polygon object similar to the input one, but with updated
 #' coordinates.
@@ -311,7 +314,7 @@ polygon_overlap <- function(polygon, ext_poly) {
 #' @export
 #' @examples
 #' NULL
-transform_polygons <- function(x, theta, center, htrans, vtrans) {
+transform_polygons <- function(x, theta, center, htrans, vtrans, rounding_precision = 5) {
 	# Converting the coordinates according to the optimized model
 	xcoords <- sf::st_coordinates(x)
 
@@ -323,8 +326,8 @@ transform_polygons <- function(x, theta, center, htrans, vtrans) {
 				       reverse = FALSE)
 
 	# Putting the coordinates back in the original matrix
-	xcoords[, 1] <- new_coords[, 1]
-	xcoords[, 2] <- new_coords[, 2]
+	xcoords[, 1] <- round(new_coords[, 1], rounding_precision)
+	xcoords[, 2] <- round(new_coords[, 2], rounding_precision)
 
 	# Creating new polygons with this geometry
 	new_poly <- lapply(split(as.data.frame(xcoords[, 1:2]), xcoords[, 4]), function(x) sf::st_polygon(list(as.matrix(x))))
@@ -398,6 +401,9 @@ rasterize_panels <- function(panels, template, black_value, gray_value, white_va
 #' coordinates of the reference panels should be aligned.
 #' @inheritParams rasterize_panels
 #' @inheritParams optimize_transform
+#' @param rounding_precision An single integer indicating the decimal to round the
+#' transformed coordinates to before converting to polygons. This is to prevent
+#' small numerical differences from resulting in apparently open polygons
 #'
 #' @return An sf polygon object similar to the input one, but with updated
 #' coordinates corresponding to the optimized panel positions.
@@ -406,6 +412,7 @@ rasterize_panels <- function(panels, template, black_value, gray_value, white_va
 #' @examples
 #' NULL
 adjust_panels <- function(panels, target_raster, black_value, gray_value, white_value, avg_value,
+			  rounding_precision = 5,
 			  theta1 = 0, htrans1 = 0, vtrans1 = 0,
 			  theta_range = 3, theta_length = 3,
 			  htrans_range = 5, htrans_length = 5,
@@ -435,6 +442,7 @@ adjust_panels <- function(panels, target_raster, black_value, gray_value, white_
 	transform_polygons(panels,
 			   center = c(terra::xmax(panel_raster) - terra::xmin(panel_raster),
 				      terra::ymax(panel_raster) - terra::ymin(panel_raster)) / 2,
-			   theta = params[1], htrans = params[2], vtrans = params[3])
+			   theta = params[1], htrans = params[2], vtrans = params[3],
+			   rounding_precision = rounding_precision)
 }
 

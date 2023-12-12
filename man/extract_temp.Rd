@@ -4,7 +4,11 @@
 \alias{extract_temp}
 \title{Extract the temperature at the nearest time point to a thermal image}
 \usage{
-extract_temp(metadata, temperature, tolerance = as.difftime(10, "secs"))
+extract_temp(
+  metadata,
+  temperature,
+  tolerance = as.difftime(10, units = "secs")
+)
 }
 \arguments{
 \item{metadata}{A data.frame containing metadata on a set of thermal images,

@@ -131,6 +131,38 @@ extract_temp <- function(metadata, temperature, tolerance = as.difftime(10, unit
 	temperature[indices, "temp"]
 }
 
+#' Add reference panel temperature readings to a metadata dataset
+#'
+#' This is a convenience function that is a wrapper around
+#' \code{\link{extract_temp}} when temperature values for three (black, gray, white)
+#' reference panels are available. It allows to automatically add columns with the
+#' temperature at given time points to the flight metadata.
+#'
+#' @inheritParams extract_temp
+#' @param temperature_list A named list of temperature data.frames. The names must
+#' be "black", "gray", and "white" and the corresponding data.frames contain temperature
+#' data on their respective panels.
+#'
+#' @return A metadata data.frame similar to the input one, but with three
+#' added columns ("black", "gray", "white") with the temperatures of each
+#' of the panels at the time points when each picture was taken.
+#'
+#' @export
+#' @examples
+#' NULL
+add_temp_metadata <- function(metadata, temperature_list, tolerance = as.difftime(10, units = "secs")) {
+	# Some sanity checks that are conditions for this function
+	stopifnot(length(temperature_list) == 3 && identical(sort(names(temperature_list)), c("black", "gray", "white")))
+
+	# Adding the temperature of each of the panels to the metadata
+	for(i in sort(names(temperature_list))) {
+		metadata[[i]] <- extract_temp(metadata, temperature_list[[i]], tolerance = tolerance)
+	}
+
+	# We return the modified data.frame
+	metadata
+}
+
 #' Join thermal values to panel temperatures
 #'
 #' To complete

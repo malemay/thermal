@@ -165,38 +165,66 @@ add_temp_metadata <- function(metadata, temperature_list, tolerance = as.difftim
 
 #' Join thermal values to panel temperatures
 #'
-#' To complete
+#' This generates data.frames relating thermal pixel values to temperature
+#' data for the three reference panels for each row in a metadata input
+#' data.frame.
 #'
-#' @param thermal A raster representing a thermal image
-#' @param polygons Polygons representing the location of black, gray and white panels.
-#'                 A "color" column should be used to identify each of the three polygons.
-#' @param black_temp The temperature of the black panel at the moment when the picture was taken.
-#' @param gray_temp The temperature of the gray panel at the moment when the picture was taken.
-#' @param white_temp The temperature of the white panel at the moment when the picture was taken.
+#' @param metadata A data.frame with metadata on thermal pictures taken
+#' during a flight. The data.frames must have row names that correspond
+#' to names in the polygons list to link the two. Must also have columns
+#' named "black", "gray" and "white" with the temperatures of the respective
+#' panels at the moment when the pictures were taken.
+#' @param polygons A list of sf polygons representing the location of black,
+#' gray and white panels. A "color" column should be used to identify each of
+#' the three polygons. Each element of the list must be named according to
+#' the row names of the metadata.
+#' @param ncores An integer indicating the number of cores to use. Passed to
+#' \code{\link[parallel]{mclapply}}. Defaults to 1 (no parallel processing).
 #'
-#' @return A data.frame suitable for plotting and modelling with onw row per pixel
-#'         and the following columns:
-#'         ID: the color of the panel
-#'         thermal: the value of the pixel
-#'         temp: the temperature of the pixel (fixed for a given panel color)
+#' @return A list of data.frames suitable for plotting and modelling with one
+#' row per pixel and the following columns:
+#' ID: the color of the panel
+#' thermal: the value of the pixel
+#' temp: the temperature of the pixel (fixed for a given panel color)
+#' Each element of the list returned is named after the ID of the panel, which
+#' also matches the row names of the metadata.
 #' 
+#' @export
 #' @examples
 #' NULL
-#'
-#' @export
-join_thermal <- function(thermal, polygons, black_temp, gray_temp, white_temp) {
+join_thermal <- function(metadata, polygons, ncores = 1) {
+
+	# Ensuring that the metadata contains temperature data
+	if(!all(c("black", "gray", "white") %in% colnames(metadata))) {
+		stop("metadata input must contain columns for panel temperature (black, gray, white).")
+	}
+
+	# Also ensuring that all polygons correspond to rows in the metadata
+	if(!all(names(polygons) %in% rownames(metadata))) {
+		stop("All input polygon names must correspond to row names in metadata.")
+	}
+
 	# Extracting the values of the thermal pixels based on the polygons
-	pixel_values <- extract(thermal, polygons)
-	names(pixel_values)[2] <- "thermal"
-	pixel_values$ID <- polygons$color[pixel_values$ID]
+	output <- parallel::mclapply(names(polygons), function(i, polygons, mdata){
+					     # Extracting the values from the thermal raster and naming the column
+					     irast <- suppressWarnings(terra::rast(mdata[i, "SourceFile"]))
+					     pix_values <- terra::extract(irast, polygons[[i]])
+					     names(pix_values)[2] <- "thermal"
 
-	# Adding the information on panel temperature
-	pixel_values$temp <- NA
-	pixel_values[pixel_values$ID == "black", "temp"] <- black_temp
-	pixel_values[pixel_values$ID == "gray", "temp"] <- gray_temp
-	pixel_values[pixel_values$ID == "white", "temp"] <- white_temp
+					     # Using the color as ID and using this ID to extract temperature values
+					     pix_values$ID <- polygons[[i]]$color[pix_values$ID]
+					     temp_lookup <- as.numeric(mdata[i, c("black", "gray", "white")])
+					     names(temp_lookup) <- c("black", "gray", "white")
+					     pix_values$temp <- temp_lookup[pix_values$ID]
 
-	return(pixel_values)
+					     # A sanity check before returning
+					     if(any(!complete.cases(pix_values))) stop("NA values not allowed in temperature or thermal pixels")
+					     pix_values
+	     }, polygons = polygons, mdata = metadata, mc.cores = ncores)
+
+	# Naming the list elements after the polygon IDs
+	names(output) <- names(polygons)
+	return(output)
 }
 
 #' Create a linear model of temperature as a function of thermal digital numbes

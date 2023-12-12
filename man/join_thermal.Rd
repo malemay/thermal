@@ -4,31 +4,37 @@
 \alias{join_thermal}
 \title{Join thermal values to panel temperatures}
 \usage{
-join_thermal(thermal, polygons, black_temp, gray_temp, white_temp)
+join_thermal(metadata, polygons, ncores = 1)
 }
 \arguments{
-\item{thermal}{A raster representing a thermal image}
+\item{metadata}{A data.frame with metadata on thermal pictures taken
+during a flight. The data.frames must have row names that correspond
+to names in the polygons list to link the two. Must also have columns
+named "black", "gray" and "white" with the temperatures of the respective
+panels at the moment when the pictures were taken.}
 
-\item{polygons}{Polygons representing the location of black, gray and white panels.
-A "color" column should be used to identify each of the three polygons.}
+\item{polygons}{A list of sf polygons representing the location of black,
+gray and white panels. A "color" column should be used to identify each of
+the three polygons. Each element of the list must be named according to
+the row names of the metadata.}
 
-\item{black_temp}{The temperature of the black panel at the moment when the picture was taken.}
-
-\item{gray_temp}{The temperature of the gray panel at the moment when the picture was taken.}
-
-\item{white_temp}{The temperature of the white panel at the moment when the picture was taken.}
+\item{ncores}{An integer indicating the number of cores to use. Passed to
+\code{\link[parallel]{mclapply}}. Defaults to 1 (no parallel processing).}
 }
 \value{
-A data.frame suitable for plotting and modelling with onw row per pixel
-and the following columns:
+A list of data.frames suitable for plotting and modelling with one
+row per pixel and the following columns:
 ID: the color of the panel
 thermal: the value of the pixel
 temp: the temperature of the pixel (fixed for a given panel color)
+Each element of the list returned is named after the ID of the panel, which
+also matches the row names of the metadata.
 }
 \description{
-To complete
+This generates data.frames relating thermal pixel values to temperature
+data for the three reference panels for each row in a metadata input
+data.frame.
 }
 \examples{
 NULL
-
 }

@@ -227,41 +227,128 @@ join_thermal <- function(metadata, polygons, ncores = 1) {
 	return(output)
 }
 
-#' Create a linear model of temperature as a function of thermal digital numbes
+#' Create a linear model of temperature as a function of thermal digital numbers
 #'
-#' @param pixel_values A data.frame linking thermal pixel values to temperature,
-#'                     as returned by \code{\link{join_thermal}}
-#' @param summary_functions A list with functions used to summarize the values
-#'              for a given panel color. Defaults to max for black and gray
-#'              panels and min for white panels.
+#' This function creates thermal models for each dataset of temperature and
+#' thermal digital numbers provided. This may be a subset of the provided
+#' metadata (if for example some pictures did not include reference panels),
+#' but all elements of the pixel_values list must be found within the input
+#' metadata. Computation of thermal models from multiple pixel values at once
+#' could eventually be supported, but at the moment every panel is summarized
+#' into a single value which is used for fitting the linear models.
 #'
-#' @return A list of two elements, the first one containing a data.frame of
-#'         DN and temperature values for each panel, and the second element
-#'         containing a linear model linking the two.
+#' @param metadata A data.frame of metadata on a given flight, such
+#' as returned by \code{\link{read_metadata}}. Row names of this data.frame
+#' must correspond to the names of the elements in pixel_values.
+#' @param pixel_values A list of data.frames linking thermal pixel values to
+#' temperature, as returned by \code{\link{join_thermal}}. The names of the
+#' elements in this list must correspond to the row names of the metadata input.
+#' @param summary_functions A named (black, gray, white) list with functions
+#' used to summarize the values for each given panel color. The functions should
+#' return a single value from an input vector with multiple values. Defaults
+#' to the value at which the density of the pixel distribution is maximized.
 #'
-#' @examples
-#' NULL
+#' @return A list of two elements, the first one containing the metadata
+#' updated with critical model information (the pixel values used to fit
+#' the model and the model estimates) , and the second element containing a
+#' list of data used to fit the linear models and the models themselves.
+#' The metadata rows for which no model was fitted will have model-related
+#' values set to NA.
 #'
 #' @export
-thermal_model <- function(pixel_values,
-			  summary_functions = list(black = max, gray = max, white = min)) {
+#' @examples
+#' NULL
+thermal_lm <- function(metadata,
+		       pixel_values,
+		       summary_functions = list(black = max_density, gray = max_density, white = max_density)) {
 
-	output <- data.frame(ID = unique(pixel_values$ID),
-			     pixel = NA,
-			     temp = NA)
-
-	for(i in 1:nrow(output)) {
-		i_value <- output[i, "ID"]
-		output[i, "pixel"] <- summary_functions[[i_value]](pixel_values[pixel_values$ID == i_value, "thermal"])
-		stopifnot(length(i_temp <- unique(pixel_values[pixel_values$ID == i_value, "temp"])) == 1)
-		output[i, "temp"] <- i_temp
+	# We check that all pixel_values names are in the metadata
+	if(!all(names(pixel_values) %in% rownames(metadata))) {
+		stop("The names of pixel_values must match row names in metadata.")
 	}
 
-	# Now computing the linear model
-	output_lm <- lm(temp ~ pixel, data = output)
+	# Computing model data and the model itself for all elements in pixel_values
+	models <- lapply(names(pixel_values), function(i, pixels){
 
-	# Returning a list with the data and the linear model
-	list(data = output, model = output_lm)
+				 # Extracting the pixels for this picture
+				 i_pixels <- pixels[[i]]
+
+				 # Initializing the model data  and naming the rows according to panel color
+				 model_data <- data.frame(ID = unique(i_pixels$ID),
+							  pixel = NA,
+							  temp = NA)
+
+				 rownames(model_data) <- model_data$ID
+
+				 # Looping over the three panel colors
+				 for(i in rownames(model_data)) {
+					 # Summarizing the pixel values based on the provided functions
+					 model_data[i, "pixel"] <- summary_functions[[i]](i_pixels[i_pixels$ID == i, "thermal"])
+					 stopifnot(length(i_temp <- unique(i_pixels[i_pixels$ID == i, "temp"])) == 1)
+					 model_data[i, "temp"] <- i_temp
+				 }
+
+				 # Computing the linear model based on this data
+				 model <- lm(temp ~ pixel, data = model_data)
+
+				 # We return a list with the data used to fit the model and the model itself
+				 list(data = model_data, model = model)
+			  }, pixels = pixel_values)
+
+	# Naming the elements of the model list
+	names(models) <- names(pixel_values)
+
+	# Updating the metadata with the model data and model parameters
+	metadata$blackpix <- NA
+	metadata$graypix <- NA
+	metadata$whitepix <- NA
+	metadata$intercept <- NA
+	metadata$slope <- NA
+
+	# Filling in the values only for the metadata rows for which we have panels
+	for(i in names(models)) {
+		metadata[i, "blackpix"] <- models[[i]]$data["black", "pixel"]
+		metadata[i, "graypix"] <- models[[i]]$data["gray", "pixel"]
+		metadata[i, "whitepix"] <- models[[i]]$data["white", "pixel"]
+		metadata[i, "intercept"] <- coef(models[[i]]$model)[1]
+		metadata[i, "slope"] <- coef(models[[i]]$model)[2]
+	}
+
+	# Returning a list with the metadata and the models
+	list(metadata = metadata, models = models)
+}
+
+#' Identify the mode from the density of a distribution
+#'
+#' This function is mainly meant to be used in the argument summary_functions
+#' of \code{\link{thermal_lm}} to obtain a single pixel value from a large
+#' number of observed pixels.
+#'
+#' @param x A numeric vector.
+#'
+#' @return A single numeric value that represents the value of x at which the
+#' density of the distribution is maximized.
+#' 
+#' @export
+#' @examples
+#' NULL
+max_density <- function(x) {
+	output <- density(x)
+	output$x[which.max(output$y)]
+}
+
+#' Compute temperature predictions from thermal model parameters
+#'
+#' This function can be used to compute predictions for a given digital number
+#' value 
+#'
+#' @export
+thermal_predict <- function(metadata, dn_value) {
+	# Sanity check
+	stopifnot(all(c("slope", "intercept") %in% colnames(metadata)))
+
+	# Return a vector of the predictions
+	metadata$intercept + metadata$slope * dn_value
 }
 
 

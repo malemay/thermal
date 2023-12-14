@@ -6,34 +6,40 @@
 \usage{
 plot_pixtemp(
   pixel_values,
-  summary_functions = list(black = max, gray = max, white = min),
-  plot_lm = TRUE,
+  lcol = c(black = "black", gray = "gray", white = "blue"),
+  model = NULL,
   col.model.points = "red",
   cex.model.points = 2
 )
 }
 \arguments{
-\item{pixel_values}{A data.frame linking thermal pixel values to temperature,
-as returned by \code{\link{join_thermal}}}
+\item{pixel_values}{A data.frame linking thermal pixel values to
+temperature, as returned by \code{\link{join_thermal}}.}
 
-\item{summary_functions}{A list with functions used to summarize the values
-for a given panel color. Defaults to max for black and gray
-panels and min for white panels.}
+\item{lcol}{A named ("black", "gray", "white") character vector indicating
+the colors to use for plotting the pixel values of each panel.}
 
-\item{plot_lm}{A logical value indicating whether a linear model should be computed
-using the thermal_model function and plotted using abline.}
+\item{model}{A list containing data used for fitting a linear model that
+links the temperature to the pixel values, and the linear model itself, used
+for plotting the regression line and values used for fitting the model. Such
+objects are returned by \code{\link{thermal_lm}}.  If NULL (the default),
+then the output of the model is not plotted.}
 
-\item{col.model.points}{The color(s) to use for the points used to compute the model.}
+\item{col.model.points}{The color(s) to use for the points used to compute
+the model.}
 
-\item{cex.model.points}{The cex parameter to use for the points used to compute the model.}
+\item{cex.model.points}{The cex parameter to use for the points used to
+compute the model.}
 }
 \value{
-NULL, invisibly. This function is invoked for its plotting side-effect.
+NULL, invisibly. This function is invoked for its plotting
+side-effect.
 }
 \description{
-To complete
+This function can be used to assess the quality of a linear model relating
+pixel values to temperature by representing the raw data, summarized data,
+and model output in the same plot.
 }
 \examples{
 NULL
-
 }

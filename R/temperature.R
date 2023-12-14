@@ -354,39 +354,46 @@ thermal_predict <- function(metadata, dn_value) {
 
 #' Plot panel temperature as a function of thermal digital numbers
 #'
-#' To complete
+#' This function can be used to assess the quality of a linear model relating
+#' pixel values to temperature by representing the raw data, summarized data,
+#' and model output in the same plot.
 #'
-#' @param pixel_values A data.frame linking thermal pixel values to temperature,
-#'                     as returned by \code{\link{join_thermal}}
-#' @param summary_functions A list with functions used to summarize the values
-#'              for a given panel color. Defaults to max for black and gray
-#'              panels and min for white panels.
-#' @param plot_lm A logical value indicating whether a linear model should be computed
-#'                using the thermal_model function and plotted using abline.
-#' @param col.model.points The color(s) to use for the points used to compute the model.
-#' @param cex.model.points The cex parameter to use for the points used to compute the model.
+#' @param pixel_values A data.frame linking thermal pixel values to
+#' temperature, as returned by \code{\link{join_thermal}}.
+#' @param lcol A named ("black", "gray", "white") character vector indicating
+#' the colors to use for plotting the pixel values of each panel.
+#' @param model A list containing data used for fitting a linear model that
+#' links the temperature to the pixel values, and the linear model itself, used
+#' for plotting the regression line and values used for fitting the model. Such
+#' objects are returned by \code{\link{thermal_lm}}.  If NULL (the default),
+#' then the output of the model is not plotted.
+#' @param col.model.points The color(s) to use for the points used to compute
+#' the model.
+#' @param cex.model.points The cex parameter to use for the points used to
+#' compute the model.
 #'
-#' @return NULL, invisibly. This function is invoked for its plotting side-effect.
-#'
-#' @examples
-#' NULL
+#' @return NULL, invisibly. This function is invoked for its plotting
+#' side-effect.
 #'
 #' @export
+#' @examples
+#' NULL
 plot_pixtemp <- function(pixel_values,
-			 summary_functions = list(black = max, gray = max, white = min),
-			 plot_lm = TRUE,
+			 lcol = c(black = "black", gray = "gray", white = "blue"),
+			 model = NULL,
 			 col.model.points = "red",
 			 cex.model.points = 2) {
 
 
-	plot(pixel_values$thermal, pixel_values$temp, col = ifelse(pixel_values$ID == "white", "blue", pixel_values$ID))
+	# Plotting a scatterplot of the pixel/temperature values
+	plot(pixel_values$thermal, pixel_values$temp, col = lcol[pixel_values$ID])
 
 	# Plotting a linear model of temperature as a function of thermal values if requested
-	if(plot_lm) {
-		lmod <- thermal_model(pixel_values, summary_functions = summary_functions)
-		abline(reg = lmod$model, lty = 3)
+	if(!is.null(model)) {
+		abline(reg = model$model, lty = 3)
 		# Also plotting the points used for the model
-		points(x = lmod$data$pixel, y = lmod$data$temp,
+		points(x = model$data$pixel,
+		       y = model$data$temp,
 		       col = col.model.points,
 		       cex = cex.model.points)
 	}

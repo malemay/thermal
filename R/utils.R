@@ -71,3 +71,77 @@ add_tparams <- function(metadata, tparams) {
 	metadata <- cbind(metadata, rbind(NA, params))
 }
 
+#' Plots the location of pictures from flight metadata
+#'
+#' This function can be used to get a first glance of the layout of a flight.
+#' The color parameter can be used to specify different colors for points
+#' depending on characteristics of the metadata.
+#'
+#' @param a data.frame of metadata on a flight, such as returned by
+#' \code{\link{metadata}}.  Must minimally contain columns GPSLongitude and
+#' GPSLatitude for longitude and latitude coordinates in the WGS84 datum.
+#' @param new_crs A coordinate reference system (such as returned by
+#' \code{\link[sf]{st_crs}} to project the points to before display. If NULL
+#' (the default), then data is displayed in the original coordinate system.
+#' @param panel_pos An sf object representing the position of the panels (or
+#' any point of interest), which will be transformed if new_crs is not NULL.
+#' If NULL, (the default), then panels are not plotted.
+#' @param panel_color The color to use for the panels.
+#' @param color A vector used to specify the colors of the points for the
+#' position of the images. If NULL (the default), then all points are colored
+#' black.
+#' @param title A single character string. The title of the plot.
+#' @param cex.axis A character expansion value applied to the axis labels.
+#' @param cex.point A character expansion value applied to the points.
+#'
+#' @return NULL, invisibly. This function is invoked for its plotting
+#' side-effect.
+#'
+#' @export
+#' @examples
+#' NULL
+position_plot <- function(metadata, new_crs = NULL, panel_pos = NULL, panel_color = "black", color = NULL, title = NULL, cex.axis = 1, cex.points = 1) {
+	# Coercing to a spatial object
+	metadata <- sf::st_as_sf(metadata,
+				 coords = c("GPSLongitude", "GPSLatitude"),
+				 crs = sf::st_crs("WGS84"),
+				 dim = "XY")
+
+	# Transforming the CRS if needed
+	if(!is.null(new_crs)) {
+		metadata <- sf::st_transform(metadata, crs = new_crs)
+
+		if(!is.null(panel_pos)) panel_pos <- sf::st_transform(panel_pos, crs = new_crs)
+	}
+
+	# Setting up the viewports
+	grid::pushViewport(grid::plotViewport())
+	grid::pushViewport(grid::dataViewport(xData = sf::st_coordinates(metadata)[, "X"], yData = sf::st_coordinates(metadata)[, "Y"]))
+
+	# Plotting the data and axes
+	grid::grid.rect()
+	grid::grid.points(sf::st_coordinates(metadata)[, "X"],
+			  sf::st_coordinates(metadata)[, "Y"],
+			  gp = grid::gpar(col = if(is.null(color)) "black" else color, cex = cex.points),
+			  default.units = "native")
+
+	# Adding the position of the panels (if provided)
+	if(!is.null(panel_pos)) {
+		grid::grid.draw(sf::st_as_grob(sf::st_geometry(panel_pos),
+					       gp = grid::gpar(col = panel_color),
+					       pch = 16))
+	}
+
+	grid::grid.xaxis(gp = grid::gpar(cex = cex.axis))
+	grid::grid.yaxis(gp = grid::gpar(cex = cex.axis))
+
+	# Adding a title (if requested)
+	if(!is.null(title)) {
+		grid::grid.text(label = title, y = grid::unit(1, "npc") + grid::unit(1, "lines"))
+	}
+
+	# Going back to the top viewport
+	grid::upViewport(2)
+
+	invisible(NULL)
+}

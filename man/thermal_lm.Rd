@@ -7,7 +7,8 @@
 thermal_lm(
   metadata,
   pixel_values,
-  summary_functions = list(black = max_density, gray = max_density, white = max_density)
+  summary_functions = list(black = max_density, gray = max_density, white = max_density),
+  use_panels = c("black", "gray", "white")
 )
 }
 \arguments{
@@ -23,6 +24,10 @@ elements in this list must correspond to the row names of the metadata input.}
 used to summarize the values for each given panel color. The functions should
 return a single value from an input vector with multiple values. Defaults
 to the value at which the density of the pixel distribution is maximized.}
+
+\item{use_panels}{A character vector with the names of the panels to use for
+computing linear models. By default, all panels are used but this parameter
+may be used to remove one of the panels.}
 }
 \value{
 A list of two elements, the first one containing the metadata

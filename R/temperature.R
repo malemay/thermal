@@ -247,6 +247,9 @@ join_thermal <- function(metadata, polygons, ncores = 1) {
 #' used to summarize the values for each given panel color. The functions should
 #' return a single value from an input vector with multiple values. Defaults
 #' to the value at which the density of the pixel distribution is maximized.
+#' @param use_panels A character vector with the names of the panels to use for
+#' computing linear models. By default, all panels are used but this parameter
+#' may be used to remove one of the panels.
 #'
 #' @return A list of two elements, the first one containing the metadata
 #' updated with critical model information (the pixel values used to fit
@@ -260,7 +263,8 @@ join_thermal <- function(metadata, polygons, ncores = 1) {
 #' NULL
 thermal_lm <- function(metadata,
 		       pixel_values,
-		       summary_functions = list(black = max_density, gray = max_density, white = max_density)) {
+		       summary_functions = list(black = max_density, gray = max_density, white = max_density),
+		       use_panels = c("black", "gray", "white")) {
 
 	# We check that all pixel_values names are in the metadata
 	if(!all(names(pixel_values) %in% rownames(metadata))) {
@@ -288,6 +292,9 @@ thermal_lm <- function(metadata,
 					 model_data[i, "temp"] <- i_temp
 				 }
 
+				 # Keeping only the panels that we do want to use
+				 model_data <- model_data[rownames(model_data) %in% use_panels, ]
+
 				 # Computing the linear model based on this data
 				 model <- lm(temp ~ pixel, data = model_data)
 
@@ -307,9 +314,9 @@ thermal_lm <- function(metadata,
 
 	# Filling in the values only for the metadata rows for which we have panels
 	for(i in names(models)) {
-		metadata[i, "blackpix"] <- models[[i]]$data["black", "pixel"]
-		metadata[i, "graypix"] <- models[[i]]$data["gray", "pixel"]
-		metadata[i, "whitepix"] <- models[[i]]$data["white", "pixel"]
+		if("black" %in% use_panels) metadata[i, "blackpix"] <- models[[i]]$data["black", "pixel"]
+		if("gray" %in% use_panels) metadata[i, "graypix"] <- models[[i]]$data["gray", "pixel"]
+		if("white" %in% use_panels) metadata[i, "whitepix"] <- models[[i]]$data["white", "pixel"]
 		metadata[i, "intercept"] <- coef(models[[i]]$model)[1]
 		metadata[i, "slope"] <- coef(models[[i]]$model)[2]
 	}

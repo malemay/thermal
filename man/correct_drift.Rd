@@ -9,6 +9,7 @@ correct_drift(
   output_dir,
   method = "overlap",
   midpoint = NULL,
+  nuc_threshold = NULL,
   overwrite_dst = FALSE,
   ncores = 1,
   verbose = TRUE
@@ -23,11 +24,16 @@ The function will not allow source files to be overwritten, thus the output
 directory should be different from the one containing the source data.}
 
 \item{method}{A character. The method to use for drift correction. At the moment
-only "overlap" is supported.}
+"overlap", "overall", "lm" and "spline" are supported.}
 
 \item{midpoint}{An integer. The index to start the correction from. Image values
 will be adjusted to match the image at that index. If NULL (the default), then
 the middle of the range is used.}
+
+\item{nuc_threshold}{The difference between the mean of successive pictures
+above which non-uniformity correction is presumed to have occurred. Only
+needs to be provided for methods "lm" and "spline". If these methods are
+chosen and nuc_threshold is NULL, it will be set to 50 with a warning.}
 
 \item{overwrite_dst}{A logical. Whether the destination files should be overwritten if they already exist.}
 
@@ -41,6 +47,9 @@ A character vector of the files that were written to disk, invisibly.
 \description{
 By default this function will output files to the specified directory
 and replace the file extension by ".tiff".
+}
+\details{
+More details on the correction methods to be added later.
 }
 \examples{
 NULL

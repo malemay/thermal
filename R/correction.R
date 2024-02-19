@@ -104,16 +104,22 @@ compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 #' By default this function will output files to the specified directory
 #' and replace the file extension by ".tiff".
 #'
+#' More details on the correction methods to be added later.
+#'
 #' @param metadata A data.frame of metadata on a set of thermal pictures, sorted
 #' according to the time when the picture was taken ("DateTimeOriginal" column).
 #' @param output_dir The directory to which the output images should be written.
 #' The function will not allow source files to be overwritten, thus the output
 #' directory should be different from the one containing the source data.
 #' @param method A character. The method to use for drift correction. At the moment
-#' only "overlap" is supported.
+#' "overlap", "overall", "lm" and "spline" are supported.
 #' @param midpoint An integer. The index to start the correction from. Image values
 #' will be adjusted to match the image at that index. If NULL (the default), then
 #' the middle of the range is used.
+#' @param nuc_threshold The difference between the mean of successive pictures
+#' above which non-uniformity correction is presumed to have occurred. Only
+#' needs to be provided for methods "lm" and "spline". If these methods are
+#' chosen and nuc_threshold is NULL, it will be set to 50 with a warning.
 #' @param overwrite_dst A logical. Whether the destination files should be overwritten if they already exist.
 #' @param ncores An integer. The number of cores to use for parallel processing.
 #' @param verbose A logical. Whether the function should output information on its progress (default = TRUE).
@@ -123,7 +129,7 @@ compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 #' @export
 #' @examples
 #' NULL
-correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = NULL, overwrite_dst = FALSE, ncores = 1, verbose = TRUE) {
+correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = NULL, nuc_threshold = NULL, overwrite_dst = FALSE, ncores = 1, verbose = TRUE) {
 	# Some sanity checks
 	stopifnot("SourceFile" %in% names(metadata))
 
@@ -144,12 +150,12 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 	# Checking that all files are in increasing time order
 	stopifnot(!is.unsorted(metadata$DateTimeOriginal))
 
+	# Setting the midpoint if it is not already set
+	if(is.null(midpoint)) midpoint <- floor(length(src_files) / 2)
+
 	# Overlap method adjusts the mean value of images based on the shared overlap between successive images
 	if(method == "overlap") {
 		if(! "diff" %in% names(metadata)) stop("The difference between successive images must be precomputed to use method = 'overlap'")
-
-		# Setting the midpoint if it is not already set
-		if(is.null(midpoint)) midpoint <- floor(length(src_files) / 2)
 
 		# Computing the pre- and post-midpoint adjustment factors
 		pre_midpoint  <- if(midpoint == 1) c() else rev(cumsum(metadata[midpoint:2, "diff"]))
@@ -158,8 +164,57 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 		# Precomputing the adjustment factors based on the differences and midpoint
 		adj_factors <- c(pre_midpoint, 0, post_midpoint)
 
+	} else if(method %in% c("overall", "lm", "spline")) {
+		if(! "mean" %in% names(metadata)) stop("The mean value of images must be precomputed to use method = ", method)
+
+		# All of these methods rely on the residuals of the predicted value vs the real value
+
+		# For overall correction the residuals are 0 because we assume all variations in mean are due to drift
+		if(method == "overall") resid <- 0
+
+		# For the other methods we need to split the dataset in nuc segments first
+		if(method %in% c("lm", "spline")) {
+
+			if(is.null(nuc_threshold)) {
+				warning("nuc_threshold not provided: set to 50, but may not be the most appropriate value")
+				nuc_threshold <- 50
+			}
+
+			nuc_events <- c(FALSE, abs(diff(metadata$mean)) > nuc_threshold)
+			nuc_group <- cumsum(nuc_events)
+
+			# We also adjust the values of DateTimeOriginal to ensure that a fit is found
+			metadata$time <- metadata$DateTimeOriginal - min(metadata$DateTimeOriginal)
+
+			# Models are computed according to the requested method
+			if(method == "lm") {
+				resid <- lapply(split(metadata, nuc_group), function(x) {
+							if(nrow(x) >= 2) {
+								return(residuals(lm(mean ~ time, data = x)))
+							} else {
+								return(0)
+							}
+
+				 })
+
+			} else if(method == "spline") {
+				resid <- lapply(split(metadata, nuc_group), function(x) {
+							 if(nrow(x) >= 4) {
+								 return(residuals(smooth.spline(x$time, x$mean)))
+							 } else {
+								 return(rep(0, nrow(x)))
+							 }
+				 })
+			}
+
+			resid <- unlist(resid)
+		}
+
+		# Now we can compute the adjustment factors from the mean of the midpoint and the residuals
+		target_value <- metadata[midpoint, "mean"] + resid
+		adj_factors <- target_value - metadata$mean
 	} else {
-		stop("Only method = 'overlap' is supported at the moment.")
+		stop("Unsupported method ", method)
 	}
 
 	# Looping over all pictures in the dataset
@@ -283,8 +338,8 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 #' corresponding to names of list elements in panels if thermal models
 #' are to be fitted.
 #' @param correction_type A chracter. The type of correction to apply to
-#' the images. At the moment, the values "overall", "overlap" and
-#' "vignetting_overlap" are supported.
+#' the images. At the moment, the values "overall", "overlap", "lm", "spline",
+#' and "vignetting_overall" are supported.
 #' @param output_dir A character. The directory to which the corrected
 #' images should be output.
 #' @param camera_tz A character that can be interpreted as a valid timezone.
@@ -311,6 +366,9 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 #' for adjusting the mean of the thermal pictures if drift correction is
 #' performed. See \code{\link{correct_drift}}. If NULL (the default), then
 #' the median image is used.
+#' @param nuc_treshold The threshold to use for detecting non-uniformity
+#' correction events when correction_type is "lm" or "spline. See
+#' \code{\link{correct_drift}} for more details.
 #' @param overwrite_dst A logical. Whether overwriting destination files
 #' (the corrected images) should be allowed.
 #' @param rownames_tolerance A numeric interpreted as the difference
@@ -333,8 +391,8 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 			    camera_tz, display_tz, tags = "minimal",
 			    tparams = NULL, panels = NULL,
 			    temperature = NULL, use_panels = NULL,
-			    midpoint = NULL, overwrite_dst = FALSE,
-			    rownames_tolerance = 1.5,
+			    midpoint = NULL, nuc_threshold = NULL,
+			    overwrite_dst = FALSE, rownames_tolerance = 1.5,
 			    verbose = TRUE, ncores = 1) {
 
 	# base_data must be a data.frame of preprocessed metadata
@@ -350,27 +408,22 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 	dir.create(output_dir, recursive = TRUE)
 
 	# Next we check for the correction that was requested
-	if(correction_type == "overall") {
-		# In this case we need to artificially set the transformation parameters to 0
-		base_data$theta <- 0
-		base_data$htrans <- 0
-		base_data$vtrans <- 0
+	if(correction_type %in% c("overall", "lm", "spline")) {
 
-		# Then we compute the differences based on those parameters
-		base_data$diff <- compute_diffs(base_data, ncores = ncores)
+		# For these methods we need to pre-compute the mean of each image in the dataset
+		base_data$mean <- thermal_mean(base_data, ncores = ncores)
 
 		# We then run the corretion routine, which returns the names of the modified files
 		corrected_files <- correct_drift(metadata = base_data, output_dir = output_dir,
-						 method = "overlap", midpoint = midpoint,
+						 method = correction_type, midpoint = midpoint,
 						 overwrite_dst = overwrite_dst, ncores = ncores,
 						 verbose = verbose)
 
 	} else if(correction_type == "overlap") {
-		# Same as "overall" but we keep the parameters provided
-		# Then we compute the differences based on those parameters
+		# We compute the differences based on coordinate transform parameters
 		base_data$diff <- compute_diffs(base_data, ncores = ncores)
 
-		# We then run the corretion routine, which returns the names of the modified files
+		# We then run the correction routine, which returns the names of the modified files
 		corrected_files <- correct_drift(metadata = base_data, output_dir = output_dir,
 						 method = "overlap", midpoint = midpoint,
 						 overwrite_dst = overwrite_dst, ncores = ncores,
@@ -383,7 +436,7 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 						      overwrite_dst = overwrite_dst,
 						      ncores = ncores, verbose = verbose)
 	} else {
-		stop("Unsupported correction type")
+		stop("Unsupported correction type ", correction_type)
 	}
 
 	# Now we need to re-read the metadata from the files we just created

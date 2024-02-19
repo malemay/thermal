@@ -16,6 +16,7 @@ correct_thermal(
   temperature = NULL,
   use_panels = NULL,
   midpoint = NULL,
+  nuc_threshold = NULL,
   overwrite_dst = FALSE,
   rownames_tolerance = 1.5,
   verbose = TRUE,
@@ -29,8 +30,8 @@ corresponding to names of list elements in panels if thermal models
 are to be fitted.}
 
 \item{correction_type}{A chracter. The type of correction to apply to
-the images. At the moment, the values "overall", "overlap" and
-"vignetting_overlap" are supported.}
+the images. At the moment, the values "overall", "overlap", "lm", "spline",
+and "vignetting_overall" are supported.}
 
 \item{output_dir}{A character. The directory to which the corrected
 images should be output.}
@@ -81,6 +82,10 @@ on its progres.}
 
 \item{ncores}{An single integer value specifying the number of cores
 to use for specific parts of the workflow. Defaults to 1 (no multithreading).}
+
+\item{nuc_treshold}{The threshold to use for detecting non-uniformity
+correction events when correction_type is "lm" or "spline. See
+\code{\link{correct_drift}} for more details.}
 }
 \value{
 A data.frame of metadata describing the corrected pictures and

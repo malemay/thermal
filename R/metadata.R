@@ -185,9 +185,10 @@ exif_tags <- function(option) {
 			    "FocalPlaneXResolution", "FocalPlaneYResolution", "FocalPlaneResolutionUnit",
 			    "DateTimeOriginal", "GPSMapDatum", "GPSAltitude", "GPSLatitude", "GPSLongitude")
 	} else if(option == "minimal") {
-		output <- c("GimbalYawDegree", "CreateDate",
-			    "DateTimeOriginal", "GPSAltitude", "GPSLatitude",
-			    "GPSLongitude")
+		output <- c("GimbalYawDegree", "CreateDate", "DateTimeOriginal",
+			    "GPSLongitudeRef", "GPSLatitudeRef", "GPSAltitudeRef",
+			    "GPSLongitude", "GPSLatitude", "GPSAltitude",
+			    "GPSMapDatum")
 	}
 
 	return(output)

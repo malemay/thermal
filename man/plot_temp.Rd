@@ -9,7 +9,10 @@ plot_temp(
   xrange = NULL,
   at = NULL,
   main = NULL,
-  lcol = c(black = "black", gray = "gray", white = "blue")
+  xlab = "Time",
+  ylab = "Temperature (°C)",
+  lcol = c(black = "black", gray = "gray", white = "blue"),
+  ...
 )
 }
 \arguments{
@@ -25,8 +28,14 @@ NULL, the default is used.}
 \item{lcol}{A named ("black", "gray", "white") character vector indicating
 the colors to use for plotting the temperature values of each panel.}
 
+\item{...}{Further graphical arguments passed to the drawing functions.}
+
 \item{xmin}{A pair of dates identifying the minimum and maximum values used
 for the x-axis.  If NULL, the whole input range is plotted.}
+
+\item{x}{A character string. The title of the x-axis.}
+
+\item{y}{A character string. The title of the y-axis.}
 }
 \value{
 NULL, invisibly. This function is invoked for its plotting

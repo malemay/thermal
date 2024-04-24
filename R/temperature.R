@@ -39,8 +39,11 @@ read_temp <- function(filename, tz) {
 #' @param at A date object indicating the location of the x-axis labels.  If
 #' NULL, the default is used.
 #' @param main A character. The title of the plot.
+#' @param x A character string. The title of the x-axis.
+#' @param y A character string. The title of the y-axis.
 #' @param lcol A named ("black", "gray", "white") character vector indicating
 #' the colors to use for plotting the temperature values of each panel.
+#' @param ... Further graphical arguments passed to the drawing functions.
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting
 #' side-effect.
@@ -50,7 +53,9 @@ read_temp <- function(filename, tz) {
 #' NULL
 #'
 plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
-		      lcol = c(black = "black", gray = "gray", white = "blue")) {
+		      xlab = "Time", ylab = "Temperature (°C)",
+		      lcol = c(black = "black", gray = "gray", white = "blue"),
+		      ...) {
 	
 	# Subsetting the input data to the range of interest
 	if(!is.null(xrange)) {
@@ -68,18 +73,18 @@ plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
 
 	# Creating a blank canvas for the plot
 	plot(1, type = "n", xlim = as.numeric(xlim), ylim = ylim,
-	     xlab = "Time", ylab = "Temperature (°C)", main = main,
-	     xaxt = "n")
+	     xlab = xlab, ylab = ylab, main = main,
+	     xaxt = "n", ...)
 	
 	# Adding lines for each of the panels
 	# By default the white panel is plotted in skyblue (this should be allowed to vary as a parameter)
-	for(i in c("black", "gray", "white")) lines(tempdata[[i]]$time, tempdata[[i]]$temp, col = lcol[i])
+	for(i in c("black", "gray", "white")) lines(tempdata[[i]]$time, tempdata[[i]]$temp, col = lcol[i], ...)
 
 	# Adding an axis for the time
 	if(is.null(at)) {
-		axis.POSIXct(1, tempdata$black$time)
+		axis.POSIXct(1, tempdata$black$time, ...)
 	} else {
-		axis.POSIXct(1, tempdata$black$time, at = at)
+		axis.POSIXct(1, tempdata$black$time, at = at, ...)
 	}
 
 	invisible(NULL)
@@ -378,6 +383,7 @@ thermal_predict <- function(metadata, dn_value) {
 #' the model.
 #' @param cex.model.points The cex parameter to use for the points used to
 #' compute the model.
+#' @param ... Other graphical parametres passed to the main plotting function
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting
 #' side-effect.
@@ -389,11 +395,11 @@ plot_pixtemp <- function(pixel_values,
 			 lcol = c(black = "black", gray = "gray", white = "blue"),
 			 model = NULL,
 			 col.model.points = "red",
-			 cex.model.points = 2) {
+			 cex.model.points = 2, ...) {
 
 
 	# Plotting a scatterplot of the pixel/temperature values
-	plot(pixel_values$thermal, pixel_values$temp, col = lcol[pixel_values$ID])
+	plot(pixel_values$thermal, pixel_values$temp, col = lcol[pixel_values$ID], ...)
 
 	# Plotting a linear model of temperature as a function of thermal values if requested
 	if(!is.null(model)) {

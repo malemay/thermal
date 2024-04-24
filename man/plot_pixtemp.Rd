@@ -9,7 +9,8 @@ plot_pixtemp(
   lcol = c(black = "black", gray = "gray", white = "blue"),
   model = NULL,
   col.model.points = "red",
-  cex.model.points = 2
+  cex.model.points = 2,
+  ...
 )
 }
 \arguments{
@@ -30,6 +31,8 @@ the model.}
 
 \item{cex.model.points}{The cex parameter to use for the points used to
 compute the model.}
+
+\item{...}{Other graphical parametres passed to the main plotting function}
 }
 \value{
 NULL, invisibly. This function is invoked for its plotting

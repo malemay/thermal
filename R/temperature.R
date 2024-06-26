@@ -53,7 +53,7 @@ read_temp <- function(filename, tz) {
 #' NULL
 #'
 plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
-		      xlab = "Time", ylab = "Temperature (°C)",
+		      xlab = "Time", ylab = "Temperature (\u00b0C)",
 		      lcol = c(black = "black", gray = "gray", white = "blue"),
 		      ...) {
 	

@@ -10,6 +10,7 @@ plot_pixtemp(
   model = NULL,
   col.model.points = "red",
   cex.model.points = 2,
+  cex.line = 1,
   ...
 )
 }
@@ -31,6 +32,9 @@ the model.}
 
 \item{cex.model.points}{The cex parameter to use for the points used to
 compute the model.}
+
+\item{cex.line}{A single numeric value. The cex parameter for the dotted
+line showing the values predicted by the linear model.}
 
 \item{...}{Other graphical parametres passed to the main plotting function}
 }

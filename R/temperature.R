@@ -383,6 +383,8 @@ thermal_predict <- function(metadata, dn_value) {
 #' the model.
 #' @param cex.model.points The cex parameter to use for the points used to
 #' compute the model.
+#' @param cex.line A single numeric value. The cex parameter for the dotted
+#' line showing the values predicted by the linear model.
 #' @param ... Other graphical parametres passed to the main plotting function
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting
@@ -394,8 +396,9 @@ thermal_predict <- function(metadata, dn_value) {
 plot_pixtemp <- function(pixel_values,
 			 lcol = c(black = "black", gray = "gray", white = "blue"),
 			 model = NULL,
-			 col.model.points = "red",
-			 cex.model.points = 2, ...) {
+			 col.model.points = "red", cex.model.points = 2,
+			 cex.line = 1,
+			 ...) {
 
 
 	# Plotting a scatterplot of the pixel/temperature values
@@ -403,7 +406,7 @@ plot_pixtemp <- function(pixel_values,
 
 	# Plotting a linear model of temperature as a function of thermal values if requested
 	if(!is.null(model)) {
-		abline(reg = model$model, lty = 3)
+		abline(reg = model$model, lty = 3, cex = cex.line)
 		# Also plotting the points used for the model
 		points(x = model$data$pixel,
 		       y = model$data$temp,

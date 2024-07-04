@@ -1,10 +1,14 @@
 Package: thermal
-Title: Correction of thermal images from UAV data
+Title: Correct thermal infrared images acquired by drones
 Version: 0.0.0.9000
 Authors@R: 
     person("Marc-André", "Lemay", , "marc-andre.lemay@uqat.ca", role = c("aut", "cre"))
-Description: Correction of thermal images from UAV data
-License: `use_gpl3_license()`
+Description: This package provides software for processing thermal infrared images
+             acquired using drones with specific focus on how thermal drift can be
+	     corrected through data post-processing. Methods for correcting drift
+	     based on linear models, splines, and image overlap are provided. Experimental
+	     methods for correcting vignetting are also included.
+License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3

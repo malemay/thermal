@@ -366,7 +366,7 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 #' for adjusting the mean of the thermal pictures if drift correction is
 #' performed. See \code{\link{correct_drift}}. If NULL (the default), then
 #' the median image is used.
-#' @param nuc_treshold The threshold to use for detecting non-uniformity
+#' @param nuc_threshold The threshold to use for detecting non-uniformity
 #' correction events when correction_type is "lm" or "spline. See
 #' \code{\link{correct_drift}} for more details.
 #' @param overwrite_dst A logical. Whether overwriting destination files

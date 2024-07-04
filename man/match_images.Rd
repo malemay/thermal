@@ -20,6 +20,11 @@ match_images(
 thermal data.frames as input and returns an integer vector
 of the indices in thermal that correspond to indices in
 visible.}
+
+\item{max_difftime}{A difftime object specifying the maximum
+time difference between matching pictures. This function will
+throw an error if any two matching images have timestamps whose
+difference exceeds this parameter.}
 }
 \value{
 A data.frame with the correspondence between the images and

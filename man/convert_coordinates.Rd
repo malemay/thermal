@@ -21,7 +21,7 @@ A matrix similar to the input with converted coordinates.
 \description{
 This function converts visible image coordinates to their corresponding
 position on a matching thermal image using a 4-parameter transformation
-model described in detail in \link{\code{align_images}}.
+model described in detail in \code{\link{align_images}}.
 }
 \examples{
 NULL

@@ -20,22 +20,22 @@ plot_temp(
 for each of the three panel colors. Each element is a data.frame of
 temperature data as read with \code{\link{read_temp}}.}
 
+\item{xrange}{A pair of dates identifying the minimum and maximum values used
+for the x-axis. If NULL, the whole input range is plotted.}
+
 \item{at}{A date object indicating the location of the x-axis labels.  If
 NULL, the default is used.}
 
 \item{main}{A character. The title of the plot.}
 
+\item{xlab}{A character string. The title of the x-axis.}
+
+\item{ylab}{A character string. The title of the y-axis.}
+
 \item{lcol}{A named ("black", "gray", "white") character vector indicating
 the colors to use for plotting the temperature values of each panel.}
 
 \item{...}{Further graphical arguments passed to the drawing functions.}
-
-\item{xmin}{A pair of dates identifying the minimum and maximum values used
-for the x-axis.  If NULL, the whole input range is plotted.}
-
-\item{x}{A character string. The title of the x-axis.}
-
-\item{y}{A character string. The title of the y-axis.}
 }
 \value{
 NULL, invisibly. This function is invoked for its plotting

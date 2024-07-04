@@ -7,7 +7,7 @@
 create_rmat(theta)
 }
 \arguments{
-\item{theta}{}
+\item{theta}{The angle (in degrees) to rotate the coordinates with.}
 }
 \value{
 A 2x2 matrix that can be used in matrix product to rotate

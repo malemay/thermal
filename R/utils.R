@@ -77,8 +77,8 @@ add_tparams <- function(metadata, tparams) {
 #' The color parameter can be used to specify different colors for points
 #' depending on characteristics of the metadata.
 #'
-#' @param a data.frame of metadata on a flight, such as returned by
-#' \code{\link{metadata}}.  Must minimally contain columns GPSLongitude and
+#' @param metadata a data.frame of metadata on a flight, such as returned by
+#' \code{\link{read_metadata}}.  Must minimally contain columns GPSLongitude and
 #' GPSLatitude for longitude and latitude coordinates in the WGS84 datum.
 #' @param new_crs A coordinate reference system (such as returned by
 #' \code{\link[sf]{st_crs}} to project the points to before display. If NULL
@@ -92,7 +92,7 @@ add_tparams <- function(metadata, tparams) {
 #' black.
 #' @param title A single character string. The title of the plot.
 #' @param cex.axis A character expansion value applied to the axis labels.
-#' @param cex.point A character expansion value applied to the points.
+#' @param cex.points A character expansion value applied to the points.
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting
 #' side-effect.

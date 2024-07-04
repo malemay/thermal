@@ -16,6 +16,10 @@ position_plot(
 )
 }
 \arguments{
+\item{metadata}{a data.frame of metadata on a flight, such as returned by
+\code{\link{read_metadata}}.  Must minimally contain columns GPSLongitude and
+GPSLatitude for longitude and latitude coordinates in the WGS84 datum.}
+
 \item{new_crs}{A coordinate reference system (such as returned by
 \code{\link[sf]{st_crs}} to project the points to before display. If NULL
 (the default), then data is displayed in the original coordinate system.}
@@ -34,11 +38,7 @@ black.}
 
 \item{cex.axis}{A character expansion value applied to the axis labels.}
 
-\item{a}{data.frame of metadata on a flight, such as returned by
-\code{\link{metadata}}.  Must minimally contain columns GPSLongitude and
-GPSLatitude for longitude and latitude coordinates in the WGS84 datum.}
-
-\item{cex.point}{A character expansion value applied to the points.}
+\item{cex.points}{A character expansion value applied to the points.}
 }
 \value{
 NULL, invisibly. This function is invoked for its plotting

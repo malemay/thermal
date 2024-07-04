@@ -34,13 +34,13 @@ read_temp <- function(filename, tz) {
 #' @param tempdata A list with three elements named "black", "gray" and "white"
 #' for each of the three panel colors. Each element is a data.frame of
 #' temperature data as read with \code{\link{read_temp}}.
-#' @param xmin A pair of dates identifying the minimum and maximum values used
-#' for the x-axis.  If NULL, the whole input range is plotted.
+#' @param xrange A pair of dates identifying the minimum and maximum values used
+#' for the x-axis. If NULL, the whole input range is plotted.
 #' @param at A date object indicating the location of the x-axis labels.  If
 #' NULL, the default is used.
 #' @param main A character. The title of the plot.
-#' @param x A character string. The title of the x-axis.
-#' @param y A character string. The title of the y-axis.
+#' @param xlab A character string. The title of the x-axis.
+#' @param ylab A character string. The title of the y-axis.
 #' @param lcol A named ("black", "gray", "white") character vector indicating
 #' the colors to use for plotting the temperature values of each panel.
 #' @param ... Further graphical arguments passed to the drawing functions.
@@ -351,8 +351,19 @@ max_density <- function(x) {
 
 #' Compute temperature predictions from thermal model parameters
 #'
-#' This function can be used to compute predictions for a given digital number
-#' value 
+#' This function can be used to compute temperature predictions for a given
+#' digital number value based on linear model parameters that have been
+#' fit at various timepoints during a flight.
+#'
+#' @param metadata A data.frame of metadata on a given flight augmented
+#' with slope and intercept parameters of the relationship between digital
+#' number (DN) and temperature, such as returned in the metadata object
+#' of \code{\link{thermal_lm}}.
+#' @param dn_value A numeric. The fixed digital number (DN) value for which
+#' to generate predictions.
+#'
+#' @return A numeric vector of predicted temperature values for a fixed DN at
+#' each timepoint of the flight based on the linear model parameters.
 #'
 #' @export
 thermal_predict <- function(metadata, dn_value) {

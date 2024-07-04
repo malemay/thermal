@@ -79,6 +79,9 @@ valid. Otherwise, a correlation of 0 is returned.}
 rasters to speed up the estimation of the best parameters in find_initial.
 Defaults to 1 (no aggregation is performed).}
 
+\item{cores}{The number of cores to use for parallel computing in
+find_initial. Defaults to 1.}
+
 \item{min_cor}{A numeric. The minimum correlation that must be obtained
 from initial guesses to go on with optim.}
 

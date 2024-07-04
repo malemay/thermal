@@ -143,7 +143,7 @@ align_images <- function(visible, thermal, start_values, distortion_center = c(2
 #'
 #' This function converts visible image coordinates to their corresponding
 #' position on a matching thermal image using a 4-parameter transformation
-#' model described in detail in \link{\code{align_images}}.
+#' model described in detail in \code{\link{align_images}}.
 #'
 #' @param coords A two-column (x-y) matrix of coordinates to convert.
 #' @param params A numeric vector of length 4 representing transformation

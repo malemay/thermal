@@ -68,6 +68,10 @@ for adjusting the mean of the thermal pictures if drift correction is
 performed. See \code{\link{correct_drift}}. If NULL (the default), then
 the median image is used.}
 
+\item{nuc_threshold}{The threshold to use for detecting non-uniformity
+correction events when correction_type is "lm" or "spline. See
+\code{\link{correct_drift}} for more details.}
+
 \item{overwrite_dst}{A logical. Whether overwriting destination files
 (the corrected images) should be allowed.}
 
@@ -82,10 +86,6 @@ on its progres.}
 
 \item{ncores}{An single integer value specifying the number of cores
 to use for specific parts of the workflow. Defaults to 1 (no multithreading).}
-
-\item{nuc_treshold}{The threshold to use for detecting non-uniformity
-correction events when correction_type is "lm" or "spline. See
-\code{\link{correct_drift}} for more details.}
 }
 \value{
 A data.frame of metadata describing the corrected pictures and

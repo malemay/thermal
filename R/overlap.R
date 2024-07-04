@@ -1,6 +1,6 @@
 #' Create a rotation matrix from an angle theta
 #'
-#' @param theta
+#' @param theta The angle (in degrees) to rotate the coordinates with.
 #'
 #' @return A 2x2 matrix that can be used in matrix product to rotate
 #' x-y coordinates in a counterclockwise direction.
@@ -142,7 +142,7 @@ transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FA
 #' @param fact A numeric. The factor to use to reduce the resolution of the
 #' rasters to speed up the estimation of the best parameters in find_initial.
 #' Defaults to 1 (no aggregation is performed).
-#' @param cores. The number of cores to use for parallel computing in
+#' @param cores The number of cores to use for parallel computing in
 #' find_initial. Defaults to 1.
 #' @param min_cor A numeric. The minimum correlation that must be obtained
 #' from initial guesses to go on with optim.

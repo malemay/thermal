@@ -33,7 +33,7 @@ get_panel_coords <- function(x) {
 #' files are hard-coded as "black.shp", "gray.shp" and "white.shp" and will not
 #' be overwritten unless otherwise specified.
 #'
-#' @param image_file A character. The path to a georeferenced raster file.
+#' @param filepath A character. The path to a georeferenced raster file.
 #' @param output_dir A character representing a directory path to which the
 #' files will be written. The directory will be created if it does not exist.
 #' @param overwrite A logical value indicating whether existing files should

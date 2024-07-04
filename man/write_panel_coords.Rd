@@ -7,13 +7,13 @@
 write_panel_coords(filepath, output_dir, overwrite = FALSE)
 }
 \arguments{
+\item{filepath}{A character. The path to a georeferenced raster file.}
+
 \item{output_dir}{A character representing a directory path to which the
 files will be written. The directory will be created if it does not exist.}
 
 \item{overwrite}{A logical value indicating whether existing files should
 be overwritten by this function.}
-
-\item{image_file}{A character. The path to a georeferenced raster file.}
 }
 \value{
 A named list of polygon objects representing each of the three

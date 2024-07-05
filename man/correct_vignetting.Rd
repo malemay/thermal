@@ -9,6 +9,7 @@ correct_vignetting(
   output_dir,
   method = "overall",
   overwrite_dst = FALSE,
+  tags = NULL,
   ncores = 1,
   verbose = TRUE
 )
@@ -24,6 +25,12 @@ directory should be different from the one containing the source data.}
 only "overall" is supported.}
 
 \item{overwrite_dst}{A logical. Whether the destination files should be overwritten if they already exist.}
+
+\item{tags}{A character vector of tags to transfer or a single character
+string denoting a set of tags to transfer. Supported values for single string
+are: "default" (set of tags that may be interesting or useful), "minimal"
+(minimal set of tags needed for downstream analyses). If NULL (the default),
+then all tags are transferred.}
 
 \item{ncores}{An integer. The number of cores to use for parallel processing.}
 

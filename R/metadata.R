@@ -203,19 +203,37 @@ exif_tags <- function(option) {
 #' @param src_dir The directory where the source files are found.
 #' @param src_ext The extension of the source files (including the dot prefix).
 #' @param dst_dir The directory containing the files to write the metadata to.
+#' @param tags A character vector of tags to transfer or a single character
+#' string denoting a set of tags to transfer. Supported values for single string
+#' are: "default" (set of tags that may be interesting or useful), "minimal"
+#' (minimal set of tags needed for downstream analyses). If NULL (the default),
+#' then all tags are transferred.
 #'
 #' @return NULL, invisibly
 #'
 #' @examples
 #' NULL
-transfer_exif <- function(src_dir, src_ext, dst_dir) {
+transfer_exif <- function(src_dir, src_ext, dst_dir, tags = NULL) {
 
 	stopifnot(all(dir.exists(c(src_dir, dst_dir))))
 
+	# Determining which EXIF tags to extract from the file
+	if(!is.null(tags)) {
+		if(length(tags) == 1) {
+			if(tags == "default") {
+				tags <- exif_tags("default")
+			} else if(tags == "minimal") {
+				tags <- exif_tags("minimal")
+			}
+		}
+	} else {
+		tags <- "all"
+	}
+
 	# Using the batch format syntax to apply the command to all files at once
 	exifr::exiftool_call(args = paste0('-overwrite_original -tagsFromFile ',
-				    src_dir, "/%f", src_ext, " ",
-				    paste0("-", thermal:::exif_tags("minimal"), collapse = " ")),
+					   src_dir, "/%f", src_ext, " ",
+					   paste0("-", tags, collapse = " ")),
 			     fnames = dst_dir)
 }
 

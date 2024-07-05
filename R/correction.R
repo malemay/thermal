@@ -123,13 +123,16 @@ compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 #' @param overwrite_dst A logical. Whether the destination files should be overwritten if they already exist.
 #' @param ncores An integer. The number of cores to use for parallel processing.
 #' @param verbose A logical. Whether the function should output information on its progress (default = TRUE).
+#' @inheritParams transfer_exif
 #'
 #' @return A character vector of the files that were written to disk, invisibly.
 #'
 #' @export
 #' @examples
 #' NULL
-correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = NULL, nuc_threshold = NULL, overwrite_dst = FALSE, ncores = 1, verbose = TRUE) {
+correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = NULL,
+			  nuc_threshold = NULL, overwrite_dst = FALSE, tags = NULL,
+			  ncores = 1, verbose = TRUE) {
 	# Some sanity checks
 	stopifnot("SourceFile" %in% names(metadata))
 
@@ -241,7 +244,7 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 				   mc.cores = ncores)
 
 	# Transfering the EXIF metadata from the source files to the destination files
-	transfer_exif(src_dir, src_ext, output_dir)
+	transfer_exif(src_dir, src_ext, output_dir, tags = tags)
 
 	invisible(dst_files)
 }
@@ -257,13 +260,15 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 #' @param overwrite_dst A logical. Whether the destination files should be overwritten if they already exist.
 #' @param ncores An integer. The number of cores to use for parallel processing.
 #' @param verbose A logical. Whether the function should output information on its progress (default = TRUE).
+#' @inheritParams transfer_exif
 #'
 #' @return A character vector of the files that were written to disk, invisibly.
 #'
 #' @export
 #' @examples
 #' NULL
-correct_vignetting <- function(metadata, output_dir, method = "overall", overwrite_dst = FALSE, ncores = 1, verbose = TRUE) {
+correct_vignetting <- function(metadata, output_dir, method = "overall", overwrite_dst = FALSE, tags = NULL,
+			       ncores = 1, verbose = TRUE) {
 
 	# Some sanity checks
 	stopifnot("SourceFile" %in% names(metadata))
@@ -315,7 +320,7 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 		stop("Only method = 'overall' is supported at the moment.")
 	}
 
-	transfer_exif(src_dir, src_ext, output_dir)
+	transfer_exif(src_dir, src_ext, output_dir, tags = tags)
 
 	invisible(dst_files)
 }

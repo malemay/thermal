@@ -4,7 +4,7 @@
 \alias{transfer_exif}
 \title{Transfer exif metadata from the original to corrected files}
 \usage{
-transfer_exif(src_dir, src_ext, dst_dir)
+transfer_exif(src_dir, src_ext, dst_dir, tags = NULL)
 }
 \arguments{
 \item{src_dir}{The directory where the source files are found.}
@@ -12,6 +12,12 @@ transfer_exif(src_dir, src_ext, dst_dir)
 \item{src_ext}{The extension of the source files (including the dot prefix).}
 
 \item{dst_dir}{The directory containing the files to write the metadata to.}
+
+\item{tags}{A character vector of tags to transfer or a single character
+string denoting a set of tags to transfer. Supported values for single string
+are: "default" (set of tags that may be interesting or useful), "minimal"
+(minimal set of tags needed for downstream analyses). If NULL (the default),
+then all tags are transferred.}
 }
 \value{
 NULL, invisibly

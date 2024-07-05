@@ -193,7 +193,7 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 			if(method == "lm") {
 				resid <- lapply(split(metadata, nuc_group), function(x) {
 							if(nrow(x) >= 2) {
-								return(residuals(lm(mean ~ time, data = x)))
+								return(stats::residuals(stats::lm(mean ~ time, data = x)))
 							} else {
 								return(0)
 							}
@@ -203,7 +203,7 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 			} else if(method == "spline") {
 				resid <- lapply(split(metadata, nuc_group), function(x) {
 							 if(nrow(x) >= 4) {
-								 return(residuals(smooth.spline(x$time, x$mean)))
+								 return(stats::residuals(stats::smooth.spline(x$time, x$mean)))
 							 } else {
 								 return(rep(0, nrow(x)))
 							 }

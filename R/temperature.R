@@ -18,7 +18,7 @@
 #' NULL
 #'
 read_temp <- function(filename, tz) {
-	tempdata <- read.table(filename, sep = ",", skip = 4, na.strings = c("NA", "NAN"))
+	tempdata <- utils::read.table(filename, sep = ",", skip = 4, na.strings = c("NA", "NAN"))
 	colnames(tempdata) <- c("time", "record", "battery", "devtemp", "temp")
 	tempdata$time <- as.POSIXct(tempdata$time, format = "%Y-%m-%d %H:%M:%S", tz = tz)
 	tempdata
@@ -78,13 +78,13 @@ plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
 	
 	# Adding lines for each of the panels
 	# By default the white panel is plotted in skyblue (this should be allowed to vary as a parameter)
-	for(i in c("black", "gray", "white")) lines(tempdata[[i]]$time, tempdata[[i]]$temp, col = lcol[i], ...)
+	for(i in c("black", "gray", "white")) graphics::lines(tempdata[[i]]$time, tempdata[[i]]$temp, col = lcol[i], ...)
 
 	# Adding an axis for the time
 	if(is.null(at)) {
-		axis.POSIXct(1, tempdata$black$time, ...)
+		graphics::axis.POSIXct(1, tempdata$black$time, ...)
 	} else {
-		axis.POSIXct(1, tempdata$black$time, at = at, ...)
+		graphics::axis.POSIXct(1, tempdata$black$time, at = at, ...)
 	}
 
 	invisible(NULL)
@@ -223,7 +223,7 @@ join_thermal <- function(metadata, polygons, ncores = 1) {
 					     pix_values$temp <- temp_lookup[pix_values$ID]
 
 					     # A sanity check before returning
-					     if(any(!complete.cases(pix_values))) stop("NA values not allowed in temperature or thermal pixels")
+					     if(any(!stats::complete.cases(pix_values))) stop("NA values not allowed in temperature or thermal pixels")
 					     pix_values
 	     }, polygons = polygons, mdata = metadata, mc.cores = ncores)
 
@@ -301,7 +301,7 @@ thermal_lm <- function(metadata,
 				 model_data <- model_data[rownames(model_data) %in% use_panels, ]
 
 				 # Computing the linear model based on this data
-				 model <- lm(temp ~ pixel, data = model_data)
+				 model <- stats::lm(temp ~ pixel, data = model_data)
 
 				 # We return a list with the data used to fit the model and the model itself
 				 list(data = model_data, model = model)
@@ -322,8 +322,8 @@ thermal_lm <- function(metadata,
 		if("black" %in% use_panels) metadata[i, "blackpix"] <- models[[i]]$data["black", "pixel"]
 		if("gray" %in% use_panels) metadata[i, "graypix"] <- models[[i]]$data["gray", "pixel"]
 		if("white" %in% use_panels) metadata[i, "whitepix"] <- models[[i]]$data["white", "pixel"]
-		metadata[i, "intercept"] <- coef(models[[i]]$model)[1]
-		metadata[i, "slope"] <- coef(models[[i]]$model)[2]
+		metadata[i, "intercept"] <- stats::coef(models[[i]]$model)[1]
+		metadata[i, "slope"] <- stats::coef(models[[i]]$model)[2]
 	}
 
 	# Returning a list with the metadata and the models
@@ -345,7 +345,7 @@ thermal_lm <- function(metadata,
 #' @examples
 #' NULL
 max_density <- function(x) {
-	output <- density(x)
+	output <- stats::density(x)
 	output$x[which.max(output$y)]
 }
 
@@ -417,12 +417,12 @@ plot_pixtemp <- function(pixel_values,
 
 	# Plotting a linear model of temperature as a function of thermal values if requested
 	if(!is.null(model)) {
-		abline(reg = model$model, lty = 3, cex = cex.line)
+		graphics::abline(reg = model$model, lty = 3, cex = cex.line)
 		# Also plotting the points used for the model
-		points(x = model$data$pixel,
-		       y = model$data$temp,
-		       col = col.model.points,
-		       cex = cex.model.points)
+		graphics::points(x = model$data$pixel,
+				 y = model$data$temp,
+				 col = col.model.points,
+				 cex = cex.model.points)
 	}
 
 	return(invisible(NULL))

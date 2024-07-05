@@ -32,16 +32,16 @@ create_rmat <- function(theta) {
 apply_transform <- function(x, new_coords) {
 
 	# Filtering out coordinates that are outside the boundaries of the raster
-	coords_ok <- new_coords[, 1] > xmin(x) & new_coords[, 1] < xmax(x) & new_coords[, 2] > ymin(x) & new_coords[, 2] < ymax(x)
+	coords_ok <- new_coords[, 1] > terra::xmin(x) & new_coords[, 1] < terra::xmax(x) & new_coords[, 2] > terra::ymin(x) & new_coords[, 2] < terra::ymax(x)
 
 	# Removing rows that are now outside the boundaries
 	new_coords <- new_coords[coords_ok, ]
-	new_values <- values(x)[coords_ok]
+	new_values <- terra::values(x)[coords_ok]
 
 	# Assigning the new values, taking into account the fact that:
 	# - x coordinates index into columns, and y-coordinates into rows
 	# - the direction of y coordinates is inverted relative to the direction of indexing
-	new_coords[, 2] <- ymax(x) - new_coords[, 2]
+	new_coords[, 2] <- terra::ymax(x) - new_coords[, 2]
 
 	# Replacing the values of the raster
 	x[] <- NA
@@ -69,9 +69,9 @@ apply_transform <- function(x, new_coords) {
 transform_raster <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 
 	# We extract the x-y coordinates of the cells
-	new_coords <- transform_coords(xyFromCell(x, 1:ncell(x)),
+	new_coords <- transform_coords(terra::xyFromCell(x, 1:(terra::ncell(x))),
 				       theta = theta,
-				       center = c((xmax(x) - xmin(x)) / 2, (ymax(x) - ymin(x)) / 2),
+				       center = c((terra::xmax(x) - terra::xmin(x)) / 2, (terra::ymax(x) - terra::ymin(x)) / 2),
 				       htrans = htrans,
 				       vtrans = vtrans,
 				       reverse = reverse)
@@ -179,11 +179,11 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 
 	best_params <- c(theta1, htrans1, vtrans1)
 
-	best_cor <- assess_transform_cpp(xval = values(x), yval = values(y),
+	best_cor <- assess_transform_cpp(xval = terra::values(x), yval = terra::values(y),
 					 coords = optim_coords,
 					 theta = theta1 * pi / 180, htrans = htrans1 + center[1], vtrans = vtrans1 + center[2],
 					 nrows = nrow(x), ncols = ncol(x),
-					 extent = unlist(as.list(ext(x))),
+					 extent = unlist(as.list(terra::ext(x))),
 					 min_overlap = min_overlap)
 
 	message("Initial guess: cor = ", best_cor)
@@ -225,22 +225,22 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 	}
 
 	optim_output <- 
-		optim(best_params,
-		      fn = function(param, xval, yval, coords, nrows, ncols, extent, min_overlap) {
-			      theta <- param[1]
-			      htrans <- param[2]
-			      vtrans <- param[3]
-			      -assess_transform_cpp(xval, yval, coords, theta * pi / 180, htrans + center[1], vtrans + center[2], nrows, ncols, extent, min_overlap)
-		      },
-		      xval = values(x),
-		      yval = values(y),
-		      coords = optim_coords,
-		      nrows = nrow(x),
-		      ncols = ncol(x),
-		      extent = unlist(as.list(ext(x))),
-		      min_overlap = min_overlap,
-		      method = method,
-		      control = list(trace = trace, reltol = reltol))
+		stats::optim(best_params,
+			     fn = function(param, xval, yval, coords, nrows, ncols, extent, min_overlap) {
+				     theta <- param[1]
+				     htrans <- param[2]
+				     vtrans <- param[3]
+				     -assess_transform_cpp(xval, yval, coords, theta * pi/180, htrans + center[1], vtrans + center[2], nrows, ncols, extent, min_overlap)
+			     },
+			     xval = terra::values(x),
+			     yval = terra::values(y),
+			     coords = optim_coords,
+			     nrows = nrow(x),
+			     ncols = ncol(x),
+			     extent = unlist(as.list(terra::ext(x))),
+			     min_overlap = min_overlap,
+			     method = method,
+			     control = list(trace = trace, reltol = reltol))
 
 	message("Final best parameters: theta = ", optim_output$par[1], ", htrans = ", optim_output$par[2], ", vtrans = ", optim_output$par[3])
 	message("Final cor: ", -optim_output$value)
@@ -277,16 +277,16 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 check_transform <- function(x, y, theta, htrans, vtrans, reverse = FALSE, n = 10) {
 	# Initalizing the plotting regions
 	terra::plot(x)
-	dev.new()
+	grDevices::dev.new()
 	terra::plot(y)
-	dev.set(dev.prev())
+	grDevices::dev.set(grDevices::dev.prev())
 
 	# Lopping for as many clicks as required
 	for(i in 1:n) {
 		# Asking for clicks on the untransformed raster
-		raw_coords <- click(x, n = 1, xy = TRUE)[, c("x", "y")]
+		raw_coords <- terra::click(x, n = 1, xy = TRUE)[, c("x", "y")]
 		# Plotting the transformed coordinates on the transformed raster
-		dev.set(dev.next())
+		grDevices::dev.set(grDevices::dev.next())
 		transformed_coords <- transform_coords(as.matrix(raw_coords),
 						       theta = theta,
 						       center = dim(x)[2:1] / 2,
@@ -294,8 +294,8 @@ check_transform <- function(x, y, theta, htrans, vtrans, reverse = FALSE, n = 10
 						       vtrans = vtrans,
 						       reverse = reverse)
 
-		points(x = transformed_coords[, 1], y = transformed_coords[, 2])
-		dev.set(dev.prev())
+		graphics::points(x = transformed_coords[, 1], y = transformed_coords[, 2])
+		grDevices::dev.set(grDevices::dev.prev())
 	}
 
 	invisible(NULL)
@@ -350,14 +350,14 @@ find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, min_overlap
 
 	# Initializing a vector for the correlations
 	correlations <- parallel::mclapply(1:nrow(to_test), function(i, x, y, params, min_overlap) {
-						   assess_transform_cpp(xval = values(x),
-									yval = values(y),
+						   assess_transform_cpp(xval = terra::values(x),
+									yval = terra::values(y),
 									coords = optim_coords,
 									theta = params[i, 1] * pi / 180,
 									htrans = params[i, 2] + center[1],
 									vtrans = params[i, 3] + center[2],
 									nrows = nrow(x), ncols = ncol(x),
-									extent = unlist(as.list(ext(x))),
+									extent = unlist(as.list(terra::ext(x))),
 									min_overlap = min_overlap)
 						       },
 						   x = x, y = y, params = to_test, min_overlap = min_overlap,

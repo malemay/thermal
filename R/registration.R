@@ -126,7 +126,7 @@ align_images <- function(visible, thermal, start_values, distortion_center = c(2
 	vcoords[, 2] <- vcoords[, 2] - distortion_center[2]
 
 	# We return the results of the optimization
-	optim(start_values, function(x, vcoords, r2, distortion_center, vvalues, tvalues, nrows, ncols, extent, min_overlap) {
+	stats::optim(start_values, function(x, vcoords, r2, distortion_center, vvalues, tvalues, nrows, ncols, extent, min_overlap) {
 		      -assess_registration_cpp(x, vcoords, r2, distortion_center, vvalues, tvalues, nrows, ncols, extent, min_overlap)
 			 },
 		      vcoords = vcoords, r2 = r2,
@@ -205,17 +205,17 @@ convert_coordinates <- function(coords, params, distortion_center = c(2000, 1500
 #'
 thermclick <- function(visible, thermal, params, nclicks = 1, distortion_center = c(2000, 1500)) {
 
-	dev.new()
-	vdev <- dev.cur()
+	grDevices::dev.new()
+	vdev <- grDevices::dev.cur()
 
 	terra::plot(visible)
 
-	dev.new()
-	tdev <- dev.cur()
+	grDevices::dev.new()
+	tdev <- grDevices::dev.cur()
 	terra::plot(thermal)
 
 	for(i in 1:nclicks) {
-		dev.set(vdev)
+		grDevices::dev.set(vdev)
 
 		message("Click on the visible image")
 		vpoint <- terra::click(visible, n = 1, xy = TRUE, col = "red")
@@ -224,7 +224,7 @@ thermclick <- function(visible, thermal, params, nclicks = 1, distortion_center 
 					       params = params,
 					       distortion_center = distortion_center)
 
-		dev.set(tdev)
+		grDevices::dev.set(tdev)
 		terra::points(data.frame(x = tcoords[, 1], y = tcoords[, 2]), pch = 16, col = "blue")
 	}
 }

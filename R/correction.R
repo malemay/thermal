@@ -276,7 +276,7 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 	# Should also check that we are not going to overwrite the original files
 	src_files <- metadata$SourceFile
 	dst_files <- paste0(output_dir, "/", sub("\\..*$", ".tiff", basename(src_files)))
-	if(any(dst_files %in% src_files)) stop("correct_drift does not allow overwriting source files")
+	if(any(dst_files %in% src_files)) stop("correct_vignetting does not allow overwriting source files")
 
 	# Also extracting the directory part and the extension for later use in transfer_exif
 	src_dir <- unique(dirname(src_files))
@@ -352,9 +352,11 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 #' @param display_tz A character that can be interpreted as a valid timezone.
 #' This is the timezone that will be used for the output metadata, and therefore
 #' the timezone that the user intends to use for downstream analyses.
-#' @param tags A character vector of tags to read from the metadata or
-#' a single character string that identifies a set of vectors. See
-#' \code{\link{read_metadata}} and \code{\link{exif_tags}} for more details.
+#' @param tags A character vector of tags to read from the metadata or a single
+#' character string that identifies a set of vectors. This is also the set of
+#' tags that wil be transferred to the corrected files. See
+#' \code{\link{read_metadata}}, \code{\link{exif_tags}}, and
+#' \code{\link{transfer_exif}} for more details.
 #' @param tparams A set of transformation parameters, as determined by
 #' \code{\link{optimize_transform}}. See \code{\link{add_tparams}} for more
 #' details. Only needs to be specify for methods based on overlap correction.
@@ -393,7 +395,7 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 #' @examples
 #' NULL
 correct_thermal <- function(base_data, correction_type, output_dir,
-			    camera_tz, display_tz, tags = "minimal",
+			    camera_tz, display_tz, tags = NULL,
 			    tparams = NULL, panels = NULL,
 			    temperature = NULL, use_panels = NULL,
 			    midpoint = NULL, nuc_threshold = NULL,
@@ -422,6 +424,7 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 		corrected_files <- correct_drift(metadata = base_data, output_dir = output_dir,
 						 method = correction_type, midpoint = midpoint,
 						 overwrite_dst = overwrite_dst, ncores = ncores,
+						 tags = tags,
 						 verbose = verbose)
 
 	} else if(correction_type == "overlap") {
@@ -432,6 +435,7 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 		corrected_files <- correct_drift(metadata = base_data, output_dir = output_dir,
 						 method = "overlap", midpoint = midpoint,
 						 overwrite_dst = overwrite_dst, ncores = ncores,
+						 tags = tags,
 						 verbose = verbose)
 
 	} else if(correction_type == "vignetting_overall") {
@@ -439,6 +443,7 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 		# Vignetting is computed and corrected on the fly
 		corrected_files <- correct_vignetting(base_data, output_dir, method = "overall",
 						      overwrite_dst = overwrite_dst,
+						      tags = tags,
 						      ncores = ncores, verbose = verbose)
 	} else {
 		stop("Unsupported correction type ", correction_type)

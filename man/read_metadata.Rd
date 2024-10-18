@@ -32,6 +32,10 @@ A data.frame with the metadata for each file.
 Read EXIF metadta for a set of images
 }
 \examples{
-NULL
-
+# Get the names of the thermal images in the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+# Reading the metadata ; we want to process the metadata in a different timezone
+# as the camera was set to winter time but data was acquired under the summer time
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
 }

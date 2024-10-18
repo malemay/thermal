@@ -22,8 +22,12 @@
 #' @export
 #'
 #' @examples
-#' NULL
-#'
+#' # Get the names of the thermal images in the test dataset
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' # Reading the metadata ; we want to process the metadata in a different timezone
+#' # as the camera was set to winter time but data was acquired under the summer time
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
 read_metadata <- function(files, camera_tz, display_tz = NULL, tags = NULL) {
 
 	# Determining which EXIF tags to extract from the file
@@ -98,10 +102,43 @@ read_metadata <- function(files, camera_tz, display_tz = NULL, tags = NULL) {
 #' @return A data.frame with the correspondence between the images and
 #' the time difference between both pictures.
 #'
-#' @examples
-#' NULL
-#'
 #' @export
+#' @examples
+#' # Reading the metadata of test thermal images
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5",
+#'                        display_tz = "Etc/GMT+4", tags = "minimal")
+#'
+#' # Reading the metadata of test visible images
+#' vfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "visible.tiff$", full.names = TRUE)
+#' vmeta <- read_metadata(vfiles, camera_tz = "Etc/GMT+5",
+#'                        display_tz = "Etc/GMT+4", tags = "minimal")
+#'
+#' # Creating a function that matches the two files based on the fact
+#' # that thermal files are numbered one less than the visible files.
+#' # The function must take two metadata data.frames as input and return
+#' # a vector of indices in the thermal data.frame that match the rows
+#' # of the visible data.frame.
+#' match_func <- function(visible, thermal) {
+#'     indices <- numeric(nrow(visible))
+#'     
+#'     for(i in 1:nrow(visible)) {
+#'         visible_num <- as.numeric(substr(basename(visible[i, "SourceFile"]), 5, 8))
+#'         thermal_num <- formatC(visible_num - 1, width = 4, flag = 0)
+#'         i_index <- which(grepl(thermal_num, basename(thermal$SourceFile)))
+#'         stopifnot(length(i_index) == 1)
+#'         indices[i] <- i_index
+#'     }
+#'
+#'     return(indices)
+#' }
+#'
+#' # Using the function that we just created to get the matches between the images
+#' file_matches <- match_images(visible = vmeta, thermal = tmeta,
+#'                              match_func = match_func,
+#'                              max_difftime = as.difftime(1.5, units = "secs"))
 match_images <- function(visible, thermal, match_func, max_difftime = as.difftime(1, units = "secs")) {
 
 	# A first sanity check

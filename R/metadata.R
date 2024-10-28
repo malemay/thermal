@@ -216,14 +216,13 @@ dji_filename_match <- function(visible, thermal) {
 #' NULL
 exif_tags <- function(option) {
 	if(option == "default") {
-		output <- c("ExifToolVersion",
-			    "FileModifyDate", "FileAccessDate", "FileType", "FileTypeExtension",
-			    "Make", "Model", "Orientation", "XResolution", "YResolution", "ResolutionUnit",
+		output <- c("Make", "Model", "Orientation", "XResolution", "YResolution", "ResolutionUnit",
 			    "ModifyDate", "AbsoluteAltitude", "RelativeAltitude",
 			    "GimbalRollDegree", "GimbalYawDegree", "GimbalPitchDegree",
 			    "FlightRollDegree", "FlightYawDegree", "FlightPitchDegree",
 			    "CreateDate", "FocalLength", "ExifImageWidth", "ExifImageHeight",
 			    "FocalPlaneXResolution", "FocalPlaneYResolution", "FocalPlaneResolutionUnit",
+			    "GPSLongitudeRef", "GPSLatitudeRef", "GPSAltitudeRef",
 			    "DateTimeOriginal", "GPSMapDatum", "GPSAltitude", "GPSLatitude", "GPSLongitude")
 	} else if(option == "minimal") {
 		output <- c("GimbalYawDegree", "CreateDate", "DateTimeOriginal",

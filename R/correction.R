@@ -110,7 +110,8 @@ compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 #' according to the time when the picture was taken ("DateTimeOriginal" column).
 #' @param output_dir The directory to which the output images should be written.
 #' The function will not allow source files to be overwritten, thus the output
-#' directory should be different from the one containing the source data.
+#' directory should be different from the one containing the source data. The directory
+#' will be created if it does not already exist.
 #' @param method A character. The method to use for drift correction. At the moment
 #' "overlap", "overall", "lm" and "spline" are supported.
 #' @param midpoint An integer. The index to start the correction from. Image values
@@ -254,7 +255,8 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 #' @param metadata A data.frame of metadata on a set of thermal pictures.
 #' @param output_dir The directory to which the output images should be written.
 #' The function will not allow source files to be overwritten, thus the output
-#' directory should be different from the one containing the source data.
+#' directory should be different from the one containing the source data. The directory
+#' will be created if it does not already exist.
 #' @param method A character. The method to use for drift correction. At the moment
 #' only "overall" is supported.
 #' @param overwrite_dst A logical. Whether the destination files should be overwritten if they already exist.
@@ -346,7 +348,8 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 #' the images. At the moment, the values "overall", "overlap", "lm", "spline",
 #' and "vignetting_overall" are supported.
 #' @param output_dir A character. The directory to which the corrected
-#' images should be output.
+#' images should be output. The directory will be created if it does not
+#' already exist.
 #' @param camera_tz A character that can be interpreted as a valid timezone.
 #' This is the timezone of the original pictures taken by the camera.
 #' @param display_tz A character that can be interpreted as a valid timezone.
@@ -412,7 +415,7 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 	if(!is.null(tparams)) base_data <- add_tparams(base_data, tparams)
 
 	# Creating the output directory
-	dir.create(output_dir, recursive = TRUE)
+	if(!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
 	# Next we check for the correction that was requested
 	if(correction_type %in% c("overall", "lm", "spline")) {

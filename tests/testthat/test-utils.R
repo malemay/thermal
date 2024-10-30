@@ -10,8 +10,6 @@ test_that("thermal_mean works properly", {
 	    means[i] <- sum(i_matrix) / length(i_matrix)
     }
 
-    tmeta <- read_metadata(thermal_files, camera_tz = "Etc/GMT+5", tags = "minimal")
-
     # EXPECTATIONS
     # Comparing the home-made solution to thermal_mean
     expect_identical(thermal_mean(tmeta), means)
@@ -24,9 +22,6 @@ test_that("compute_vignetting works properly", {
     # Computing vignetting differently from what is done in the package as a double-check
     rasters <- lapply(thermal_files, terra::rast)
     vignetting <- sum(do.call(c, rasters)) / length(rasters)
-
-    # Reading the metadata
-    tmeta <- read_metadata(thermal_files, camera_tz = "Etc/GMT+5", tags = "minimal")
 
     # Testing that the computed values are the same
     expect_identical(as.numeric(terra::values(vignetting)), as.numeric(terra::values(compute_vignetting(tmeta))))

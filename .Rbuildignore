@@ -1,3 +1,4 @@
 ^LICENSE\.md$
 ^todo\.txt$
 ^data-raw$
+^tests/testthat/test_files/create_correction_reference.R$

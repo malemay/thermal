@@ -1,8 +1,9 @@
 # Tests for the code in R/metadata.R
 
+# The tmeta object is created in the helper script
+
 # Tests of the read_metadata function
 test_that("read_metadata() works properly", {
-		  tmeta <- read_metadata(thermal_files, camera_tz = "Etc/GMT+5", tags = "minimal")
 
 		  # Test that a data.frame is returned
 		  expect_s3_class(tmeta, "data.frame")

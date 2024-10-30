@@ -152,8 +152,12 @@ transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FA
 #' computation time will become extremely long.
 #' @param method A character. The method to use for optimization, passed to optim.
 #' @param reltol A numeric. The relative tolerance for convergence in optim.
+#' @param verbose A logical value. If TRUE, progress on the iterations
+#' in the search for parameters will be output to the console.
 #' @param trace A numeric value passed to optim to determine the level of
-#' output verbosity.
+#' output verbosity. By default, it is set to the same value as verbose
+#' (1 if TRUE and 0 if FALSE), but this parameter allows to control it
+#' separately.
 #'
 #' @return The result of running the optim function on the transformation
 #' of y to the target raster x.
@@ -168,7 +172,8 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 			       vtrans_range = 20, vtrans_length = 5,
 			       min_overlap = 100,
 			       fact = 1, cores = 1, min_cor = 0.8, maxiter = 2,
-			       method = "Nelder-Mead", reltol = 10^-5, trace = 1) {
+			       method = "Nelder-Mead", reltol = 10^-5,
+			       verbose = TRUE, trace = verbose) {
 
 	# Pre-processing the data that does not vary from one call to another
 	optim_coords <- terra::xyFromCell(y, 1:(terra::ncell(y)))
@@ -186,8 +191,10 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 					 extent = unlist(as.list(terra::ext(x))),
 					 min_overlap = min_overlap)
 
-	message("Initial guess: cor = ", best_cor)
-	message("Current best parameters: theta = ", best_params[1], ", htrans = ", best_params[2], ", vtrans = ", best_params[3])
+	if(verbose) {
+		message("Initial guess: cor = ", best_cor)
+		message("Current best parameters: theta = ", best_params[1], ", htrans = ", best_params[2], ", vtrans = ", best_params[3])
+	}
 
 	# Keep track of the number of find_initial iterations that we have been through
 	niter <- 0
@@ -201,18 +208,18 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 		htrans_vect <- seq(htrans1 - htrans_range, htrans1 + htrans_range, length.out = htrans_length)
 		vtrans_vect <- seq(vtrans1 - vtrans_range, vtrans1 + vtrans_range, length.out = vtrans_length)
 
-		message("Running iteration ", niter, " of find_initial on ", theta_length * htrans_length * vtrans_length, " values.")
+		if(verbose) message("Running iteration ", niter, " of find_initial on ", theta_length * htrans_length * vtrans_length, " values.")
 
 		fi_output <- find_initial(x, y, theta_vect, htrans_vect, vtrans_vect, fact = fact, cores = cores)
 
-		message("find_initial iteration ", niter, ": cor = ", fi_output$value)
+		if(verbose) message("find_initial iteration ", niter, ": cor = ", fi_output$value)
 
 		if(fi_output$value > best_cor) {
 			best_cor <- fi_output$value
 			best_params <- fi_output$param 
 		}
 
-		message("Current best parameters: theta = ", best_params[1], ", htrans = ", best_params[2], ", vtrans = ", best_params[3])
+		if(verbose) message("Current best parameters: theta = ", best_params[1], ", htrans = ", best_params[2], ", vtrans = ", best_params[3])
 
 		# Update the range and length values
 		theta_range <- theta_range * 2
@@ -242,8 +249,10 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 			     method = method,
 			     control = list(trace = trace, reltol = reltol))
 
-	message("Final best parameters: theta = ", optim_output$par[1], ", htrans = ", optim_output$par[2], ", vtrans = ", optim_output$par[3])
-	message("Final cor: ", -optim_output$value)
+	if(verbose) {
+		message("Final best parameters: theta = ", optim_output$par[1], ", htrans = ", optim_output$par[2], ", vtrans = ", optim_output$par[3])
+		message("Final cor: ", -optim_output$value)
+	}
 
 	# We return comprehensive information to allow debugging
 	list(optim = optim_output,

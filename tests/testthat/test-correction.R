@@ -80,6 +80,7 @@ test_that("Overlap correction works as expected", {
 								 min_cor = 0.6,
 								 fact = 4,
 								 cores = if(.Platform$OS.type == "unix") 2 else 1,
+								 verbose = FALSE,
 								 reltol = 10^-2)
 		  }
 

@@ -534,6 +534,7 @@ for(i in 2:nrow(tmeta_df)) {
                                                min_cor = 0.6,
                                                fact = 4,
                                                cores = if(.Platform$OS.type == "unix") 4 else 1,
+                                               verbose = FALSE,
                                                reltol = 10^-2)
 
 }

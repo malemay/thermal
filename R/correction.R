@@ -139,8 +139,8 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 
 	# Should also check that we are not going to overwrite the original files
 	src_files <- metadata$SourceFile
-	dst_files <- paste0(output_dir, "/", sub("\\..*$", ".tiff", basename(src_files)))
-	if(any(dst_files %in% src_files)) stop("correct_drift does not allow overwriting source files")
+	dst_files <- file.path(output_dir, sub("\\..*$", ".tiff", basename(src_files)))
+	if(any(file.exists(dst_files)) && any(normalizePath(dst_files) %in% normalizePath(src_files))) stop("correct_drift does not allow overwriting source files")
 
 	# Also extracting the directory part and the extension for later use in transfer_exif
 	src_dir <- unique(dirname(src_files))
@@ -277,8 +277,8 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 
 	# Should also check that we are not going to overwrite the original files
 	src_files <- metadata$SourceFile
-	dst_files <- paste0(output_dir, "/", sub("\\..*$", ".tiff", basename(src_files)))
-	if(any(dst_files %in% src_files)) stop("correct_vignetting does not allow overwriting source files")
+	dst_files <- file.path(output_dir, sub("\\..*$", ".tiff", basename(src_files)))
+	if(any(file.exists(dst_files)) && any(normalizePath(dst_files) %in% normalizePath(src_files))) stop("correct_vignetting does not allow overwriting source files")
 
 	# Also extracting the directory part and the extension for later use in transfer_exif
 	src_dir <- unique(dirname(src_files))

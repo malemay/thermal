@@ -85,7 +85,7 @@ compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 
 	# Using mclapply to compute the differences in parallel using multiple cores
 	diffs <- parallel::mclapply(2:nrow(metadata), FUN = function(i, params, verbose) {
-					     if(verbose) message("Processing row ", i, " out of ", nrow(params))
+					     if(verbose) message("compute_diffs: processing row ", i, " out of ", nrow(params))
 
 					     get_diff(x = terra::rast(params[i - 1, "SourceFile"]),
 						      y = terra::rast(params[i, "SourceFile"]),
@@ -427,17 +427,19 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 		corrected_files <- correct_drift(metadata = base_data, output_dir = output_dir,
 						 method = correction_type, midpoint = midpoint,
 						 overwrite_dst = overwrite_dst, ncores = ncores,
+						 nuc_threshold = nuc_threshold,
 						 tags = tags,
 						 verbose = verbose)
 
 	} else if(correction_type == "overlap") {
 		# We compute the differences based on coordinate transform parameters
-		base_data$diff <- compute_diffs(base_data, ncores = ncores)
+		base_data$diff <- compute_diffs(base_data, ncores = ncores, verbose = verbose)
 
 		# We then run the correction routine, which returns the names of the modified files
 		corrected_files <- correct_drift(metadata = base_data, output_dir = output_dir,
 						 method = "overlap", midpoint = midpoint,
 						 overwrite_dst = overwrite_dst, ncores = ncores,
+						 nuc_threshold = nuc_threshold,
 						 tags = tags,
 						 verbose = verbose)
 

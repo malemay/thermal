@@ -382,7 +382,7 @@ lm_tmeta <- correct_thermal(base_data = tmeta_df,
                             camera_tz = "Etc/GMT+5",
                             display_tz = "Etc/GMT+4",
                             tags = "minimal",
-			    nuc_threshold = 50,
+                            nuc_threshold = 50,
                             overwrite_dst = TRUE,
                             verbose = FALSE)
 ```
@@ -432,6 +432,7 @@ spline_tmeta <- correct_thermal(base_data = tmeta_df,
                                 camera_tz = "Etc/GMT+5",
                                 display_tz = "Etc/GMT+4",
                                 tags = "minimal",
+                                nuc_threshold = 50,
                                 overwrite_dst = TRUE,
                                 verbose = FALSE)
 ```

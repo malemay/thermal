@@ -341,10 +341,10 @@ check_transform <- function(x, y, theta, htrans, vtrans, reverse = FALSE, n = 10
 find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, min_overlap = 100, fact = 1, cores = 1) {
 
 	# Reducing the size of the rasters
-	x <- terra::aggregate(x, fact = fact)
+	if(fact != 1) x <- terra::aggregate(x, fact = fact)
 	terra::ext(x) <- c(0, terra::ncol(x), 0, terra::nrow(x))
 
-	y <- terra::aggregate(y, fact = fact)
+	if(fact != 1) y <- terra::aggregate(y, fact = fact)
 	terra::ext(y) <- c(0, terra::ncol(y), 0, terra::nrow(y))
 
 	# Creating the data.frame of combinations to test and adjusting the values of htrans and vtrans

@@ -32,13 +32,9 @@ read_metadata <- function(files, camera_tz, display_tz = NULL, tags = NULL) {
 
 	# Determining which EXIF tags to extract from the file
 	if(!is.null(tags)) {
-		if(length(tags) == 1) {
-			if(tags == "default") {
-				tags <- exif_tags("default")
-			} else if(tags == "minimal") {
-				tags <- exif_tags("minimal")
-			}
-		}
+		if(length(tags) == 1 && tags %in% c("default", "minimal")) tags <- exif_tags(tags)
+	} else {
+		tags <- "all"
 	}
 
 	# Running exiftool to extract the tags of interest
@@ -259,13 +255,7 @@ transfer_exif <- function(src_dir, src_ext, dst_dir, tags = NULL, verbose = TRUE
 
 	# Determining which EXIF tags to extract from the file
 	if(!is.null(tags)) {
-		if(length(tags) == 1) {
-			if(tags == "default") {
-				tags <- exif_tags("default")
-			} else if(tags == "minimal") {
-				tags <- exif_tags("minimal")
-			}
-		}
+		if(length(tags) == 1 && tags %in% c("default", "minimal")) tags <- exif_tags(tags)
 	} else {
 		tags <- "all"
 	}

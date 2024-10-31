@@ -99,6 +99,57 @@ compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 	c(NA, unlist(diffs))
 }
 
+#' Fit segmented models to a time series of thermal image means
+#'
+#' Using a given non-unformity correction (NUC) threshold, this function splits
+#' a time-series of the mean of thermal images and fits a model for each group
+#' of points sharing the same NUC settings. If the model type is "spline" and
+#' there are fewer than four points in an NUC group, then a linear model is
+#' fitted for those points.
+#'
+#' @param x A data.frame of metadata on which to fit the model. Must at least
+#' contain the "DateTimeOriginal" and "mean" columns.
+#' @param nuc_threshold A numeric. The threshold to use for grouping data
+#' points according to their non-uniformity correction settings.
+#' @param model_type The type of statistical model to use for fitting the
+#' time series, one of "lm" or "spline".
+#'
+#' @return A list of spline and/or linear models, with one for each set of NUC
+#' settings.
+fit_model <- function(x, nuc_threshold, model_type = c("lm", "spline")) {
+
+	# Checking the validity of arguments
+	stopifnot(model_type %in% c("lm", "spline"))
+
+	# Checking that the required columns are supplied
+	stopifnot(all(c("DateTimeOriginal", "mean") %in% names(x)))
+
+	# Making time relative to the start of the flight to ensure that the model fits properly
+	x$time <- x$DateTimeOriginal - min(x$DateTimeOriginal)
+
+	# Grouping the points according to their NUC settings
+	nuc_events <- c(FALSE, abs(diff(x$mean)) > nuc_threshold)
+	nuc_group <- cumsum(nuc_events)
+
+	# Models are computed for each NUC group depending on model_type
+	if(model_type == "lm") {
+		models <- lapply(split(x, nuc_group), function(df) stats::lm(mean ~ time, data = df))
+	} else if(model_type == "spline") {
+		models <- lapply(split(x, nuc_group), function(df) {
+					 if(nrow(df) >= 4) {
+						 return(stats::smooth.spline(df$time, df$mean))
+					 } else {
+						 timespan <- df[c(1, nrow(df)), "DateTimeOriginal", drop = TRUE]
+						 warning("Linear model fitted for ", nrow(df), " points from ", timespan[1], " to ", timespan[2], "due to lack of data")
+						 return(stats::lm(mean ~ time, data = df))
+					 }
+				 })
+
+	}
+
+	models
+}
+
 #' Correct thermal drift in a set of pictures
 #'
 #' By default this function will output files to the specified directory
@@ -184,34 +235,9 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 				nuc_threshold <- 50
 			}
 
-			nuc_events <- c(FALSE, abs(diff(metadata$mean)) > nuc_threshold)
-			nuc_group <- cumsum(nuc_events)
-
-			# We also adjust the values of DateTimeOriginal to ensure that a fit is found
-			metadata$time <- metadata$DateTimeOriginal - min(metadata$DateTimeOriginal)
-
 			# Models are computed according to the requested method
-			if(method == "lm") {
-				resid <- lapply(split(metadata, nuc_group), function(x) {
-							if(nrow(x) >= 2) {
-								return(stats::residuals(stats::lm(mean ~ time, data = x)))
-							} else {
-								return(0)
-							}
-
-				 })
-
-			} else if(method == "spline") {
-				resid <- lapply(split(metadata, nuc_group), function(x) {
-							 if(nrow(x) >= 4) {
-								 return(stats::residuals(stats::smooth.spline(x$time, x$mean)))
-							 } else {
-								 return(rep(0, nrow(x)))
-							 }
-				 })
-			}
-
-			resid <- unlist(resid)
+			models <- fit_model(x = metadata, nuc_threshold = nuc_threshold, model_type = method)
+			resid <- unlist(lapply(models, stats::residuals))
 		}
 
 		# Now we can compute the adjustment factors from the mean of the midpoint and the residuals

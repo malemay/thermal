@@ -145,3 +145,39 @@ position_plot <- function(metadata, new_crs = NULL, panel_pos = NULL, panel_colo
 
 	invisible(NULL)
 }
+
+#' Plot the fit of a drift model
+#'
+#' This function fits a statistical model of drift to flight metadata
+#' under the specified parameters. It is to be used interactively so
+#' as to visualize the impact of various methodological choices on
+#' the model that will be used for thermal drift correction.
+#'
+#' @param metadata A data.frame of metadata on a given flight. Must minimally
+#' contain the columns "mean" and "DateTimeOriginal"
+#' @param nuc_threshold The threshold to use for declaring non-uniformity
+#' correction events. Will be used to split the dataset into different segments
+#' on which distinct models will be fitted
+#' @param method A character. The type of statistical model to use for fitting.
+#' One of "lm" or "spline".
+#'
+#' @return A data.frame similar to the input data with an added column
+#' "fitted" for the fitted values. The value is returned invisibly as this
+#' functon is mostly invoked for its plotting side-effect.
+#'
+#' @export
+#' @examples
+#' NULL
+plot_fit <- function(metadata, nuc_threshold, method = c("lm", "spline")) {
+	# The heavy lifting is done by fit_model
+	models <- fit_model(x = metadata, nuc_threshold = nuc_threshold, model_type = method)
+
+	# We compute the fitted values from those models
+	metadata$fitted <- unlist(lapply(models, stats::fitted))
+
+	# Base plotting is sufficient for this use case
+	plot(x = metadata$DateTimeOriginal, y = metadata$mean)
+	lines(x = metadata$DateTimeOriginal, y = metadata$fitted, col = "blue", lty = 2)
+
+	invisible(metadata)
+}

@@ -346,23 +346,7 @@ NUC events. The code and plot below shows how `correct_thermal` works under the
 hood to model thermal drift based on these assumptions:
 
 ```{r lm-model-plot}
-# We re-compute NUC events a bit differently so we can group data points
-# according to what NUC settings they belong to
-tmeta_df$nuc <- c(FALSE, abs(diff(tmeta_df$mean)) > 50)
-tmeta_df$nuc_group <- cumsum(tmeta_df$nuc)
-
-# We need to adjust the values of DateTimeOriginal to ensure that a fit is found
-tmeta_df$time <- tmeta_df$DateTimeOriginal - min(tmeta_df$DateTimeOriginal)
-
-# We compute the predicted values based on linear models
-lm_predicted <- lapply(split(tmeta_df, tmeta_df$nuc_group), function(x) {
-			       fitted(lm(mean ~ time, data = x))
-				 })
-
-lm_predicted <- unlist(lm_predicted)
-
-plot(tmeta_df$DateTimeOriginal, tmeta_df$mean)
-lines(tmeta_df$DateTimeOriginal, lm_predicted, col = "blue", lty = 2)
+plot_fit(tmeta_df, nuc_threshold = 50, method = "lm")
 ```
 
 Differences between observed values and predicted values (i.e., model
@@ -411,15 +395,7 @@ The code and plot below shows how `correct_thermal` works under the hood
 to model thermal drift based on cubic splines:
 
 ```{r spline-model-plot}
-# We compute the predicted values based on cubic splines
-spline_predicted <- lapply(split(tmeta_df, tmeta_df$nuc_group), function(x) {
-			    fitted(smooth.spline(x$time, x$mean))
-		    })
-
-spline_predicted <- unlist(spline_predicted)
-
-plot(tmeta_df$DateTimeOriginal, tmeta_df$mean)
-lines(tmeta_df$DateTimeOriginal, spline_predicted, col = "blue", lty = 2)
+plot_fit(tmeta_df, nuc_threshold = 50, method = "spline")
 ```
 
 Again, applying this correction method using `correct_thermal` is fairly

@@ -34,7 +34,8 @@ the images. At the moment, the values "overall", "overlap", "lm", "spline",
 and "vignetting_overall" are supported.}
 
 \item{output_dir}{A character. The directory to which the corrected
-images should be output.}
+images should be output. The directory will be created if it does not
+already exist.}
 
 \item{camera_tz}{A character that can be interpreted as a valid timezone.
 This is the timezone of the original pictures taken by the camera.}

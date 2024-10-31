@@ -244,12 +244,16 @@ exif_tags <- function(option) {
 #' are: "default" (set of tags that may be interesting or useful), "minimal"
 #' (minimal set of tags needed for downstream analyses). If NULL (the default),
 #' then all tags are transferred.
+#' @param verbose A logical indicating whether informative messages should be
+#' printed out to the console. This controls both the output of the command sent
+#' through \code{\link[exifr]{exiftool_call}} and the messages output by exiftool
+#' itself. It does not suppress warnings.
 #'
 #' @return NULL, invisibly
 #'
 #' @examples
 #' NULL
-transfer_exif <- function(src_dir, src_ext, dst_dir, tags = NULL) {
+transfer_exif <- function(src_dir, src_ext, dst_dir, tags = NULL, verbose = TRUE) {
 
 	stopifnot(all(dir.exists(c(src_dir, dst_dir))))
 
@@ -267,9 +271,10 @@ transfer_exif <- function(src_dir, src_ext, dst_dir, tags = NULL) {
 	}
 
 	# Using the batch format syntax to apply the command to all files at once
-	exifr::exiftool_call(args = paste0('-overwrite_original -tagsFromFile ',
+	exifr::exiftool_call(args = paste0(ifelse(verbose, "", "-q "),
+					   '-overwrite_original -tagsFromFile ',
 					   src_dir, "/%f", src_ext, " ",
 					   paste0("-", tags, collapse = " ")),
-			     fnames = dst_dir)
+			     fnames = dst_dir, quiet = !verbose)
 }
 

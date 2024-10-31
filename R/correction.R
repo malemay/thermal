@@ -245,7 +245,7 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 				   mc.cores = ncores)
 
 	# Transfering the EXIF metadata from the source files to the destination files
-	transfer_exif(src_dir, src_ext, output_dir, tags = tags)
+	transfer_exif(src_dir, src_ext, output_dir, tags = tags, verbose = verbose)
 
 	invisible(dst_files)
 }
@@ -322,7 +322,7 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 		stop("Only method = 'overall' is supported at the moment.")
 	}
 
-	transfer_exif(src_dir, src_ext, output_dir, tags = tags)
+	transfer_exif(src_dir, src_ext, output_dir, tags = tags, verbose = verbose)
 
 	invisible(dst_files)
 }

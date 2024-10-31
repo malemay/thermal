@@ -50,7 +50,8 @@ test_that("transfer_exif works properly", {
 		  # --- FIRST CALL to transfer_exif: default parameters
 		  transfer_exif(src_dir = unique(dirname(thermal_files)),
 				src_ext = ".tiff",
-				dst_dir = tmpdir1)
+				dst_dir = tmpdir1,
+				verbose = FALSE)
 
 		  # Reading the metadata after the tag update
 		  updated_metadata <- read_metadata(dir(tmpdir1, full.names = TRUE), camera_tz = "Etc/GMT+5")
@@ -66,7 +67,8 @@ test_that("transfer_exif works properly", {
 		  transfer_exif(src_dir = unique(dirname(thermal_files)),
 				src_ext = ".tiff",
 				dst_dir = tmpdir2,
-				tags = time_tags)
+				tags = time_tags,
+				verbose = FALSE)
 
 		  # Reading the metadata after the second call to transfer_exif
 		  time_metadata <- read_metadata(dir(tmpdir2, full.names = TRUE), camera_tz = "Etc/GMT+5")
@@ -75,7 +77,8 @@ test_that("transfer_exif works properly", {
 		  transfer_exif(src_dir = unique(dirname(thermal_files)),
 				src_ext = ".tiff",
 				dst_dir = tmpdir3,
-				tags = "default")
+				tags = "default",
+				verbose = FALSE)
 
 		  default_metadata <- read_metadata(dir(tmpdir3, full.names = TRUE), camera_tz = "Etc/GMT+5")
 
@@ -83,7 +86,8 @@ test_that("transfer_exif works properly", {
 		  transfer_exif(src_dir = unique(dirname(thermal_files)),
 				src_ext = ".tiff",
 				dst_dir = tmpdir4,
-				tags = "minimal")
+				tags = "minimal",
+				verbose = FALSE)
 
 		  minimal_metadata <- read_metadata(dir(tmpdir4, full.names = TRUE), camera_tz = "Etc/GMT+5")
 

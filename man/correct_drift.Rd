@@ -22,7 +22,8 @@ according to the time when the picture was taken ("DateTimeOriginal" column).}
 
 \item{output_dir}{The directory to which the output images should be written.
 The function will not allow source files to be overwritten, thus the output
-directory should be different from the one containing the source data.}
+directory should be different from the one containing the source data. The directory
+will be created if it does not already exist.}
 
 \item{method}{A character. The method to use for drift correction. At the moment
 "overlap", "overall", "lm" and "spline" are supported.}

@@ -23,7 +23,8 @@ optimize_transform(
   maxiter = 2,
   method = "Nelder-Mead",
   reltol = 10^-5,
-  trace = 1
+  verbose = TRUE,
+  trace = verbose
 )
 }
 \arguments{
@@ -74,8 +75,13 @@ computation time will become extremely long.}
 
 \item{reltol}{A numeric. The relative tolerance for convergence in optim.}
 
+\item{verbose}{A logical value. If TRUE, progress on the iterations
+in the search for parameters will be output to the console.}
+
 \item{trace}{A numeric value passed to optim to determine the level of
-output verbosity.}
+output verbosity. By default, it is set to the same value as verbose
+(1 if TRUE and 0 if FALSE), but this parameter allows to control it
+separately.}
 }
 \value{
 The result of running the optim function on the transformation

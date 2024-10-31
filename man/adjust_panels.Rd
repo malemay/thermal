@@ -95,7 +95,9 @@ computation time will become extremely long.}
 \item{reltol}{A numeric. The relative tolerance for convergence in optim.}
 
 \item{trace}{A numeric value passed to optim to determine the level of
-output verbosity.}
+output verbosity. By default, it is set to the same value as verbose
+(1 if TRUE and 0 if FALSE), but this parameter allows to control it
+separately.}
 }
 \value{
 An sf polygon object similar to the input one, but with updated

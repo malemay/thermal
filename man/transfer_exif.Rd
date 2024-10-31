@@ -4,7 +4,7 @@
 \alias{transfer_exif}
 \title{Transfer exif metadata from the original to corrected files}
 \usage{
-transfer_exif(src_dir, src_ext, dst_dir, tags = NULL)
+transfer_exif(src_dir, src_ext, dst_dir, tags = NULL, verbose = TRUE)
 }
 \arguments{
 \item{src_dir}{The directory where the source files are found.}
@@ -18,6 +18,11 @@ string denoting a set of tags to transfer. Supported values for single string
 are: "default" (set of tags that may be interesting or useful), "minimal"
 (minimal set of tags needed for downstream analyses). If NULL (the default),
 then all tags are transferred.}
+
+\item{verbose}{A logical indicating whether informative messages should be
+printed out to the console. This controls both the output of the command sent
+through \code{\link[exifr]{exiftool_call}} and the messages output by exiftool
+itself. It does not suppress warnings.}
 }
 \value{
 NULL, invisibly

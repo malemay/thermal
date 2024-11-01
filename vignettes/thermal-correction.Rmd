@@ -126,14 +126,48 @@ That is all the information the `thermal` package really needs to go forward,
 but some users may want to extract more information depending on their particular
 needs.
 
-The `position_plot` function takes a dataset read by `read_metadata` as input
+The `plot_metadata` function takes a dataset read by `read_metadata` as input
 and shows a very basic layout of the locations where the flight pictures were
 taken. We can see that our survey area is approximately square-shaped and
 consists of eight flight lines:
 
 ```{r position-plot}
-position_plot(tmeta_df)
+# If base_crs is not set, it will be set to WGS84 (EPSG:4326) with a warning
+plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"))
 ```
+
+Additonal functionality is available to gain more control over the output of
+`plot_metadata` or plot additional features. For example, an alternative
+coordinate reference system (CRS) may be specified to transform the data to
+prior to plotting. This can be useful to represent the coordinates in meters
+instead of degrees.
+
+```{r position-plot-crs}
+plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"), new_crs = sf::st_crs("EPSG:32198"))
+```
+
+Arrows representing the trajectory of the drone can also be added:
+
+```{r position-plot-arrows}
+plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"), arrows = TRUE, arrow_angle = 20, arrow_length = grid::unit(0.15, "inches"))
+```
+
+The points can be colored according to a factor, here for example the points
+are colored according to the direction that the drone is going towards:
+
+```{r position-plot-factor}
+bearing <- ifelse(abs(tmeta_df$GimbalYawDegree) > 150, "south",
+		  ifelse(abs(tmeta_df$GimbalYawDegree) < 50, "north", "west"))
+plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"), color = as.factor(bearing))
+```
+
+Finally, a numeric vector can also be provided as the `color` argument to map
+those numeric values to a color scale:
+
+```{r position-plot-numeric}
+plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"), color = tmeta_df$GimbalYawDegree)
+```
+
 
 # Computing metrics on images
 

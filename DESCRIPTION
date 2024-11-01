@@ -17,7 +17,8 @@ Imports:
     terra,
     parallel,
     sf,
-    Rcpp
+    Rcpp,
+    RColorBrewer
 LinkingTo: 
     Rcpp,
     RcppArmadillo

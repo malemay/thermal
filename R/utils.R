@@ -262,6 +262,56 @@ plot_fit <- function(metadata, nuc_threshold, method = c("lm", "spline")) {
 	invisible(metadata)
 }
 
+#' Plot the mean value of thermal images over time
+#'
+#' This function plots the mean value of thermal images taken during a flight
+#' as a function of time. The function is so-named because the variation in
+#' mean thermal values over time can indicate sensor drift, i.e. variation in
+#' recorded values that is due to changes in sensor sensitivity rather than
+#' variation in the temperature of the surface being surveyed.
+#'
+#' @param metadata A data.frame of metadata on a given flight. If it does not
+#' include a column called "mean" for the mean value of thermal images, this
+#' mean will be computed on the fly.
+#' @param nuc_threshold The threshold to use for declaring non-uniformity
+#' correction events. Such events will be represented by a red line in
+#' the plot.
+#' @param ncores An integer value indicating the number of cores to use for
+#' computing the mean of thermal images, if not pre-computed.
+#'
+#' @return NULL, invisibly. This function is invoked for its plotting
+#' side-effect.
+#'
+#' @export
+#' @examples
+#' NULL
+plot_drift <- function(metadata, nuc_threshold = NULL, ncores = 1) {
+	# Computing the mean of the images if not provided
+	if(! "mean" %in% colnames(metadata)) {
+		message("Computing thermal image means on the fly as they were not pre-computed...")
+		metadata$mean <- thermal_mean(metadata, ncores = ncores)
+	}
+
+	plot(metadata$DateTimeOriginal, metadata$mean,
+	     xlab = "Time", ylab = "Image mean")
+
+	if(is.null(nuc_threshold)) {
+		lines(metadata$DateTimeOriginal, metadata$mean, lty = 3)
+	} else {
+		# Declaring NUC events when the difference between successive pictures is greater than the threhsold
+		# The last picture cannot be linked to NUC because there is no picture after it
+		metadata$nuc <- c(abs(diff(metadata$mean)) > nuc_threshold, FALSE)
+
+		# Plotting the data, with NUC events as red lines
+		for(i in 1:(nrow(metadata) - 1)) {
+			lines(metadata[c(i, i + 1), "DateTimeOriginal"], metadata[c(i, i + 1), "mean"],
+			      lty = 3, col = ifelse(metadata[i, "nuc"], "red", "black"))
+		}
+	}
+
+	invisible(NULL)
+}
+
 #' Map a set of numeric values onto a color palette
 #'
 #' This function takes a set of numeric values and maps them on a color palette

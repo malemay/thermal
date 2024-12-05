@@ -174,7 +174,7 @@ plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"), color = tmeta_df$Gim
 Once metadata has been read, several downstream analyses are possible. One that
 is of particular interest in the context of thermal drift is the mean value of
 all pixels in the thermal images over time. While this mean value is likely to
-vary due actual temperature variation of the surface being sueveyed, drift will
+vary due actual temperature variation of the surface being surveyed, drift will
 result in sudden or gradual changes in the mean value of the images over time.
 The function `thermal_mean` accepts a data.frame of metadata and returns a
 vector of numeric values corresponding to the mean value of each image.
@@ -191,11 +191,11 @@ path to the images remains valid no matter what the working directory is.
 By looking at the trend in the mean over time, we can identify possible drift
 patterns. We can see a few sudden drops that might indicate the occurrence of
 non-uniformity correction (NUC) events that resulted in the values recorded be
-the camera to suddenly change.
+the camera to suddenly change. The package conveniently provides the
+`plot_drift` function to view the changes in image mean over time.
 
 ```{r raw-mean-plot}
-plot(tmeta_df$DateTimeOriginal, tmeta_df$mean)
-lines(tmeta_df$DateTimeOriginal, tmeta_df$mean)
+plot_drift(tmeta_df)
 ```
 
 Another interesting pattern to look at is that of the mean value recorded by
@@ -211,7 +211,7 @@ vignetting patterns:
 
 ```{r vignetting}
 vignetting <- compute_vignetting(tmeta_df)
-plot(vignetting)
+terra::plot(vignetting)
 ```
 
 Here, the dataset is not quite large enough to confidently identify vignetting
@@ -279,11 +279,11 @@ discussing drift correction approaches.
 
 Under this model, correction essentially consists in drawing a line through all
 points in the plot of the mean values of thermal pictures throughout time, and
-then assuming that all variation due to drift is represented by that line:
+then assuming that all variation due to drift is represented by that line. This
+line is indeed exactly the same as is shown using `plot_drift`.
 
 ```{r overall-model-plot}
-plot(tmeta_df$DateTimeOriginal, tmeta_df$mean)
-lines(tmeta_df$DateTimeOriginal, tmeta_df$mean, col = "blue", lty = 2)
+plot_drift(tmeta_df)
 ```
 
 Drift correction under the overall mean adjustment model can be run using the
@@ -324,9 +324,7 @@ therefore lost.  However, this variation (less than 1) is insignificant
 relative to the scale of the measurements.
 
 ```{r overall-mean-plot}
-overall_tmeta$mean <- thermal_mean(overall_tmeta)
-plot(overall_tmeta$DateTimeOriginal, overall_tmeta$mean)
-lines(overall_tmeta$DateTimeOriginal, overall_tmeta$mean)
+plot_drift(overall_tmeta)
 ```
 
 ## Drift correction based on statistical models
@@ -355,16 +353,11 @@ in `correct_thermal` and should be assessed on a case-by-case basis depending on
 the nature of the dataset.
 
 For our test dataset, the NUC events based on a threshold of 50 are represented
-as red lines in the following plot:
+as red lines in the following plot, which can be obtained by setting the
+`nuc_threshold` parameter to `plot_drift`.
 
 ```{r nuc-computation}
-# Declaring NUC events when the difference between successive pictures is > 50
-# The last picture cannot be linked to NUC because there is no picture after it
-tmeta_df$nuc <- c(abs(diff(tmeta_df$mean)) > 50, FALSE)
-
-# Plotting the data, with NUC events as red lines
-plot(tmeta_df$DateTimeOriginal, tmeta_df$mean)
-for(i in which(tmeta_df$nuc)) lines(tmeta_df[c(i, i + 1), "DateTimeOriginal"], tmeta_df[c(i, i + 1), "mean"], col = "red")
+plot_drift(tmeta_df, nuc_threshold = 50)
 ```
 
 Based on a threshold of 50, we can therefore see that three flight segments are
@@ -408,9 +401,7 @@ lm_tmeta <- correct_thermal(base_data = tmeta_df,
 The plot of the mean of corrected images now looks as follows:
 
 ```{r lm-mean-plot}
-lm_tmeta$mean <- thermal_mean(lm_tmeta)
-plot(lm_tmeta$DateTimeOriginal, lm_tmeta$mean)
-lines(lm_tmeta$DateTimeOriginal, lm_tmeta$mean)
+plot_drift(lm_tmeta)
 ```
 
 This variation is somewhat more realistic than what was obtained from the
@@ -451,9 +442,7 @@ The plot of the mean of corrected images looks as follows after using spline
 correction:
 
 ```{r spline-mean-plot}
-spline_tmeta$mean <- thermal_mean(spline_tmeta)
-plot(spline_tmeta$DateTimeOriginal, spline_tmeta$mean)
-lines(spline_tmeta$DateTimeOriginal, spline_tmeta$mean)
+plot_drift(spline_tmeta)
 ```
 
 The variation in mean over time is fairly restricted, but not quite as much as
@@ -582,9 +571,7 @@ The plot of the mean of images in the corrected looks as follows after using
 overlap correction:
 
 ```{r overlap-mean-plot}
-overlap_tmeta$mean <- thermal_mean(overlap_tmeta)
-plot(overlap_tmeta$DateTimeOriginal, overlap_tmeta$mean)
-lines(overlap_tmeta$DateTimeOriginal, overlap_tmeta$mean)
+plot_drift(overlap_tmeta)
 ```
 
 As a cautionary note, we have found the overlap method to work well along

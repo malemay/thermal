@@ -113,16 +113,23 @@ compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 #' points according to their non-uniformity correction settings.
 #' @param model_type The type of statistical model to use for fitting the
 #' time series, one of "lm" or "spline".
+#' @param spline_spar A numeric value, typically in the range (0, 1], used
+#' as a smoothing parameter when model_type = "spline". If NULL, (the default),
+#' then the smoothing parameter will be algorithmically determined. See
+#' \code{\link[stats]{smooth.spline}} for more details.
 #'
 #' @return A list of spline and/or linear models, with one for each set of NUC
 #' settings.
-fit_model <- function(x, nuc_threshold, model_type = c("lm", "spline")) {
+fit_model <- function(x, nuc_threshold, model_type = c("lm", "spline"), spline_spar = NULL) {
 
 	# Checking the validity of arguments
 	stopifnot(model_type %in% c("lm", "spline"))
 
 	# Checking that the required columns are supplied
 	stopifnot(all(c("DateTimeOriginal", "mean") %in% names(x)))
+
+	# A warning for users trying to set spline_spar in lm models
+	if(model_type != "spline" && !is.null(spline_spar)) warning("spline_spar value ignored, only relevant when using the 'spline' method")
 
 	# Making time relative to the start of the flight to ensure that the model fits properly
 	x$time <- x$DateTimeOriginal - min(x$DateTimeOriginal)
@@ -137,7 +144,7 @@ fit_model <- function(x, nuc_threshold, model_type = c("lm", "spline")) {
 	} else if(model_type == "spline") {
 		models <- lapply(split(x, nuc_group), function(df) {
 					 if(nrow(df) >= 4) {
-						 return(stats::smooth.spline(df$time, df$mean))
+						 return(stats::smooth.spline(df$time, df$mean, spar = spline_spar))
 					 } else {
 						 timespan <- df[c(1, nrow(df)), "DateTimeOriginal", drop = TRUE]
 						 warning("Linear model fitted for ", nrow(df), " points from ", timespan[1], " to ", timespan[2], "due to lack of data")
@@ -172,6 +179,10 @@ fit_model <- function(x, nuc_threshold, model_type = c("lm", "spline")) {
 #' above which non-uniformity correction is presumed to have occurred. Only
 #' needs to be provided for methods "lm" and "spline". If these methods are
 #' chosen and nuc_threshold is NULL, it will be set to 50 with a warning.
+#' @param spline_spar A numeric value, typically in the range (0, 1], used
+#' as a smoothing parameter when model_type = "spline". If NULL, (the default),
+#' then the smoothing parameter will be algorithmically determined. See
+#' \code{\link[stats]{smooth.spline}} for more details.
 #' @param overwrite_dst A logical. Whether the destination files should be overwritten if they already exist.
 #' @param ncores An integer. The number of cores to use for parallel processing.
 #' @param verbose A logical. Whether the function should output information on its progress (default = TRUE).
@@ -183,7 +194,7 @@ fit_model <- function(x, nuc_threshold, model_type = c("lm", "spline")) {
 #' @examples
 #' NULL
 correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = NULL,
-			  nuc_threshold = NULL, overwrite_dst = FALSE, tags = NULL,
+			  nuc_threshold = NULL, spline_spar = NULL, overwrite_dst = FALSE, tags = NULL,
 			  ncores = 1, verbose = TRUE) {
 	# Some sanity checks
 	stopifnot("SourceFile" %in% names(metadata))
@@ -236,7 +247,7 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 			}
 
 			# Models are computed according to the requested method
-			models <- fit_model(x = metadata, nuc_threshold = nuc_threshold, model_type = method)
+			models <- fit_model(x = metadata, nuc_threshold = nuc_threshold, model_type = method, spline_spar = spline_spar)
 			resid <- unlist(lapply(models, stats::residuals))
 		}
 
@@ -405,6 +416,10 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 #' @param nuc_threshold The threshold to use for detecting non-uniformity
 #' correction events when correction_type is "lm" or "spline. See
 #' \code{\link{correct_drift}} for more details.
+#' @param spline_spar A numeric value, typically in the range (0, 1], used
+#' as a smoothing parameter when model_type = "spline". If NULL, (the default),
+#' then the smoothing parameter will be algorithmically determined. See
+#' \code{\link[stats]{smooth.spline}} for more details.
 #' @param overwrite_dst A logical. Whether overwriting destination files
 #' (the corrected images) should be allowed.
 #' @param rownames_tolerance A numeric interpreted as the difference
@@ -428,6 +443,7 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 			    tparams = NULL, panels = NULL,
 			    temperature = NULL, use_panels = NULL,
 			    midpoint = NULL, nuc_threshold = NULL,
+			    spline_spar = NULL,
 			    overwrite_dst = FALSE, rownames_tolerance = 1.5,
 			    verbose = TRUE, ncores = 1) {
 
@@ -453,7 +469,7 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 		corrected_files <- correct_drift(metadata = base_data, output_dir = output_dir,
 						 method = correction_type, midpoint = midpoint,
 						 overwrite_dst = overwrite_dst, ncores = ncores,
-						 nuc_threshold = nuc_threshold,
+						 nuc_threshold = nuc_threshold, spline_spar = spline_spar,
 						 tags = tags,
 						 verbose = verbose)
 

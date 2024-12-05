@@ -17,6 +17,7 @@ correct_thermal(
   use_panels = NULL,
   midpoint = NULL,
   nuc_threshold = NULL,
+  spline_spar = NULL,
   overwrite_dst = FALSE,
   rownames_tolerance = 1.5,
   verbose = TRUE,
@@ -74,6 +75,11 @@ the median image is used.}
 \item{nuc_threshold}{The threshold to use for detecting non-uniformity
 correction events when correction_type is "lm" or "spline. See
 \code{\link{correct_drift}} for more details.}
+
+\item{spline_spar}{A numeric value, typically in the range (0, 1], used
+as a smoothing parameter when model_type = "spline". If NULL, (the default),
+then the smoothing parameter will be algorithmically determined. See
+\code{\link[stats]{smooth.spline}} for more details.}
 
 \item{overwrite_dst}{A logical. Whether overwriting destination files
 (the corrected images) should be allowed.}

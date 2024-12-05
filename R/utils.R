@@ -240,6 +240,10 @@ plot_metadata <- function(metadata,
 #' on which distinct models will be fitted
 #' @param method A character. The type of statistical model to use for fitting.
 #' One of "lm" or "spline".
+#' @param spline_spar A numeric value, typically in the range (0, 1], used
+#' as a smoothing parameter when model_type = "spline". If NULL, (the default),
+#' then the smoothing parameter will be algorithmically determined. See
+#' \code{\link[stats]{smooth.spline}} for more details.
 #'
 #' @return A data.frame similar to the input data with an added column
 #' "fitted" for the fitted values. The value is returned invisibly as this
@@ -248,9 +252,9 @@ plot_metadata <- function(metadata,
 #' @export
 #' @examples
 #' NULL
-plot_fit <- function(metadata, nuc_threshold, method = c("lm", "spline")) {
+plot_fit <- function(metadata, nuc_threshold, method = c("lm", "spline"), spline_spar = NULL) {
 	# The heavy lifting is done by fit_model
-	models <- fit_model(x = metadata, nuc_threshold = nuc_threshold, model_type = method)
+	models <- fit_model(x = metadata, nuc_threshold = nuc_threshold, model_type = method, spline_spar = spline_spar)
 
 	# We compute the fitted values from those models
 	metadata$fitted <- unlist(lapply(models, stats::fitted))

@@ -4,7 +4,12 @@
 \alias{plot_fit}
 \title{Plot the fit of a drift model}
 \usage{
-plot_fit(metadata, nuc_threshold, method = c("lm", "spline"))
+plot_fit(
+  metadata,
+  nuc_threshold,
+  method = c("lm", "spline"),
+  spline_spar = NULL
+)
 }
 \arguments{
 \item{metadata}{A data.frame of metadata on a given flight. Must minimally
@@ -16,6 +21,11 @@ on which distinct models will be fitted}
 
 \item{method}{A character. The type of statistical model to use for fitting.
 One of "lm" or "spline".}
+
+\item{spline_spar}{A numeric value, typically in the range (0, 1], used
+as a smoothing parameter when model_type = "spline". If NULL, (the default),
+then the smoothing parameter will be algorithmically determined. See
+\code{\link[stats]{smooth.spline}} for more details.}
 }
 \value{
 A data.frame similar to the input data with an added column

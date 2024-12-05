@@ -10,6 +10,7 @@ correct_drift(
   method = "overlap",
   midpoint = NULL,
   nuc_threshold = NULL,
+  spline_spar = NULL,
   overwrite_dst = FALSE,
   tags = NULL,
   ncores = 1,
@@ -36,6 +37,11 @@ the middle of the range is used.}
 above which non-uniformity correction is presumed to have occurred. Only
 needs to be provided for methods "lm" and "spline". If these methods are
 chosen and nuc_threshold is NULL, it will be set to 50 with a warning.}
+
+\item{spline_spar}{A numeric value, typically in the range (0, 1], used
+as a smoothing parameter when model_type = "spline". If NULL, (the default),
+then the smoothing parameter will be algorithmically determined. See
+\code{\link[stats]{smooth.spline}} for more details.}
 
 \item{overwrite_dst}{A logical. Whether the destination files should be overwritten if they already exist.}
 

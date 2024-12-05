@@ -423,8 +423,24 @@ to model thermal drift based on cubic splines:
 plot_fit(tmeta_df, nuc_threshold = 50, method = "spline")
 ```
 
-Again, applying this correction method using `correct_thermal` is fairly
-easy using the `correction_type = "spline"` argument:
+As seen above, by default, the smoothing spline will fit the data rather closely.
+A more parsimonious fit can be obtained by setting the smoothing parameter through
+`spline_spar`, which is eventually passed to the `spar` parameter of function
+`smooth.spline`. For example, `spline_spar = 0.5` yields the following fit:
+
+```{r spline-model-plot-spar1}
+plot_fit(tmeta_df, nuc_threshold = 50, method = "spline", spline_spar = 0.5)
+```
+
+Using `spline_spar = 0.7` yields an even more parsimonious fit:
+
+```{r spline-model-plot-spar2}
+plot_fit(tmeta_df, nuc_threshold = 50, method = "spline", spline_spar = 0.7)
+```
+
+We will use this last value (`spline_spar = 0.7`) for image correction.
+Applying this correction method using `correct_thermal` is fairly easy using
+the `correction_type = "spline"` argument:
 
 ```{r spline-correction}
 spline_tmeta <- correct_thermal(base_data = tmeta_df,
@@ -435,6 +451,7 @@ spline_tmeta <- correct_thermal(base_data = tmeta_df,
                                 tags = "minimal",
                                 nuc_threshold = 50,
                                 overwrite_dst = TRUE,
+                                spline_spar = 0.7,
                                 verbose = FALSE)
 ```
 

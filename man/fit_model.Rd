@@ -4,7 +4,7 @@
 \alias{fit_model}
 \title{Fit segmented models to a time series of thermal image means}
 \usage{
-fit_model(x, nuc_threshold, model_type = c("lm", "spline"))
+fit_model(x, nuc_threshold, model_type = c("lm", "spline"), spline_spar = NULL)
 }
 \arguments{
 \item{x}{A data.frame of metadata on which to fit the model. Must at least
@@ -15,6 +15,11 @@ points according to their non-uniformity correction settings.}
 
 \item{model_type}{The type of statistical model to use for fitting the
 time series, one of "lm" or "spline".}
+
+\item{spline_spar}{A numeric value, typically in the range (0, 1], used
+as a smoothing parameter when model_type = "spline". If NULL, (the default),
+then the smoothing parameter will be algorithmically determined. See
+\code{\link[stats]{smooth.spline}} for more details.}
 }
 \value{
 A list of spline and/or linear models, with one for each set of NUC

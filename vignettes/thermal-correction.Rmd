@@ -520,7 +520,25 @@ trans_params <- optimize_transform(x = terra::rast(tmeta_df[1, "SourceFile"]),
                                    reltol = 10^-3)
 ```
 
-Here we will show what the overlaps look like.
+The package provides the `check_transform` function to visually verify the
+accuracy of transform parameters. This function works best in interactive mode,
+where the user is queried for clicks on the source image and the location of
+the transformed coordinates is drawn on the target image. This way, the
+location of features of interest can be verified. Otherwise, a number of
+coordinates are randomly sampled and shown using distinct colors on both
+images. In all cases, the oultine of the images relative to each other are
+shown in red. In the following plot, we can see that the transform parameters
+are reasonably accurate.
+
+```{r check-overlaps, fig.width = 8, fig.height = 6}
+# Setting the seed for reproducibility of the vignette
+set.seed(1)
+
+# Verifying the transform parameters non-interactively
+check_transform(x = terra::rast(tmeta_df[1, "SourceFile"]),
+		y = terra::rast(tmeta_df[2, "SourceFile"]),
+		params = trans_params, n = 40)
+```
 
 We will need the transformation parameters for the whole dataset to correct
 based on image overlap. Here, we aggressively use some parameters offered by

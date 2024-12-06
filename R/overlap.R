@@ -263,19 +263,28 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 
 #' Verify the accuracy of a raster transformation
 #'
-#' Interactively click on a raster whose coordinates are to be transformed
-#' to match another raster and verify where the clicks land on the target
-#' raster.
+#' This function accepts two rasters and transformation parameters between the
+#' two, and generates a plot showing the correspondence between features in both
+#' rasters. It supports interactive analysis by clicking on a raster whose
+#' coordinates are to be transformed to match another raster and plotting where
+#' the clicks land on the target raster. Interactive analysis opens two distinct
+#' display devices whereas non-interactive analysis splits a display device
+#' into two parts.
 #'
-#' @param x,y Rasters.
-#' @param theta A numeric. The number of degrees to rotate the raster
-#' values, counterclockwise.
-#' @param htrans A numeric. The translation along the x-axis.
-#' @param vtrans A numeric. The translation along the y-axis.
-#' @param reverse A logical. Whether the transformation (translation and rotation)
-#' should be inversed relative to the input parameters. If TRUE, then the inverse
-#' of the transformation matrix is used instead of the matrix itself.
-#' @param n An integer. The number of clicks to query for.
+#' @param x,y Two rast objects whose transform is to be verified.
+#' @param params A list of optimized parameters, as output by
+#' \code{\link{optimize_transform}}.
+#' @param reverse A logical. Whether the transformation (translation and
+#' rotation) should be inversed relative to the input parameters. If TRUE, then
+#' the inverse of the transformation matrix is used instead of the matrix
+#' itself. This is TRUE by default because transformation parameters internally
+#' describe the transformation from one image to the previous one, but the
+#' other way around is more intuitive. When TRUE, x is the image that was taken
+#' first, and y is the image that was taken after.
+#' @param interactive A logical value: should the transform be checked
+#' interactively?
+#' @param n An integer. The number of points to plot or clicks to query for.
+#' Defaults to 10.
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting side-effect.
 #' 
@@ -283,28 +292,87 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 #'
 #' @examples
 #' NULL
-check_transform <- function(x, y, theta, htrans, vtrans, reverse = FALSE, n = 10) {
-	# Initalizing the plotting regions
-	terra::plot(x)
-	grDevices::dev.new()
-	terra::plot(y)
-	grDevices::dev.set(grDevices::dev.prev())
+check_transform <- function(x, y, params, reverse = TRUE, interactive = FALSE, n = 10) {
+	# Extracting the parameters from the list provided
+	params <- params$optim$par
+	theta <- params[1]
+	htrans <- params[2]
+	vtrans <- params[3]
 
-	# Lopping for as many clicks as required
-	for(i in 1:n) {
-		# Asking for clicks on the untransformed raster
-		raw_coords <- terra::click(x, n = 1, xy = TRUE)[, c("x", "y")]
-		# Plotting the transformed coordinates on the transformed raster
-		grDevices::dev.set(grDevices::dev.next())
-		transformed_coords <- transform_coords(as.matrix(raw_coords),
-						       theta = theta,
-						       center = dim(x)[2:1] / 2,
-						       htrans = htrans,
-						       vtrans = vtrans,
-						       reverse = reverse)
+	# Get the locations of the target raster corners on the source one
+	x_corners <- get_corners(x = y,
+				 theta = theta,
+				 htrans = htrans,
+				 vtrans = vtrans,
+				 reverse = FALSE)
 
-		graphics::points(x = transformed_coords[, 1], y = transformed_coords[, 2])
+	# Get the locations of the source raster corners on the target one
+	y_corners <- get_corners(x = x,
+				 theta = theta,
+				 htrans = htrans,
+				 vtrans = vtrans,
+				 reverse = TRUE)
+
+	if(interactive) {
+		# Initializing the plotting regions and plot the outline of the rasters
+		terra::plot(x)
+		plot(x_corners, border = "red", add = TRUE)
+
+		grDevices::dev.new()
+		terra::plot(y)
+		plot(y_corners, border = "red", add = TRUE)
+
 		grDevices::dev.set(grDevices::dev.prev())
+
+		# Lopping for as many clicks as required
+		for(i in 1:n) {
+			# Asking for clicks on the untransformed raster
+			raw_coords <- terra::click(x, n = 1, xy = TRUE, pch = 1)[, c("x", "y")]
+
+			# Transforming the coordinates
+			transformed_coords <- transform_coords(as.matrix(raw_coords),
+							       theta = theta,
+							       center = dim(x)[2:1] / 2,
+							       htrans = htrans,
+							       vtrans = vtrans,
+							       reverse = reverse)
+
+			# Plotting the transformed coordinates on the target raster
+			grDevices::dev.set(grDevices::dev.next())
+			graphics::points(x = transformed_coords[, 1], y = transformed_coords[, 2])
+			grDevices::dev.set(grDevices::dev.prev())
+		}
+	} else {
+
+		# Split the plotting region in two
+		par(mfrow = c(1, 2))
+
+		# Generate points randomly from the raster to transform
+		rpoints <- terra::xyFromCell(x, 1:(terra::ncell(x)))[sample(terra::ncell(x), n), ]
+
+		# Sampling some random colors as well
+		rcolors <- sample(colors(), n)
+
+		# Plot the x raster with points on top of it
+		terra::plot(x, main = "x")
+		points(rpoints, col = rcolors)
+
+		# Plot the corners of the target raster on this one
+		plot(x_corners, border = "red", add = TRUE)
+
+		# Plotting the raster to transform with points on top
+		terra::plot(y, main = "y")
+
+		# With transformed coordinates on top of it
+		points(transform_coords(rpoints,
+					theta = theta, htrans = htrans, vtrans = vtrans,
+					center = c((xmax(x) - xmin(x)) / 2, (ymax(x) - ymin(x)) / 2),
+					reverse = TRUE),
+		       col = rcolors)
+
+
+		# Plot the corners of the source raster on this one
+		plot(y_corners, border = "red", add = TRUE)
 	}
 
 	invisible(NULL)

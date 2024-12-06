@@ -4,31 +4,39 @@
 \alias{check_transform}
 \title{Verify the accuracy of a raster transformation}
 \usage{
-check_transform(x, y, theta, htrans, vtrans, reverse = FALSE, n = 10)
+check_transform(x, y, params, reverse = TRUE, interactive = FALSE, n = 10)
 }
 \arguments{
-\item{x, y}{Rasters.}
+\item{x, y}{Two rast objects whose transform is to be verified.}
 
-\item{theta}{A numeric. The number of degrees to rotate the raster
-values, counterclockwise.}
+\item{params}{A list of optimized parameters, as output by
+\code{\link{optimize_transform}}.}
 
-\item{htrans}{A numeric. The translation along the x-axis.}
+\item{reverse}{A logical. Whether the transformation (translation and
+rotation) should be inversed relative to the input parameters. If TRUE, then
+the inverse of the transformation matrix is used instead of the matrix
+itself. This is TRUE by default because transformation parameters internally
+describe the transformation from one image to the previous one, but the
+other way around is more intuitive. When TRUE, x is the image that was taken
+first, and y is the image that was taken after.}
 
-\item{vtrans}{A numeric. The translation along the y-axis.}
+\item{interactive}{A logical value: should the transform be checked
+interactively?}
 
-\item{reverse}{A logical. Whether the transformation (translation and rotation)
-should be inversed relative to the input parameters. If TRUE, then the inverse
-of the transformation matrix is used instead of the matrix itself.}
-
-\item{n}{An integer. The number of clicks to query for.}
+\item{n}{An integer. The number of points to plot or clicks to query for.
+Defaults to 10.}
 }
 \value{
 NULL, invisibly. This function is invoked for its plotting side-effect.
 }
 \description{
-Interactively click on a raster whose coordinates are to be transformed
-to match another raster and verify where the clicks land on the target
-raster.
+This function accepts two rasters and transformation parameters between the
+two, and generates a plot showing the correspondence between features in both
+rasters. It supports interactive analysis by clicking on a raster whose
+coordinates are to be transformed to match another raster and plotting where
+the clicks land on the target raster. Interactive analysis opens two distinct
+display devices whereas non-interactive analysis splits a display device
+into two parts.
 }
 \examples{
 NULL

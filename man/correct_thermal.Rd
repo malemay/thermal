@@ -53,7 +53,10 @@ tags that wil be transferred to the corrected files. See
 
 \item{tparams}{A set of transformation parameters, as determined by
 \code{\link{optimize_transform}}. See \code{\link{add_tparams}} for more
-details. Only needs to be specify for methods based on overlap correction.}
+details. Only needs to be specified for methods based on overlap correction.
+Alternatively, if \code{\link{compute_overlaps}} was used, then the
+transform parameters are already in the metadata and do not need to be
+specified here.}
 
 \item{panels}{A list of sf polygons containing the coordinates of
 reference (black, gray and white) thermal panels in the images taken

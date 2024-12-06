@@ -157,7 +157,7 @@ are colored according to the direction that the drone is going towards:
 
 ```{r position-plot-factor}
 bearing <- ifelse(abs(tmeta_df$GimbalYawDegree) > 150, "south",
-		  ifelse(abs(tmeta_df$GimbalYawDegree) < 50, "north", "west"))
+                  ifelse(abs(tmeta_df$GimbalYawDegree) < 50, "north", "west"))
 plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"), color = as.factor(bearing))
 ```
 
@@ -536,8 +536,8 @@ set.seed(1)
 
 # Verifying the transform parameters non-interactively
 check_transform(x = terra::rast(tmeta_df[1, "SourceFile"]),
-		y = terra::rast(tmeta_df[2, "SourceFile"]),
-		params = trans_params, n = 40)
+                y = terra::rast(tmeta_df[2, "SourceFile"]),
+                params = trans_params, n = 40)
 ```
 
 We will need the transformation parameters for the whole dataset to correct
@@ -550,29 +550,26 @@ parameter `reltol = 10^-2` also stops the `stats::optim` routine earlier in its
 search for optimal parameters. All three parameters speed up the search
 greatly, at the possible cost of not finding the right transformation
 parameters. Under normal production conditions, we would advise to use more
-stringent parameters.  Furthermore, we allow the use of four cores to perform
+stringent parameters. Furthermore, we allow the use of four cores to perform
 some of the computations in parallel.  However, this option is not available on
 Windows systems as it relies on `parallel::mclapply`.
 
+Instead of using `optimize_transform`, here we use the convenient wrapper
+`compute_overlaps` which computes transform parameters for all images in
+a given flight and adds the resulting information as metadata columns that
+are needed for overlap correction. Here, we can indeed see that the columns
+`theta`, `htrans`, `vtrans` and `corr` have been added to the metadata.
+
 ```{r optimize-all}
-# This list will store the output of optimize transform for each image pair
-tparams <- list()
+# Adding the transform parameters to the metadata
+tmeta_df <- compute_overlaps(tmeta_df,
+			     min_cor = 0.6,
+			     fact = 4,
+			     cores = if(.Platform$OS.type == "unix") 4 else 1,
+			     verbose = FALSE,
+			     reltol = 10^-2)
 
-for(i in 2:nrow(tmeta_df)) {
-	# Computing the initial guess for theta
-	theta_guess <- -(tmeta_df[i, "GimbalYawDegree"] - tmeta_df[i - 1, "GimbalYawDegree"])
-
-	# Filling the tparams list with the parameter estimates
-	tparams[[i - 1]] <- optimize_transform(x = terra::rast(tmeta_df[i - 1, "SourceFile"]),
-                                               y = terra::rast(tmeta_df[i, "SourceFile"]),
-                                               theta1 = theta_guess,
-                                               min_cor = 0.6,
-                                               fact = 4,
-                                               cores = if(.Platform$OS.type == "unix") 4 else 1,
-                                               verbose = FALSE,
-                                               reltol = 10^-2)
-
-}
+str(tmeta_df)
 ```
 
 We can have a look at the distribution of correlation values and check the
@@ -598,8 +595,7 @@ overlap_tmeta <- correct_thermal(base_data = tmeta_df,
                                  display_tz = "Etc/GMT+4",
                                  tags = "minimal",
                                  overwrite_dst = TRUE,
-                                 tparams = tparams,
-				 verbose = FALSE)
+                                 verbose = FALSE)
 ```
 
 The plot of the mean of images in the corrected looks as follows after using

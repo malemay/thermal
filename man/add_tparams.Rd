@@ -13,10 +13,12 @@ add_tparams(metadata, tparams)
 \code{\link{optimize_transform}}.}
 }
 \value{
-A data.frame of metadata similar to the input one, with
-added columns "theta", "htrans" and "vtrans" describing the transformation
-parameters to go from one image to the previous one. Therefore, the parameters
-for the very first image in the dataset are NA.
+A data.frame of metadata similar to the input one, with added
+columns "theta", "htrans" and "vtrans" describing the transformation
+parameters to go from one image to the previous one. Therefore, the
+parameters for the very first image in the dataset are NA. A column "corr"
+for the correlation between the two images when the transformation is
+applied is also added.
 }
 \description{
 Add transformation parameters to a thermal picture dataset

@@ -65,41 +65,32 @@ test_that("Spline correction works as expected", {
 # Testing the overlap correction method
 test_that("Overlap correction works as expected", {
 
-		  # This list will store the output of optimize transform for each image pair
-		  tparams <- list()
-
 		  # We only process the first 30 images for testing because otherwise this is very long
-		  for(i in 2:30) {
-			  # Computing the initial guess for theta
-			  theta_guess <- -(tmeta[i, "GimbalYawDegree"] - tmeta[i - 1, "GimbalYawDegree"])
+		  tmeta_subset <- tmeta[1:30, ]
 
-			  # Filling the tparams list with the parameter estimates
-			  tparams[[i - 1]] <- optimize_transform(x = terra::rast(tmeta[i - 1, "SourceFile"]),
-								 y = terra::rast(tmeta[i, "SourceFile"]),
-								 theta1 = theta_guess,
-								 min_cor = 0.6,
-								 fact = 4,
-								 cores = if(.Platform$OS.type == "unix") 2 else 1,
-								 verbose = FALSE,
-								 reltol = 10^-2)
-		  }
+		  # Computing the overlap transform parameters
+		  tmeta_subset <- compute_overlaps(tmeta_subset,
+						   theta_guess = TRUE,
+						   min_cor = 0.6,
+						   fact = 4,
+						   cores = if(.Platform$OS.type == "unix") 2 else 1,
+						   verbose = FALSE,
+						   reltol = 10^-2)
 
 		  # Performing the overlap correction
 		  overlap_tmpdir <- withr::local_tempdir(pattern = "overlap_test")
 
-		  overlap_tmeta <- correct_thermal(base_data = tmeta[1:30, ],
+		  overlap_tmeta <- correct_thermal(base_data = tmeta_subset,
 						   correction_type = "overlap",
 						   output_dir = overlap_tmpdir,
 						   camera_tz = "Etc/GMT+5",
 						   display_tz = "Etc/GMT+4",
 						   tags = "minimal",
 						   overwrite_dst = TRUE,
-						   tparams = tparams,
 						   verbose = FALSE)
 
 		  overlap_tmeta$mean <- thermal_mean(overlap_tmeta)
 
 		  expect_identical(overlap_tmeta[, -1], readRDS(test_path("test_files", "overlap_tmeta.rds"))[, -1])
-
 })
 

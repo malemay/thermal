@@ -51,10 +51,12 @@ compute_vignetting <- function(metadata) {
 #' @param tparams A set of transformation parameters, as determined by
 #' \code{\link{optimize_transform}}.
 #'
-#' @return A data.frame of metadata similar to the input one, with
-#' added columns "theta", "htrans" and "vtrans" describing the transformation
-#' parameters to go from one image to the previous one. Therefore, the parameters
-#' for the very first image in the dataset are NA.
+#' @return A data.frame of metadata similar to the input one, with added
+#' columns "theta", "htrans" and "vtrans" describing the transformation
+#' parameters to go from one image to the previous one. Therefore, the
+#' parameters for the very first image in the dataset are NA. A column "corr"
+#' for the correlation between the two images when the transformation is
+#' applied is also added.
 #'
 #' @export
 #' @examples
@@ -66,6 +68,9 @@ add_tparams <- function(metadata, tparams) {
 	# Coercing the list of parameters to a data.frame and naming the columns
 	params <- as.data.frame(t(sapply(tparams, function(x) x$optim$par)))
 	colnames(params) <- c("theta", "htrans", "vtrans")
+
+	# Adding a column for the correlation between the images under the optimal parameters
+	params$corr <- sapply(tparams, function(x) -x$optim$value)
 
 	# Appending the parameters to the input metadata
 	metadata <- cbind(metadata, rbind(NA, params))

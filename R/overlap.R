@@ -448,3 +448,83 @@ find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, min_overlap
 	list(param = as.numeric(output), value = max(unlist(correlations), na.rm = TRUE))
 }
 
+#' Add overlap transform parameters to flight metadata
+#'
+#' This function computes transform parameters for all images in a dataset to
+#' allow overlap correction in downstream analyses. These parameters, as well
+#' as the resulting correlation between successive images, are added as columns
+#' to the input metadata. This function is basically a convenient wrapper for
+#' the workhorse function \code{\link{optimize_transform}} and the helper
+#' \code{\link{add_tparams}}. Users who want to understand how these functions
+#' work or gain finer control over the analysis should read their respective
+#' documentation.
+#'
+#' @param metadata A data.frame of metadata on a flight, such as read by
+#' \code{\link{read_metadata}}.
+#' @param theta_guess A logical value indicating whether initial guesses for
+#' theta (transform rotation angle) should be guessed from the metadata. This
+#' requires the column 'GimbalYawDegree' (which specifies the yaw angle of the
+#' gimbal when the picture was taken) to be found in the metadata. If
+#' theta_guess is FALSE, then the initial guess is equal to the value of
+#' theta1, if not NULL. If theta_guess is FALSE and theta1 is NULL, then theta1
+#' is set to 0 with a warning.
+#' @inheritParams optimize_transform
+#'
+#' @return A metadata data.frame similar to the input one, but with added
+#' columns "theta", "htrans", "vtrans" and "corr" related to the coordinate
+#' transformation.
+#'
+#' @export
+#' @examples
+#' NULL
+compute_overlaps <- function(metadata, theta_guess = TRUE,
+			     theta1 = NULL, htrans1 = 0, vtrans1 = 0,
+			     theta_range = 5, theta_length = 9,
+			     htrans_range = 20, htrans_length = 5,
+			     vtrans_range = 20, vtrans_length = 5,
+			     min_overlap = 100,
+			     fact = 1, cores = 1, min_cor = 0.8, maxiter = 2,
+			     method = "Nelder-Mead", reltol = 10^-5,
+			     verbose = TRUE, trace = verbose) {
+
+	# Checking if theta_guess is set to TRUE
+	if(theta_guess) {
+		# Some sanity checks
+		if(!is.null(theta1)) warning("theta_guess is set to TRUE, theta1 value ignored")
+
+		# Checking that the values needed to compute the guesses are found in the metadata
+		if(! "GimbalYawDegree" %in% colnames(metadata)) {
+			stop("theta values cannot be guessed from metadata if column 'GimbalYawDegree' is not provided")
+		}
+	} else {
+		if(is.null(theta1)) {
+			warning("theta_guess set to FALSE and theta1 = NULL: theta1 value set to 0")
+			theta1 <- 0
+		}
+	}
+
+	# This list will store the output of optimize_transform for each image pair
+	tparams <- list()
+
+	# Looping over all metadata rows but the first (there is no transform for the first picture)
+	for(i in 2:nrow(metadata)) {
+		# Computing the initial guess for theta
+		if(theta_guess) theta1 <- -(metadata[i, "GimbalYawDegree"] - metadata[i - 1, "GimbalYawDegree"])
+
+		# Filling the tparams list with the parameter estimates
+		tparams[[i - 1]] <- optimize_transform(x = terra::rast(metadata[i - 1, "SourceFile"]),
+						       y = terra::rast(metadata[i, "SourceFile"]),
+						       theta1 = theta1, theta_range = theta_range, theta_length = theta_length,
+						       htrans1 = htrans1, htrans_range = htrans_range, htrans_length = htrans_length,
+						       vtrans1 = vtrans1, vtrans_range = vtrans_range, vtrans_length = vtrans_length,
+						       min_overlap = min_overlap, min_cor = min_cor,
+						       fact = fact, cores = cores, maxiter = maxiter,
+						       method = method, reltol = reltol,
+						       verbose = verbose, trace = trace)
+	}
+
+	# Add the parameters to the metadata
+	metadata <- add_tparams(metadata, tparams)
+
+	return(metadata)
+}

@@ -399,7 +399,10 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 #' \code{\link{transfer_exif}} for more details.
 #' @param tparams A set of transformation parameters, as determined by
 #' \code{\link{optimize_transform}}. See \code{\link{add_tparams}} for more
-#' details. Only needs to be specify for methods based on overlap correction.
+#' details. Only needs to be specified for methods based on overlap correction.
+#' Alternatively, if \code{\link{compute_overlaps}} was used, then the
+#' transform parameters are already in the metadata and do not need to be
+#' specified here.
 #' @param panels A list of sf polygons containing the coordinates of
 #' reference (black, gray and white) thermal panels in the images taken
 #' during the flight. The names of the list must correspond to row names
@@ -451,11 +454,6 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 	# it is the metadata on the source files to be used for correction
 	stopifnot(is.data.frame(base_data))
 
-	# We add the transformation parameters to the data.frame
-	# but first we need to remove them if they already exist
-	for(i in c("theta", "htrans", "vtrans")) base_data[[i]] <- NULL
-	if(!is.null(tparams)) base_data <- add_tparams(base_data, tparams)
-
 	# Creating the output directory
 	if(!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
@@ -474,6 +472,20 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 						 verbose = verbose)
 
 	} else if(correction_type == "overlap") {
+		# We add the transformation parameters to the data.frame if necessary
+		if(!is.null(tparams)) {
+			if(!all(c("theta", "htrans", "vtrans") %in% colnames(base_data))) {
+				base_data <- add_tparams(base_data, tparams)
+			} else {
+				warning("transform parameters 'theta', 'htrans' and 'vtrans' already provided in input metadata; ignoring tparams argument")
+			}
+		}
+
+		# At this stage we absolutely need to have the transform parameters
+		if(!all(c("theta", "htrans", "vtrans") %in% colnames(base_data))) {
+			stop("transform parameters 'theta', 'htrans' and 'vtrans' need to be provided for overlap correction")
+		}
+
 		# We compute the differences based on coordinate transform parameters
 		base_data$diff <- compute_diffs(base_data, ncores = ncores, verbose = verbose)
 

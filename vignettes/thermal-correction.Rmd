@@ -521,20 +521,20 @@ trans_params <- optimize_transform(x = terra::rast(tmeta_df[1, "SourceFile"]),
 ```
 
 The package provides the `check_transform` function to visually verify the
-accuracy of transform parameters. This function works best in interactive mode,
+accuracy of transformation parameters. This function works best in interactive mode,
 where the user is queried for clicks on the source image and the location of
 the transformed coordinates is drawn on the target image. This way, the
 location of features of interest can be verified. Otherwise, a number of
 coordinates are randomly sampled and shown using distinct colors on both
 images. In all cases, the oultine of the images relative to each other are
-shown in red. In the following plot, we can see that the transform parameters
+shown in red. In the following plot, we can see that the transformation parameters
 are reasonably accurate.
 
 ```{r check-overlaps, fig.width = 8, fig.height = 6}
 # Setting the seed for reproducibility of the vignette
 set.seed(1)
 
-# Verifying the transform parameters non-interactively
+# Verifying the transformation parameters non-interactively
 check_transform(x = terra::rast(tmeta_df[1, "SourceFile"]),
                 y = terra::rast(tmeta_df[2, "SourceFile"]),
                 params = trans_params, n = 40)
@@ -555,13 +555,15 @@ some of the computations in parallel.  However, this option is not available on
 Windows systems as it relies on `parallel::mclapply`.
 
 Instead of using `optimize_transform`, here we use the convenient wrapper
-`compute_overlaps` which computes transform parameters for all images in
+`compute_overlaps` which computes transformation parameters for all images in
 a given flight and adds the resulting information as metadata columns that
 are needed for overlap correction. Here, we can indeed see that the columns
-`theta`, `htrans`, `vtrans` and `corr` have been added to the metadata.
+`theta`, `htrans`, `vtrans` and `corr` have been added to the metadata. The
+first value of each of these columns is `NA` because there are no transformation
+parameters linking the first image in the dataset to a previous image.
 
 ```{r optimize-all}
-# Adding the transform parameters to the metadata
+# Adding the transformation parameters to the metadata
 tmeta_df <- compute_overlaps(tmeta_df,
 			     min_cor = 0.6,
 			     fact = 4,
@@ -572,20 +574,51 @@ tmeta_df <- compute_overlaps(tmeta_df,
 str(tmeta_df)
 ```
 
-We can have a look at the distribution of correlation values and check the
-overlap for the image pair with the lowest correlation.
+The `corr` column is not necessary for image correction but it provides a
+useful diagnostic of the quality of the overlap parameters. It corresponds to
+the correlation between the values of two successive images when applying the
+optimized transformation. Here ,the quality of the transformation parameters is rather
+good.  The plot below shows the distribution of all correlation values of
+coordinate transformations for our test flight:
+
+```{r corr-hist, fig.width = 6, fig.height = 6}
+hist(tmeta_df$corr, breaks = 20, main = "Histogram of image overlap correlation values",
+     ylab = "Count", xlab = "Correlation")
+```
+
+Low values (for example, below 0.7) should raise suspicion and warrant a
+detailed look at the coordinate transformation, for example using `check_transform`.
+Here, a closer look at our image pair with the lowest correlation
+(`r round(min(tmeta_df$corr, na.rm = TRUE), 2)`) suggests that the transformation parameters are
+indeed a bit off for that image. This would suggest that more stringent
+parameters should be used in the computation of the transformation parameters.
+Here, it is not surprising that we would struggle in finding good parameters
+since we are working with images with reduced resolution. Real-world datasets
+will not commonly suffer from this problem.
+
+```{r check-overlaps-mincorr, fig.width = 8, fig.height = 6}
+# Setting the seed for reproducibility of the vignette
+set.seed(1)
+
+# Finding the image index with the lowest correlation
+min_image <- which.min(tmeta_df$corr)
+
+# Verifying the transformation parameters non-interactively
+check_transform(x = terra::rast(tmeta_df[min_image - 1, "SourceFile"]),
+                y = terra::rast(tmeta_df[min_image, "SourceFile"]),
+                params = trans_params, n = 40)
+```
 
 ### Correction based on image overlap
 
 Once the transformation parameters are known and have been added to the
 metadata, `correct_thermal` can be invoked with `correction_type = "overlap"`.
-Instead of relying on a statistical model, this approach will use the
-transformation parameters computed above to determine the section of each image
-pair that overlap with each other. Adjustment factors will then be computed
-based on the difference between the mean of the images in the region where they
-overlap. In addition to the usual arguments, we also need to provide the
-`tparams` parameter, which contains the list of transformation parameters
-computed above.
+Instead of relying on a statistical model, this approach will use the transformation
+parameters computed above to determine the section of each image pair that
+overlap with each other. Adjustment factors will then be computed based on the
+difference between the mean of the images in the region where they overlap. In
+addition to the usual arguments, we also need to provide the `tparams`
+parameter, which contains the list of transformation parameters computed above.
 
 ```{r overlap-correction}
 overlap_tmeta <- correct_thermal(base_data = tmeta_df,

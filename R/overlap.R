@@ -345,17 +345,17 @@ check_transform <- function(x, y, params, reverse = TRUE, interactive = FALSE, n
 	} else {
 
 		# Split the plotting region in two
-		par(mfrow = c(1, 2))
+		graphics::par(mfrow = c(1, 2))
 
 		# Generate points randomly from the raster to transform
 		rpoints <- terra::xyFromCell(x, 1:(terra::ncell(x)))[sample(terra::ncell(x), n), ]
 
 		# Sampling some random colors as well
-		rcolors <- sample(colors(), n)
+		rcolors <- sample(grDevices::colors(), n)
 
 		# Plot the x raster with points on top of it
 		terra::plot(x, main = "x")
-		points(rpoints, col = rcolors)
+		graphics::points(rpoints, col = rcolors)
 
 		# Plot the corners of the target raster on this one
 		plot(x_corners, border = "red", add = TRUE)
@@ -364,11 +364,11 @@ check_transform <- function(x, y, params, reverse = TRUE, interactive = FALSE, n
 		terra::plot(y, main = "y")
 
 		# With transformed coordinates on top of it
-		points(transform_coords(rpoints,
-					theta = theta, htrans = htrans, vtrans = vtrans,
-					center = c((terra::xmax(x) - terra::xmin(x)) / 2, (terra::ymax(x) - terra::ymin(x)) / 2),
-					reverse = TRUE),
-		       col = rcolors)
+		graphics::points(transform_coords(rpoints,
+						  theta = theta, htrans = htrans, vtrans = vtrans,
+						  center = c((terra::xmax(x) - terra::xmin(x)) / 2, (terra::ymax(x) - terra::ymin(x)) / 2),
+						  reverse = TRUE),
+				 col = rcolors)
 
 
 		# Plot the corners of the source raster on this one

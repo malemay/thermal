@@ -267,7 +267,7 @@ plot_fit <- function(metadata, nuc_threshold, method = c("lm", "spline"), spline
 	# Base plotting is sufficient for this use case
 	plot(x = metadata$DateTimeOriginal, y = metadata$mean,
 	     xlab = "Time", ylab = "Image mean")
-	lines(x = metadata$DateTimeOriginal, y = metadata$fitted, col = "blue", lty = 2)
+	graphics::lines(x = metadata$DateTimeOriginal, y = metadata$fitted, col = "blue", lty = 2)
 
 	invisible(metadata)
 }
@@ -306,7 +306,7 @@ plot_drift <- function(metadata, nuc_threshold = NULL, ncores = 1) {
 	     xlab = "Time", ylab = "Image mean")
 
 	if(is.null(nuc_threshold)) {
-		lines(metadata$DateTimeOriginal, metadata$mean, lty = 3)
+		graphics::lines(metadata$DateTimeOriginal, metadata$mean, lty = 3)
 	} else {
 		# Declaring NUC events when the difference between successive pictures is greater than the threhsold
 		# The last picture cannot be linked to NUC because there is no picture after it
@@ -314,8 +314,8 @@ plot_drift <- function(metadata, nuc_threshold = NULL, ncores = 1) {
 
 		# Plotting the data, with NUC events as red lines
 		for(i in 1:(nrow(metadata) - 1)) {
-			lines(metadata[c(i, i + 1), "DateTimeOriginal"], metadata[c(i, i + 1), "mean"],
-			      lty = 3, col = ifelse(metadata[i, "nuc"], "red", "black"))
+			graphics::lines(metadata[c(i, i + 1), "DateTimeOriginal"], metadata[c(i, i + 1), "mean"],
+					lty = 3, col = ifelse(metadata[i, "nuc"], "red", "black"))
 		}
 	}
 
@@ -375,7 +375,7 @@ map_color <- function(values, pal, n_colors) {
 #' @param base_palette A character vector of colors used in mapping the numeric
 #' values onto the color scale.
 #' @param label_text A character to use as a value for the legend label.
-#' @param digits A numeric value indicating the number of digits that the
+#' @param round_digits A numeric value indicating the number of digits that the
 #' breaks in the scale should be rounded to.
 #' @param direction A character indicating whether the direction in which the
 #' color scale should be plotted. Supported values are "horizontal" and
@@ -480,5 +480,5 @@ grid.factorscale <- function(values) {
 #' @return A vector of colors to be used for plotting
 gg_hue <- function(n) {
 	hues = seq(15, 375, length = n + 1)
-	hcl(h = hues, l = 65, c = 100)[1:n]
+	grDevices::hcl(h = hues, l = 65, c = 100)[1:n]
 }

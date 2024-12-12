@@ -22,15 +22,15 @@ values onto the color scale.}
 
 \item{label_text}{A character to use as a value for the legend label.}
 
+\item{round_digits}{A numeric value indicating the number of digits that the
+breaks in the scale should be rounded to.}
+
 \item{direction}{A character indicating whether the direction in which the
 color scale should be plotted. Supported values are "horizontal" and
 "vertical".}
 
 \item{fontsize}{A numeric. The font size to use for the axis label and tick
 labels.}
-
-\item{digits}{A numeric value indicating the number of digits that the
-breaks in the scale should be rounded to.}
 }
 \value{
 \code{NULL}, invisibly. This function is invoked for its plotting

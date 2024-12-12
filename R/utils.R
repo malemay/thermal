@@ -265,7 +265,8 @@ plot_fit <- function(metadata, nuc_threshold, method = c("lm", "spline"), spline
 	metadata$fitted <- unlist(lapply(models, stats::fitted))
 
 	# Base plotting is sufficient for this use case
-	plot(x = metadata$DateTimeOriginal, y = metadata$mean)
+	plot(x = metadata$DateTimeOriginal, y = metadata$mean,
+	     xlab = "Time", ylab = "Image mean")
 	lines(x = metadata$DateTimeOriginal, y = metadata$fitted, col = "blue", lty = 2)
 
 	invisible(metadata)

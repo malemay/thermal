@@ -366,7 +366,7 @@ check_transform <- function(x, y, params, reverse = TRUE, interactive = FALSE, n
 		# With transformed coordinates on top of it
 		points(transform_coords(rpoints,
 					theta = theta, htrans = htrans, vtrans = vtrans,
-					center = c((xmax(x) - xmin(x)) / 2, (ymax(x) - ymin(x)) / 2),
+					center = c((terra::xmax(x) - terra::xmin(x)) / 2, (terra::ymax(x) - terra::ymin(x)) / 2),
 					reverse = TRUE),
 		       col = rcolors)
 

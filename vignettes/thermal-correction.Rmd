@@ -16,11 +16,6 @@ knitr::opts_chunk$set(
   fig.align = "center")
 ```
 
-```{r packages}
-library(thermal)
-library(terra)
-```
-
 # Introduction
 
 The `thermal` package was designed to correct for the effect of drift in
@@ -29,27 +24,27 @@ unmanned aerial vehicles (UAVs). Indeed, the sensor arrays of these cameras are
 sensitive to variation in both internal (heat produced by functioning camera)
 and external (temperature, wind, radiation, and other meteorological phenomena)
 conditions. As a result, data retrieved by these cameras will vary due to
-factors other than the temperature of the surfaces being surveyed, which is the
-usually the metric that users intend to measure. This artefactual variation in
-the intensity of TIR radiation recorded by cameras ofter time is termed
+factors other than the temperature of the surfaces being surveyed, which is
+usually the variable that users intend to measure. This artefactual variation
+in the intensity of TIR radiation recorded by cameras over time is termed
 *drift*.
 
-`thermal` provides functions for reading TIR images as well as their metadata,
-correct thermal drift using various underlying models, as well as a few other
-functions that may be more generally useful to users of UAV-derived TIR data.
-This vignette will focus on getting users started with processing TIR data and
-correcting drift using various models. The underlying assumptions and
-limitations of the models will be explained to that users can pick the approach
+`thermal` provides functions for reading TIR images and their metadata,
+correcting thermal drift using various underlying models, as well as a few
+other functions that may be more generally useful to users of UAV-derived TIR
+data. This vignette will focus on getting users started with processing TIR
+data and correcting drift using various models. The underlying assumptions and
+limitations of the models will be explained so that users can pick the approach
 that appears to be the best for their use case.
 
 # Test dataset
 
-As part of this vignette, we will use a set of 90 TIR images taken during a
-around noon on September 9, 2023. The UAV flew over a jack pine (*Pinus
-banksiana*) forest but the area surveyed also includes a gravel/sand road and a
-parked pick-up truck. Three aluminum panels painted with different colors
-(black, gray and white) were also included to provide reference surfaces whose
-surface temperature was measured in real time for benchmarking purposes.
+As part of this vignette, we will use a set of 90 TIR images taken around noon
+on September 9, 2023. The UAV flew over a jack pine (*Pinus banksiana*) forest
+but the area surveyed also includes a gravel/sand road and a parked pick-up
+truck. Three aluminum panels painted with different colors (black, gray and
+white) were also included to provide reference surfaces whose temperature was
+measured in real time for benchmarking purposes.
 
 The images were downgraded from their original 640x512 resolution to 160x128 to
 reduce their size for shipping along with the package and speed up processing
@@ -60,6 +55,10 @@ The images can be accessed through the `system.file` function, which accesses
 files shipped within a package:
 
 ```{r thermal-files}
+# Loading the package
+library(thermal)
+
+# Getting a vector of absolute paths to the test TIR images
 thermal_files <- dir(system.file("extdata", package = "thermal"),
                      pattern = "thermal\\.tiff$", full.names = TRUE)
 
@@ -75,10 +74,9 @@ The first four images of the dataset look as follows:
 par(mfrow = c(2, 2))
 
 for(i in thermal_files[1:4]) {
-	plot(rast(i), mar = rep(0.5, 4), legend = FALSE, axes = FALSE)
+	terra::plot(terra::rast(i), mar = rep(0.5, 4), legend = FALSE, axes = FALSE)
 }
 ```
-
 
 # Reading image metadata
 
@@ -88,7 +86,7 @@ the image files in as EXIF tags which can be read through functionality
 provided by the
 [exifr](https://cran.r-project.org/web/packages/exifr/index.html) package. The
 function `read_metadata` allows to read the metadata on a set of UAV-derived
-images by providing a vector of file paths and serves as a starting point for
+images by providing a vector of file paths. It serves as a starting point for
 any analysis involving the `thermal` package:
 
 ```{r read-metadata}
@@ -121,13 +119,13 @@ metadata to be represented using this time zone.
 As can be seen from the structure of the dataset above, the data.frame returned
 by `read_metadata` using `tags = "minimal"` contains information about the
 paths to the image files, the time when the images were taken, as well as the
-orientation and geographical localization of the drone when the picture was taken.
+orientation and geographic location of the drone when the picture was taken.
 That is all the information the `thermal` package really needs to go forward,
-but some users may want to extract more information depending on their particular
-needs.
+but some users may want to extract more information depending on their
+particular needs.
 
-The `plot_metadata` function takes a dataset read by `read_metadata` as input
-and shows a very basic layout of the locations where the flight pictures were
+The `plot_metadata` function takes a dataset created with `read_metadata` and
+shows a very basic layout of the locations where the flight pictures were
 taken. We can see that our survey area is approximately square-shaped and
 consists of eight flight lines:
 
@@ -136,11 +134,11 @@ consists of eight flight lines:
 plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"))
 ```
 
-Additonal functionality is available to gain more control over the output of
+Some parameters are available to gain more control over the output of
 `plot_metadata` or plot additional features. For example, an alternative
-coordinate reference system (CRS) may be specified to transform the data to
-prior to plotting. This can be useful to represent the coordinates in meters
-instead of degrees.
+coordinate reference system (CRS) may be specified to transform the data prior
+to plotting. This can be useful to represent the coordinates in meters instead
+of degrees.
 
 ```{r position-plot-crs}
 plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"), new_crs = sf::st_crs("EPSG:32198"))
@@ -149,7 +147,9 @@ plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"), new_crs = sf::st_crs
 Arrows representing the trajectory of the drone can also be added:
 
 ```{r position-plot-arrows}
-plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"), arrows = TRUE, arrow_angle = 20, arrow_length = grid::unit(0.15, "inches"))
+plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"),
+              arrows = TRUE, arrow_angle = 20,
+              arrow_length = grid::unit(0.15, "inches"))
 ```
 
 The points can be colored according to a factor, here for example the points
@@ -158,6 +158,7 @@ are colored according to the direction that the drone is going towards:
 ```{r position-plot-factor}
 bearing <- ifelse(abs(tmeta_df$GimbalYawDegree) > 150, "south",
                   ifelse(abs(tmeta_df$GimbalYawDegree) < 50, "north", "west"))
+
 plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"), color = as.factor(bearing))
 ```
 
@@ -168,31 +169,31 @@ those numeric values to a color scale:
 plot_metadata(tmeta_df, base_crs = sf::st_crs("EPSG:4326"), color = tmeta_df$GimbalYawDegree)
 ```
 
-
 # Computing metrics on images
 
 Once metadata has been read, several downstream analyses are possible. One that
 is of particular interest in the context of thermal drift is the mean value of
 all pixels in the thermal images over time. While this mean value is likely to
-vary due actual temperature variation of the surface being surveyed, drift will
-result in sudden or gradual changes in the mean value of the images over time.
-The function `thermal_mean` accepts a data.frame of metadata and returns a
-vector of numeric values corresponding to the mean value of each image.
+vary due to actual temperature differences over the area being surveyed, drift
+will result in sudden or gradual changes in the mean value of the images over
+time. The function `thermal_mean` accepts a data.frame of metadata and returns
+a vector of numeric values corresponding to the mean value of each image.
 
 ```{r thermal-mean}
 # We store the mean of each image as a new column in the metadata data.frame
 tmeta_df$mean <- thermal_mean(tmeta_df)
 ```
- While the data.frame does not contain information on the image pixels
+
+While the data.frame does not contain information on the image pixels
 themselves, the `SourceFile` column allows to get the path to the image. It is
-therefore preferable for metadata to be read using absolute paths; this way, the
-path to the images remains valid no matter what the working directory is.
+therefore preferable for metadata to be read using absolute paths; this way,
+the path to the images remains valid no matter what the working directory is.
 
 By looking at the trend in the mean over time, we can identify possible drift
 patterns. We can see a few sudden drops that might indicate the occurrence of
-non-uniformity correction (NUC) events that resulted in the values recorded be
-the camera to suddenly change. The package conveniently provides the
-`plot_drift` function to view the changes in image mean over time.
+non-uniformity correction (NUC) events that resulted in the values recorded by
+the camera to suddenly change. The package provides the `plot_drift` function
+to view the changes in image mean over time.
 
 ```{r raw-mean-plot}
 plot_drift(tmeta_df)
@@ -201,22 +202,22 @@ plot_drift(tmeta_df)
 Another interesting pattern to look at is that of the mean value recorded by
 each individual pixel over time. While this dataset is a bit small for that
 purpose, larger datasets can provide insights into potential vignetting using
-this approach. Indeed, if a large number of pictures were taken of a relatively
-uniform landscape, then we would expect the average of each pixel to be similar
-across the sensor array. If that is not the case, this may indicate that some
-pixels consistently record higher or lower values, i.e. that vignetting is
-occurring. The function `compute_vignetting` computes the pixel-wise average
-over the flight and is so-named because it provides insights into possible
-vignetting patterns:
+this approach. Indeed, if a large number of pictures were taken over a
+relatively uniform landscape, then we would expect the average of each pixel to
+be similar across the sensor array. If that is not the case, this may indicate
+that some pixels consistently record higher or lower values, i.e. that
+vignetting is occurring. The function `compute_vignetting` computes the
+pixel-wise average over the flight and is so-named because it provides insights
+into possible vignetting patterns:
 
 ```{r vignetting}
 vignetting <- compute_vignetting(tmeta_df)
 terra::plot(vignetting)
 ```
 
-Here, the dataset is not quite large enough to confidently identify vignetting
-patterns, but the data suggest that center pixels tend to be have higher values
-while edge pixels have lower values.
+This dataset is not quite large enough to confidently identify vignetting
+patterns, but the data suggest that center pixels tend to display higher values
+while edge pixels display lower values.
 
 # Drift correction
 
@@ -237,13 +238,13 @@ The function `correct_thermal` offers a unified interface for thermal drift
 correction to users of the `thermal` package. While the underlying mechanics of
 the correction approaches differ, all approches aim to quantify the differences
 due to drift between each picture and a reference picture. These differences,
-which we call *adjustment factors* in `thermal` parlance, are then added
-or subtracted from all pixels in an image provide a corrected image. That is
+which we call *adjustment factors* in `thermal` parlance, are then added to or
+subtracted from all pixels in an image provide a corrected image. That is
 really all there is to it: adjustment factors are computed under a given model
 and then used to adjust the values of all pixels in each image. The reference
-picture that the adjustment factors are relative to can be provided explicitly
-by the user; by default, the image used as a reference will be taken from
-the middle of the flight (e.g. the 50th image in a 100-image flight).
+picture can be provided explicitly by the user, but by default, the image used
+as a reference will be taken from the middle of the flight (e.g. the 50th image
+in a 100-image flight).
 
 Once adjustment factors have been computed based on some model,
 `correct_thermal` reads the image source files from disk, corrects them, and
@@ -252,17 +253,17 @@ instead of storing the correction results in-memory is that memory usage could
 potentially exceed the RAM available on the system when processing large
 datasets.  As part of the examples presented here, a temporary directory will
 be used to save the results. However, in real-life usage, users should create a
-directory (separate from that where the source files are located) to store the
-corrected images. `correct_thermal` will save the corrected files as TIFF files
-by replacing (if necessary) the extension of the source files and saving the
-corrected images to the directory provided as input by the user. In the current
+directory (separate from the one where the source files are located) to store
+the corrected images. `correct_thermal` will save the corrected files as TIFF
+files by replacing (if necessary) the extension of the source files and saving
+the corrected images to the directory provided by the user. In the current
 version of `thermal`, there is no way to control output file names or format
-beyond this default.
+beyond this default, but files can be renamed or converted after correction.
 
 Importantly, EXIF metadata tags need to be transferred to the corrected image
 files so that metadata (e.g. time and geographical position) are preserved.
 This will be important for users aiming to perform downtream analyses such as
-generating an orthomosaic of the corrected images.
+generating an orthomosaic from the corrected images.
 
 Despite storing the correction results to disk instead of in-memory,
 `correct_thermal` will return a data.frame of metadata on the newly corrected
@@ -280,7 +281,7 @@ discussing drift correction approaches.
 Under this model, correction essentially consists in drawing a line through all
 points in the plot of the mean values of thermal pictures throughout time, and
 then assuming that all variation due to drift is represented by that line. This
-line is indeed exactly the same as is shown using `plot_drift`.
+line is indeed exactly the same as is shown using `plot_drift`:
 
 ```{r overall-model-plot}
 plot_drift(tmeta_df)
@@ -311,7 +312,7 @@ adjustment factors applied to each image. Here, we can see that the image used
 as a reference (the `midpoint` image), which is index 45, effectively has an
 adjustment factor of 0. While we do encourage users to look at these messages
 in interactive usage with real-world data, we will suppress this behaviour for
-the remainder of this report using the argument `verbose = FALSE`.
+the remainder of this vignette using the argument `verbose = FALSE`.
 
 If we look at the trend in the mean of images over time for the corrected
 dataset, we can see that the mean is now nearly constant over time. This is
@@ -320,8 +321,8 @@ value of images is due to drift. All we did is essentially bring the mean value
 of all pictures on par with that of the reference picture. By looking at the
 plot, we can see minor variation in the mean of pictures over time due to the
 fact that thermal values are stored on disk as integers, and some precision is
-therefore lost.  However, this variation (less than 1) is insignificant
-relative to the scale of the measurements.
+therefore lost. However, this variation (less than 1) is insignificant relative
+to the scale of the measurements.
 
 ```{r overall-mean-plot}
 plot_drift(overall_tmeta)
@@ -336,25 +337,25 @@ wrong. A better approach is to try and model thermal drift using statistical
 models of mean thermal values over time and use those models of drift to
 compute the adjustment factors.
 
-As noted earlier in this report, drift can occur gradually due to variation in
-sensor sensitivity, but also sometimes suddenly due to NUC events triggered by
-the camera firmware. Statistical models of drift need to differentiate between
-those two sources of variation. To solve this problem, in the `thermal` package,
-we chose to fit a distinct statistical model to each flight segment that occurred
-between two NUC events. The rationale for this choice is that we assume that
-variation in thermal values can be described statistically within the timespan
-of camera settings defined by NUC, but not across different NUC settings.
+As noted earlier, drift can occur gradually due to variation in sensor
+sensitivity, but also sometimes suddenly due to NUC events triggered by the
+camera firmware. Statistical models of drift need to differentiate between
+those two sources of variation. To solve this problem, we chose to fit a
+distinct statistical model to each flight segment occurring between two NUC
+events. The rationale for this choice is that we assume that variation in
+thermal values can be described statistically within the timespan of camera
+settings defined by NUC, but not across different NUC settings.
 
-This raises the question of how we can define NUC events. We adopted a simple
-approach that considers any variation in the mean of thermal images over 50
-as a NUC event, as this constitutes a fairly large change from one picture to
-the next. However, this threshold is controllable as the parameter `nuc_threshold`
-in `correct_thermal` and should be assessed on a case-by-case basis depending on
-the nature of the dataset.
+This raises the question of how to define NUC events. We adopted a simple
+approach that considers any difference in the mean of successive thermal images
+over 50 as a NUC event, as this constitutes a fairly large change from one
+picture to the next. However, this threshold is controllable as the parameter
+`nuc_threshold` in `correct_thermal` and should be assessed on a case-by-case
+basis depending on the nature of the dataset.
 
 For our test dataset, the NUC events based on a threshold of 50 are represented
 as red lines in the following plot, which can be obtained by setting the
-`nuc_threshold` parameter to `plot_drift`.
+`nuc_threshold` parameter in `plot_drift`:
 
 ```{r nuc-computation}
 plot_drift(tmeta_df, nuc_threshold = 50)
@@ -362,15 +363,15 @@ plot_drift(tmeta_df, nuc_threshold = 50)
 
 Based on a threshold of 50, we can therefore see that three flight segments are
 identified as separated by NUC events. Correction approaches based on the
-statistical modelling of thermal drift will therefore fit three different
-models to this data.
+statistical modelling of thermal drift will therefore fit three distinct models
+to this data.
 
 ### Drift correction based on a linear model of thermal drift
 
 The simplest statistical models to use for representing drift are linear
 models. This approach assumes that drift varies linearly with time in-between
-NUC events. The code and plot below shows how `correct_thermal` works under the
-hood to model thermal drift based on these assumptions:
+NUC events. The function `plot_fit` shows how a statistical model would fit the
+drift pattern, here using `method = "lm"` for linear models:
 
 ```{r lm-model-plot}
 plot_fit(tmeta_df, nuc_threshold = 50, method = "lm")
@@ -382,8 +383,8 @@ preserved in the corrected data. The variation indicated by the blue line is
 otherwise considered indicative of drift and will be used to compute the
 adjustment factors for data correction.
 
-Users need not to know the fine details of how to compute these linear
-models and can simply provide the `correction_type = "lm"` argument to
+Users need not to know the fine details of how to compute these linear models
+and can simply provide the `correction_type = "lm"` argument to
 `correct_thermal`.
 
 ```{r lm-correction}
@@ -414,19 +415,18 @@ drift in-between NUC events. This allows for the drift model to more closely
 follow variations in the data. In practice, this results in a correction that
 is somewhat a hybrid between the overall mean and linear model approaches, in
 that it attributes less variation to drift than the former, but more than the
-latter.
-
-The code and plot below shows how `correct_thermal` works under the hood
-to model thermal drift based on cubic splines:
+latter. Setting `method = "spline"` in `plot_fit` shows how a set of splines
+would fit our dataset:
 
 ```{r spline-model-plot}
 plot_fit(tmeta_df, nuc_threshold = 50, method = "spline")
 ```
 
-As seen above, by default, the smoothing spline will fit the data rather closely.
-A more parsimonious fit can be obtained by setting the smoothing parameter through
-`spline_spar`, which is eventually passed to the `spar` parameter of function
-`smooth.spline`. For example, `spline_spar = 0.5` yields the following fit:
+As seen above, by default, the smoothing spline will fit the data rather
+closely. A more parsimonious fit can be obtained by setting the smoothing
+parameter through `spline_spar`, which is eventually passed to the `spar`
+parameter of function `stats::smooth.spline`. For example, `spline_spar = 0.5`
+yields the following fit:
 
 ```{r spline-model-plot-spar1}
 plot_fit(tmeta_df, nuc_threshold = 50, method = "spline", spline_spar = 0.5)
@@ -445,13 +445,13 @@ the `correction_type = "spline"` argument:
 ```{r spline-correction}
 spline_tmeta <- correct_thermal(base_data = tmeta_df,
                                 correction_type = "spline",
+                                spline_spar = 0.7,
                                 output_dir = tmpdir,
                                 camera_tz = "Etc/GMT+5",
                                 display_tz = "Etc/GMT+4",
                                 tags = "minimal",
                                 nuc_threshold = 50,
                                 overwrite_dst = TRUE,
-                                spline_spar = 0.7,
                                 verbose = FALSE)
 ```
 
@@ -473,11 +473,11 @@ Instead, it uses an intuitive approach to compute the adjustment factors based
 on the overlap between successive pictures in a dataset.
 
 This approach assumes that essentially no variation in surface temperature (and
-therefore, in the amount of TIR emitted by those surfaces) occur in between the
-few seconds that separate two pictures taken one after the other. Therefore, by
+therefore, in the amount of TIR radiation emitted by those surfaces) occurs in
+between the few seconds that separate two successive images. Therefore, by
 computing the mean value of perceived TIR in the image sections that do
 overlap, it should be possible to compute just how much drift has occured
-between pictures, as the surface captured is the same in both pictures.
+between pictures, as the surface captured is the same in both sections.
 
 ### Finding the overlaps between images
 
@@ -485,9 +485,9 @@ The correction based on image overlap is by far the most computing-intensive
 method as it first needs to determine the sections of images that overlap. To
 find these overlapping sections, the `thermal` package needs a formal
 description of how the coordinates of an image can be translated to the
-coordinates of a neighbouring one in space using a geometric transformation
-that combines a rotation and a translation. This is modeled using three transformation
-parameters:
+coordinates of a neighbouring one using a geometric transformation that
+combines a rotation and a translation. This is modeled using three
+transformation parameters:
 
 * *theta*, the angle of rotation (in degrees) between sucessive pictures
 * *htrans*, the horizontal translation (in pixels) between successive pictures
@@ -497,7 +497,7 @@ These transformation parameters need to be estimated for each pair of
 successive pictures in a dataset. Therefore, for the 90 pictures in our
 dataset, 89 sets of transformation parameters need to be estimated.
 
-The function `optimize_transform` provides the interface to compute those
+The function `optimize_transform` provides the functionality to compute those
 parameters. Under the hood, it first tries various parameter combinations based
 on a brute-force approach and then passes on the best parameter combination to
 `stats::optim` to refine the estimates. The metric that it aims to optimize is
@@ -521,14 +521,14 @@ trans_params <- optimize_transform(x = terra::rast(tmeta_df[1, "SourceFile"]),
 ```
 
 The package provides the `check_transform` function to visually verify the
-accuracy of transformation parameters. This function works best in interactive mode,
-where the user is queried for clicks on the source image and the location of
-the transformed coordinates is drawn on the target image. This way, the
+accuracy of transformation parameters. This function works best in interactive
+mode, where the user is queried for clicks on the source image and the location
+of the transformed coordinates is drawn on the target image. This way, the
 location of features of interest can be verified. Otherwise, a number of
 coordinates are randomly sampled and shown using distinct colors on both
 images. In all cases, the oultine of the images relative to each other are
-shown in red. In the following plot, we can see that the transformation parameters
-are reasonably accurate.
+shown using a red box. In the following plot, we can see that the
+transformation parameters are reasonably accurate.
 
 ```{r check-overlaps, fig.width = 8, fig.height = 6}
 # Setting the seed for reproducibility of the vignette
@@ -545,14 +545,14 @@ based on image overlap. Here, we aggressively use some parameters offered by
 `optimize_transform` to speed up code execution for the purpose of generating
 the vignette. The parameter `min_cor = 0.6` allows to pass control to
 `stats::optim` earlier in the search for the best parameters, while `fact = 4`
-aggregates the raster by a factor of four in the brute-search step. The
+aggregates the raster by a factor of four in the brute-force search step. The
 parameter `reltol = 10^-2` also stops the `stats::optim` routine earlier in its
 search for optimal parameters. All three parameters speed up the search
 greatly, at the possible cost of not finding the right transformation
-parameters. Under normal production conditions, we would advise to use more
-stringent parameters. Furthermore, we allow the use of four cores to perform
-some of the computations in parallel.  However, this option is not available on
-Windows systems as it relies on `parallel::mclapply`.
+parameters. Under normal circumstances, we advise to use more stringent
+parameters. Furthermore, we allow four cores to perform some of the
+computations in parallel.  However, this option is not available on Windows
+systems as it relies on `parallel::mclapply`.
 
 Instead of using `optimize_transform`, here we use the convenient wrapper
 `compute_overlaps` which computes transformation parameters for all images in
@@ -565,21 +565,21 @@ parameters linking the first image in the dataset to a previous image.
 ```{r optimize-all}
 # Adding the transformation parameters to the metadata
 tmeta_df <- compute_overlaps(tmeta_df,
-			     min_cor = 0.6,
-			     fact = 4,
-			     cores = if(.Platform$OS.type == "unix") 4 else 1,
-			     verbose = FALSE,
-			     reltol = 10^-2)
+                             min_cor = 0.6,
+                             fact = 4,
+                             cores = if(.Platform$OS.type == "unix") 4 else 1,
+                             verbose = FALSE,
+                             reltol = 10^-2)
 
 str(tmeta_df)
 ```
 
 The `corr` column is not necessary for image correction but it provides a
-useful diagnostic of the quality of the overlap parameters. It corresponds to
+useful diagnostic for the quality of the overlap parameters. It corresponds to
 the correlation between the values of two successive images when applying the
-optimized transformation. Here ,the quality of the transformation parameters is rather
-good.  The plot below shows the distribution of all correlation values of
-coordinate transformations for our test flight:
+optimized transformation. The histrogram below shows the distribution of
+correlation values of all coordinate transformations for our test flight. The
+quality of the transformation parameters is rather good as most values are > 0.8.
 
 ```{r corr-hist, fig.width = 6, fig.height = 6}
 hist(tmeta_df$corr, breaks = 20, main = "Histogram of image overlap correlation values",
@@ -587,13 +587,13 @@ hist(tmeta_df$corr, breaks = 20, main = "Histogram of image overlap correlation 
 ```
 
 Low values (for example, below 0.7) should raise suspicion and warrant a
-detailed look at the coordinate transformation, for example using `check_transform`.
-Here, a closer look at our image pair with the lowest correlation
-(`r round(min(tmeta_df$corr, na.rm = TRUE), 2)`) suggests that the transformation parameters are
-indeed a bit off for that image. This would suggest that more stringent
-parameters should be used in the computation of the transformation parameters.
-Here, it is not surprising that we would struggle in finding good parameters
-since we are working with images with reduced resolution. Real-world datasets
+detailed look at the coordinate transformation, for example using
+`check_transform`. Here, a closer look at our image pair with the lowest
+correlation (`r round(min(tmeta_df$corr, na.rm = TRUE), 2)`) suggests that the
+transformation parameters are indeed a bit off for that image. This indicates
+that more stringent parameters should be used when computing the transformation
+parameters. Here, it is not surprising that we struggle in finding good
+parameters since we are working with low-resolution images. Real-world datasets
 will not commonly suffer from this problem.
 
 ```{r check-overlaps-mincorr, fig.width = 8, fig.height = 6}
@@ -613,12 +613,10 @@ check_transform(x = terra::rast(tmeta_df[min_image - 1, "SourceFile"]),
 
 Once the transformation parameters are known and have been added to the
 metadata, `correct_thermal` can be invoked with `correction_type = "overlap"`.
-Instead of relying on a statistical model, this approach will use the transformation
-parameters computed above to determine the section of each image pair that
-overlap with each other. Adjustment factors will then be computed based on the
-difference between the mean of the images in the region where they overlap. In
-addition to the usual arguments, we also need to provide the `tparams`
-parameter, which contains the list of transformation parameters computed above.
+Instead of relying on a statistical model, this approach will use the
+transformation parameters computed above to determine overlapping sections of
+successive images. Adjustment factors will then be computed based on the
+difference between the mean of the images in the region where they overlap.
 
 ```{r overlap-correction}
 overlap_tmeta <- correct_thermal(base_data = tmeta_df,

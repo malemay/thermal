@@ -95,7 +95,11 @@ test_that("transfer_exif works properly", {
 		  # FIRST CALL
 		  # We check that the number of tags in both original and updated files are the same
 		  # when transferring all tags (the default)
-		  expect_equal(ncol(original_metadata), ncol(updated_metadata))
+		  # We ignore some columns that get added by terra or GDAL in the process
+		  expect_equal(ncol(original_metadata),
+			       ncol(updated_metadata[, !colnames(updated_metadata) %in% c("GeoTiffVersion", "GTModelType", "GTRasterType",
+											  "GeographicType", "GeogCitation", "GeogAngularUnits",
+											  "GeogSemiMajorAxis", "GeogInvFlattening")]))
 		  # We check that the transferred metadata tags have the same value
 		  expect_equal(original_metadata[, added_tags], updated_metadata[, added_tags])
 

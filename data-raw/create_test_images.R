@@ -14,7 +14,7 @@ flight_dir <- "~/Documents/drone_data/drone_pictures/drone_test_01092023/12h"
 # The first 90 images are from the first of four subflights
 n <- 90 
 # The aggregation factor used for reducing the size of the thermal images
-thermal_agg_fact <- 4
+thermal_agg_fact <- 8
 # The aggregation factor used for reducing the size of the visible images
 visible_agg_fact <- 10
 # The time zone that the images were originally taken in

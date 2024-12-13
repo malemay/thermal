@@ -46,7 +46,7 @@ truck. Three aluminum panels painted with different colors (black, gray and
 white) were also included to provide reference surfaces whose temperature was
 measured in real time for benchmarking purposes.
 
-The images were downgraded from their original 640x512 resolution to 160x128 to
+The images were downgraded from their original 640x512 resolution to 80x64 to
 reduce their size for shipping along with the package and speed up processing
 for testing purposes. While the quality of the images is reduced, this is of
 little relevance to the examples presented in this vignette.
@@ -586,7 +586,7 @@ hist(tmeta_df$corr, breaks = 20, main = "Histogram of image overlap correlation 
      ylab = "Count", xlab = "Correlation")
 ```
 
-Low values (for example, below 0.7) should raise suspicion and warrant a
+Low values (for example, below 0.75) should raise suspicion and warrant a
 detailed look at the coordinate transformation, for example using
 `check_transform`. Here, a closer look at our image pair with the lowest
 correlation (`r round(min(tmeta_df$corr, na.rm = TRUE), 2)`) suggests that the

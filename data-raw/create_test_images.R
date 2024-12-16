@@ -16,7 +16,7 @@ n <- 90
 # The aggregation factor used for reducing the size of the thermal images
 thermal_agg_fact <- 8
 # The aggregation factor used for reducing the size of the visible images
-visible_agg_fact <- 10
+visible_agg_fact <- 20
 # The time zone that the images were originally taken in
 camera_tz <- "Etc/GMT+5"
 # The time zone to use for the analyses

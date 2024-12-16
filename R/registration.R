@@ -84,6 +84,8 @@ matching_points <- function(visible, thermal, npoints = 10) {
 #' raster values that must be compared for the correlation to be valid. Otherwise,
 #' correlation is set to 0 and the algorithm therefore will not converge towards parameters
 #' that result in a low number of overlapping raster cells.
+#' @param na.rm a logical value indicating whether NA values in the visible dataset
+#' should be removed.
 #' @param method the method to use for the \code{\link{optim}} function.
 #' @param reltol A numeric of length one. The relative tolerance for the optimization
 #' procedure implemented by \code{\link{optim}}. Lower values should yield a more
@@ -97,7 +99,7 @@ matching_points <- function(visible, thermal, npoints = 10) {
 #'
 align_images <- function(visible, thermal, start_values, distortion_center = c(2000, 1500),
 			 aggregate_factor = 1, crop_values = c(0, 0), min_overlap = 10000,
-			 method = "Nelder-Mead", reltol = 10^-8) {
+			 na.rm = FALSE, method = "Nelder-Mead", reltol = 10^-8) {
 
 	# Getting the sum of the values from the visible raster
 	visible_sum <- sum(visible)
@@ -116,6 +118,13 @@ align_images <- function(visible, thermal, start_values, distortion_center = c(2
 
 	# And the corresponding values
 	vvalues <- terra::values(visible_sum, mat = FALSE)[terra::cellFromXY(visible_sum, vcoords)]
+
+	# Removing the NA if specified as input
+	if(na.rm) {
+		vcoords <- vcoords[!is.na(vvalues), ]
+		vvalues <- vvalues[!is.na(vvalues)]
+	}
+
 	tvalues <- terra::values(thermal, mat = FALSE)
 
 	# Pre-compute r2 distances prior to input to convert_coords_optim

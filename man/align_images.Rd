@@ -12,6 +12,7 @@ align_images(
   aggregate_factor = 1,
   crop_values = c(0, 0),
   min_overlap = 10000,
+  na.rm = FALSE,
   method = "Nelder-Mead",
   reltol = 10^-8
 )
@@ -44,6 +45,9 @@ If both values are 0 (the default), then no cropping is done.}
 raster values that must be compared for the correlation to be valid. Otherwise,
 correlation is set to 0 and the algorithm therefore will not converge towards parameters
 that result in a low number of overlapping raster cells.}
+
+\item{na.rm}{a logical value indicating whether NA values in the visible dataset
+should be removed.}
 
 \item{method}{the method to use for the \code{\link{optim}} function.}
 

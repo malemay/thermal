@@ -39,7 +39,7 @@ that appears to be the best for their use case.
 
 # Test dataset
 
-As part of this vignette, we will use a set of 90 TIR images taken around noon
+As part of this vignette, we will use a set of 30 TIR images taken around noon
 on September 9, 2023. The UAV flew over a jack pine (*Pinus banksiana*) forest
 but the area surveyed also includes a gravel/sand road and a parked pick-up
 truck. Three aluminum panels painted with different colors (black, gray and
@@ -309,7 +309,7 @@ overall_tmeta <- correct_thermal(base_data = tmeta_df,
 
 By default, `correct_thermal` will print out messages informing users about the
 adjustment factors applied to each image. Here, we can see that the image used
-as a reference (the `midpoint` image), which is index 45, effectively has an
+as a reference (the `midpoint` image), which is index 15, effectively has an
 adjustment factor of 0. While we do encourage users to look at these messages
 in interactive usage with real-world data, we will suppress this behaviour for
 the remainder of this vignette using the argument `verbose = FALSE`.
@@ -348,20 +348,20 @@ settings defined by NUC, but not across different NUC settings.
 
 This raises the question of how to define NUC events. We adopted a simple
 approach that considers any difference in the mean of successive thermal images
-over 50 as a NUC event, as this constitutes a fairly large change from one
-picture to the next. However, this threshold is controllable as the parameter
-`nuc_threshold` in `correct_thermal` and should be assessed on a case-by-case
-basis depending on the nature of the dataset.
+over a fixed threshold as a NUC event. The package uses a default NUC threhsold
+of 50, however, this threshold is controllable as the parameter `nuc_threshold`
+in `correct_thermal` and should be assessed on a case-by-case basis depending
+on the nature of the dataset.
 
-For our test dataset, the NUC events based on a threshold of 50 are represented
-as red lines in the following plot, which can be obtained by setting the
-`nuc_threshold` parameter in `plot_drift`:
+For the purposes of this vignette, we used a threshold of 80 to define NUC
+events. These are represented as red lines in the following plot, which can be
+obtained by setting the `nuc_threshold` parameter in `plot_drift`:
 
 ```{r nuc-computation}
-plot_drift(tmeta_df, nuc_threshold = 50)
+plot_drift(tmeta_df, nuc_threshold = 80)
 ```
 
-Based on a threshold of 50, we can therefore see that three flight segments are
+Based on a threshold of 80, we can therefore see that three flight segments are
 identified as separated by NUC events. Correction approaches based on the
 statistical modelling of thermal drift will therefore fit three distinct models
 to this data.
@@ -374,7 +374,7 @@ NUC events. The function `plot_fit` shows how a statistical model would fit the
 drift pattern, here using `method = "lm"` for linear models:
 
 ```{r lm-model-plot}
-plot_fit(tmeta_df, nuc_threshold = 50, method = "lm")
+plot_fit(tmeta_df, nuc_threshold = 80, method = "lm")
 ```
 
 Differences between observed values and predicted values (i.e., model
@@ -394,7 +394,7 @@ lm_tmeta <- correct_thermal(base_data = tmeta_df,
                             camera_tz = "Etc/GMT+5",
                             display_tz = "Etc/GMT+4",
                             tags = "minimal",
-                            nuc_threshold = 50,
+                            nuc_threshold = 80,
                             overwrite_dst = TRUE,
                             verbose = FALSE)
 ```
@@ -419,7 +419,7 @@ latter. Setting `method = "spline"` in `plot_fit` shows how a set of splines
 would fit our dataset:
 
 ```{r spline-model-plot}
-plot_fit(tmeta_df, nuc_threshold = 50, method = "spline")
+plot_fit(tmeta_df, nuc_threshold = 80, method = "spline")
 ```
 
 As seen above, by default, the smoothing spline will fit the data rather
@@ -429,28 +429,22 @@ parameter of function `stats::smooth.spline`. For example, `spline_spar = 0.5`
 yields the following fit:
 
 ```{r spline-model-plot-spar1}
-plot_fit(tmeta_df, nuc_threshold = 50, method = "spline", spline_spar = 0.5)
+plot_fit(tmeta_df, nuc_threshold = 80, method = "spline", spline_spar = 0.5)
 ```
 
-Using `spline_spar = 0.7` yields an even more parsimonious fit:
-
-```{r spline-model-plot-spar2}
-plot_fit(tmeta_df, nuc_threshold = 50, method = "spline", spline_spar = 0.7)
-```
-
-We will use this last value (`spline_spar = 0.7`) for image correction.
+We will use this last value (`spline_spar = 0.5`) for image correction.
 Applying this correction method using `correct_thermal` is fairly easy using
 the `correction_type = "spline"` argument:
 
 ```{r spline-correction}
 spline_tmeta <- correct_thermal(base_data = tmeta_df,
                                 correction_type = "spline",
-                                spline_spar = 0.7,
+                                spline_spar = 0.5,
                                 output_dir = tmpdir,
                                 camera_tz = "Etc/GMT+5",
                                 display_tz = "Etc/GMT+4",
                                 tags = "minimal",
-                                nuc_threshold = 50,
+                                nuc_threshold = 80,
                                 overwrite_dst = TRUE,
                                 verbose = FALSE)
 ```
@@ -494,8 +488,8 @@ transformation parameters:
 * *vtrans*, the vertical translation (in pixels) between successive pictures
 
 These transformation parameters need to be estimated for each pair of
-successive pictures in a dataset. Therefore, for the 90 pictures in our
-dataset, 89 sets of transformation parameters need to be estimated.
+successive pictures in a dataset. Therefore, for the 30 pictures in our
+dataset, 29 sets of transformation parameters need to be estimated.
 
 The function `optimize_transform` provides the functionality to compute those
 parameters. Under the hood, it first tries various parameter combinations based
@@ -582,7 +576,7 @@ correlation values of all coordinate transformations for our test flight. The
 quality of the transformation parameters is rather good as most values are > 0.8.
 
 ```{r corr-hist, fig.width = 6, fig.height = 6}
-hist(tmeta_df$corr, breaks = 20, main = "Histogram of image overlap correlation values",
+hist(tmeta_df$corr, breaks = 10, main = "Histogram of image overlap correlation values",
      ylab = "Count", xlab = "Correlation")
 ```
 

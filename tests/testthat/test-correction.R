@@ -32,7 +32,7 @@ test_that("Linear model correction works as expected", {
 					      camera_tz = "Etc/GMT+5",
 					      display_tz = "Etc/GMT+4",
 					      tags = "minimal",
-					      nuc_threshold = 50,
+					      nuc_threshold = 80,
 					      overwrite_dst = TRUE,
 					      verbose = FALSE)
 
@@ -53,7 +53,7 @@ test_that("Spline correction works as expected", {
 						  camera_tz = "Etc/GMT+5",
 						  display_tz = "Etc/GMT+4",
 						  tags = "minimal",
-						  nuc_threshold = 50,
+						  nuc_threshold = 80,
 						  overwrite_dst = TRUE,
 						  verbose = FALSE)
 
@@ -65,22 +65,19 @@ test_that("Spline correction works as expected", {
 # Testing the overlap correction method
 test_that("Overlap correction works as expected", {
 
-		  # We only process the first 30 images for testing because otherwise this is very long
-		  tmeta_subset <- tmeta[1:30, ]
-
 		  # Computing the overlap transform parameters
-		  tmeta_subset <- compute_overlaps(tmeta_subset,
-						   theta_guess = TRUE,
-						   min_cor = 0.6,
-						   fact = 4,
-						   cores = if(.Platform$OS.type == "unix") 2 else 1,
-						   verbose = FALSE,
-						   reltol = 10^-2)
+		  tmeta <- compute_overlaps(tmeta,
+					    theta_guess = TRUE,
+					    min_cor = 0.6,
+					    fact = 4,
+					    cores = if(.Platform$OS.type == "unix") 2 else 1,
+					    verbose = FALSE,
+					    reltol = 10^-2)
 
 		  # Performing the overlap correction
 		  overlap_tmpdir <- withr::local_tempdir(pattern = "overlap_test")
 
-		  overlap_tmeta <- correct_thermal(base_data = tmeta_subset,
+		  overlap_tmeta <- correct_thermal(base_data = tmeta,
 						   correction_type = "overlap",
 						   output_dir = overlap_tmpdir,
 						   camera_tz = "Etc/GMT+5",

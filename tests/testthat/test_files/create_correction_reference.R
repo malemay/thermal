@@ -34,7 +34,7 @@ lm_tmeta <- correct_thermal(base_data = tmeta,
                             camera_tz = "Etc/GMT+5",
                             display_tz = "Etc/GMT+4",
                             tags = "minimal",
-			    nuc_threshold = 50,
+			    nuc_threshold = 80,
                             overwrite_dst = TRUE)
 
 lm_tmeta$mean <- thermal_mean(lm_tmeta)
@@ -48,7 +48,7 @@ spline_tmeta <- correct_thermal(base_data = tmeta,
 				camera_tz = "Etc/GMT+5",
 				display_tz = "Etc/GMT+4",
 				tags = "minimal",
-				nuc_threshold = 50,
+				nuc_threshold = 80,
 				overwrite_dst = TRUE)
 
 spline_tmeta$mean <- thermal_mean(spline_tmeta)
@@ -58,8 +58,7 @@ spline_tmeta$mean <- thermal_mean(spline_tmeta)
 # This list will store the output of optimize transform for each image pair
 tparams <- list()
 
-# We only process the first 30 images for testing because otherwise this is very long
-for(i in 2:30) {
+for(i in 2:nrow(tmeta)) {
 	# Computing the initial guess for theta
 	theta_guess <- -(tmeta[i, "GimbalYawDegree"] - tmeta[i - 1, "GimbalYawDegree"])
 
@@ -76,7 +75,7 @@ for(i in 2:30) {
 # Performing the overlap correction
 overlap_tmpdir <- withr::local_tempdir(pattern = "overlap_test")
 
-overlap_tmeta <- correct_thermal(base_data = tmeta[1:30, ],
+overlap_tmeta <- correct_thermal(base_data = tmeta,
                                  correction_type = "overlap",
                                  output_dir = overlap_tmpdir,
                                  camera_tz = "Etc/GMT+5",

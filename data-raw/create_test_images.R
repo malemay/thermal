@@ -38,7 +38,8 @@ stopifnot(all(as.numeric(substr(basename(vmeta$SourceFile), 5, 8)) -
 	      as.numeric(substr(basename(tmeta$SourceFile), 5, 8)) == 1))
 
 # We will create aggregated images from the original ones
-for(i in tmeta$SourceFile) {
+# We keep only one image out of three to save disk space and processing time
+for(i in tmeta$SourceFile[c(TRUE, FALSE, FALSE)]) {
 	message("Processing image ", i)
 
 	# Aggregating the original raster and adjusting its extent so that it matches the resolution
@@ -52,7 +53,7 @@ for(i in tmeta$SourceFile) {
 }
 
 # We also aggregate the visible images similarly
-for(i in vmeta$SourceFile) {
+for(i in vmeta$SourceFile[c(TRUE, FALSE, FALSE)]) {
 	message("Processing image ", i)
 
 	# Aggregating the original raster and adjusting its extent so that it matches the resolution
@@ -92,7 +93,7 @@ stopifnot(all(as.numeric(substr(basename(vmeta_test$SourceFile), 5, 8)) -
 
 par(mfrow = c(1, 2))
 
-for(i in 1:n) {
+for(i in 1:30) {
 	plot(rast(file_matches[i, "visible_file"]), mar = c(0.5, 0.5, 0.5, 0.5), axes = FALSE)
 	plot(rast(file_matches[i, "thermal_file"]), mar = c(1.3, 1.3, 1.3, 1.3), axes = FALSE)
 	Sys.sleep(0.8)

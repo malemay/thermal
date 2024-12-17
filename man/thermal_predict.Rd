@@ -24,3 +24,6 @@ This function can be used to compute temperature predictions for a given
 digital number value based on linear model parameters that have been
 fit at various timepoints during a flight.
 }
+\examples{
+NULL
+}

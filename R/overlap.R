@@ -5,10 +5,7 @@
 #' @return A 2x2 matrix that can be used in matrix product to rotate
 #' x-y coordinates in a counterclockwise direction.
 #'
-#' @export
-#'
-#' @examples
-#' NULL
+#' @noRd
 create_rmat <- function(theta) {
 	theta_rad <- theta * pi / 180
 	rot_matrix <- matrix(c(cos(theta_rad), sin(theta_rad), -sin(theta_rad), cos(theta_rad)), nrow = 2, ncol = 2)
@@ -25,10 +22,7 @@ create_rmat <- function(theta) {
 #' @return a raster with similar extent to the previous one, with values modified
 #' according to the new coordinates.
 #'
-#' @export
-#'
-#' @examples
-#' NULL
+#' @noRd
 apply_transform <- function(x, new_coords) {
 
 	# Filtering out coordinates that are outside the boundaries of the raster
@@ -47,6 +41,45 @@ apply_transform <- function(x, new_coords) {
 	x[] <- NA
 	x[new_coords[, c(2, 1)]] <- new_values
 	x
+}
+
+#' Transform coordinates according to a rotation/translation model
+#'
+#' @param coords A 2-column matrix with x-coordinates as the first column
+#' and y-coordinates as the second column
+#' @param theta A numeric. The number of degrees to rotate the raster
+#' values, counterclockwise.
+#' @param center A numeric vector of length 2 indicating the x, y coordinates
+#' of the rotation center
+#' @param htrans A numeric. The translation along the x-axis.
+#' @param vtrans A numeric. The translation along the y-axis.
+#' @param reverse A logical. Whether the transformation (translation and rotation)
+#' should be inversed relative to the input parameters. If TRUE, then the inverse
+#' of the transformation matrix is used instead of the matrix itself.
+#'
+#' @return A raster similar to the input one, but whose values have been rotated.
+#'
+#' @noRd
+transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FALSE) {
+
+	# Creating the rotation matrix
+	rot_matrix <- create_rmat(theta)
+
+	# Appending a translation to it
+	transform_matrix <- cbind(rot_matrix, c(htrans, vtrans))
+	transform_matrix <- rbind(transform_matrix, c(0, 0, 1))
+	if(reverse) transform_matrix <- solve(transform_matrix)
+
+	# We transform the coordinates to rotate around the center of the image
+	coords[, 1] <- coords[, 1] - center[1]
+	coords[, 2] <- coords[, 2] - center[2]
+
+	# We embed the translation back to the original coordinates in the transformation matrix<
+	transform_matrix[1, 3] <- transform_matrix[1, 3] + center[1]
+	transform_matrix[2, 3] <- transform_matrix[2, 3] + center[2]
+
+	# Rotating the coordinates through matrix multiplication and converting them back to the original coordinate system
+	(cbind(coords, rep(1, nrow(coords))) %*% t(transform_matrix))[, 1:2, drop = FALSE]
 }
 
 #' Transform a raster by rotation and translation
@@ -79,47 +112,6 @@ transform_raster <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 	apply_transform(x, new_coords)
 }
 
-#' Transform coordinates according to a rotation/translation model
-#'
-#' @param coords A 2-column matrix with x-coordinates as the first column
-#' and y-coordinates as the second column
-#' @param theta A numeric. The number of degrees to rotate the raster
-#' values, counterclockwise.
-#' @param center A numeric vector of length 2 indicating the x, y coordinates
-#' of the rotation center
-#' @param htrans A numeric. The translation along the x-axis.
-#' @param vtrans A numeric. The translation along the y-axis.
-#' @param reverse A logical. Whether the transformation (translation and rotation)
-#' should be inversed relative to the input parameters. If TRUE, then the inverse
-#' of the transformation matrix is used instead of the matrix itself.
-#'
-#' @return A raster similar to the input one, but whose values have been rotated.
-#'
-#' @export
-#'
-#' @examples
-#' NULL
-transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FALSE) {
-
-	# Creating the rotation matrix
-	rot_matrix <- create_rmat(theta)
-
-	# Appending a translation to it
-	transform_matrix <- cbind(rot_matrix, c(htrans, vtrans))
-	transform_matrix <- rbind(transform_matrix, c(0, 0, 1))
-	if(reverse) transform_matrix <- solve(transform_matrix)
-
-	# We transform the coordinates to rotate around the center of the image
-	coords[, 1] <- coords[, 1] - center[1]
-	coords[, 2] <- coords[, 2] - center[2]
-
-	# We embed the translation back to the original coordinates in the transformation matrix<
-	transform_matrix[1, 3] <- transform_matrix[1, 3] + center[1]
-	transform_matrix[2, 3] <- transform_matrix[2, 3] + center[2]
-
-	# Rotating the coordinates through matrix multiplication and converting them back to the original coordinate system
-	(cbind(coords, rep(1, nrow(coords))) %*% t(transform_matrix))[, 1:2, drop = FALSE]
-}
 
 #' Optimize the transformation for a raster to match its target
 #'
@@ -129,9 +121,8 @@ transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FA
 #' @param htrans1 A numeric. The initial value for htrans.
 #' @param vtrans1 A numeric. The initial value for vtrans.
 #' @param theta_range A numeric. The ± range of values to explore around
-#' theta1 should a call to find_initial be necessary.
-#' @param theta_length A numeric. The number of values of theta to test initially
-#' if a call to find_initial is required.
+#' theta1.
+#' @param theta_length A numeric. The number of values of theta to test initially.
 #' @param htrans_range Similar to theta_range for the htrans parameter.
 #' @param htrans_length Similar to theta_length for the htrans parameter.
 #' @param vtrans_range Similar to theta_range for the vtrans parameter
@@ -140,15 +131,14 @@ transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FA
 #' that must be compared between two rasters for the correlation to be considered
 #' valid. Otherwise, a correlation of 0 is returned.
 #' @param fact A numeric. The factor to use to reduce the resolution of the
-#' rasters to speed up the estimation of the best parameters in find_initial.
+#' rasters to speed up the brute-force search for the best parameters.
 #' Defaults to 1 (no aggregation is performed).
-#' @param cores The number of cores to use for parallel computing in
-#' find_initial. Defaults to 1.
+#' @param cores The number of cores to use for parallel computing. Defaults to 1.
 #' @param min_cor A numeric. The minimum correlation that must be obtained
 #' from initial guesses to go on with optim.
-#' @param maxiter An integer. The maximum number of iterations of find_initial
-#' to go through. The number of parameter combinations texted increases by
-#' 8 times for each iteration, so this number should be kept low otherwise
+#' @param maxiter An integer. The maximum number of brute-force iterations of
+#' to go through. The number of parameter combinations tested increases by 8
+#' times for each iteration, so this number should be kept low otherwise
 #' computation time will become extremely long.
 #' @param method A character. The method to use for optimization, passed to optim.
 #' @param reltol A numeric. The relative tolerance for convergence in optim.
@@ -402,10 +392,7 @@ check_transform <- function(x, y, params, reverse = TRUE, interactive = FALSE, n
 #' @return A numeric vector of length 3, with the first value corresponding to theta,
 #' the second to htrans, and the third to vtrans.
 #'
-#' @export
-#'
-#' @examples
-#' NULL
+#' @noRd
 find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, min_overlap = 100, fact = 1, cores = 1) {
 
 	# Reducing the size of the rasters
@@ -448,7 +435,7 @@ find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, min_overlap
 	list(param = as.numeric(output), value = max(unlist(correlations), na.rm = TRUE))
 }
 
-#' Add overlap transform parameters to flight metadata
+#' Compute and add overlap transform parameters to flight metadata
 #'
 #' This function computes transform parameters for all images in a dataset to
 #' allow overlap correction in downstream analyses. These parameters, as well

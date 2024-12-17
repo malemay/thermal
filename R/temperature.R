@@ -16,7 +16,6 @@
 #' @export
 #' @examples
 #' NULL
-#'
 read_temp <- function(filename, tz) {
 	tempdata <- utils::read.table(filename, sep = ",", skip = 4, na.strings = c("NA", "NAN"))
 	colnames(tempdata) <- c("time", "record", "battery", "devtemp", "temp")
@@ -51,7 +50,6 @@ read_temp <- function(filename, tz) {
 #' @export
 #' @examples
 #' NULL
-#'
 plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
 		      xlab = "Time", ylab = "Temperature (\u00b0C)",
 		      lcol = c(black = "black", gray = "gray", white = "blue"),
@@ -113,7 +111,6 @@ plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
 #' @export
 #' @examples
 #' NULL
-#'
 extract_temp <- function(metadata, temperature, tolerance = as.difftime(10, units = "secs")) {
 
 	# Creating a vector of matches in the temperature data.frame
@@ -366,6 +363,8 @@ max_density <- function(x) {
 #' each timepoint of the flight based on the linear model parameters.
 #'
 #' @export
+#' @examples
+#' NULL
 thermal_predict <- function(metadata, dn_value) {
 	# Sanity check
 	stopifnot(all(c("slope", "intercept") %in% colnames(metadata)))

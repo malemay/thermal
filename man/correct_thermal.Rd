@@ -72,12 +72,10 @@ use for fitting the linear models. See \code{\link{thermal_lm}}.}
 
 \item{midpoint}{The index of the image in metadata to use as a reference
 for adjusting the mean of the thermal pictures if drift correction is
-performed. See \code{\link{correct_drift}}. If NULL (the default), then
-the median image is used.}
+performed. If NULL (the default), then  the median image is used.}
 
 \item{nuc_threshold}{The threshold to use for detecting non-uniformity
-correction events when correction_type is "lm" or "spline. See
-\code{\link{correct_drift}} for more details.}
+correction events when correction_type is "lm" or "spline.}
 
 \item{spline_spar}{A numeric value, typically in the range (0, 1], used
 as a smoothing parameter when model_type = "spline". If NULL, (the default),

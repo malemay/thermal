@@ -9,9 +9,7 @@
 #'
 #' @return An sf polygon that gives the coordinates of the raster in the transformed
 #' coordinate system.
-#'
-#' @examples
-#'NULL
+#' @noRd
 get_corners <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 	corner_coords <- matrix(c(terra::xmin(x), terra::ymax(x),
 				  terra::xmax(x), terra::ymax(x),
@@ -37,12 +35,12 @@ get_corners <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 #'
 #' @param x,y Two rasters that overlap each other with known transformation parameters
 #' from raster y to raster x.
-#' @inherit get_corners
+#' @param theta A numeric. A rotation parameter (in degrees) for the transform.
+#' @param htrans A numeric. A horizontal translation parameter for the transform.
+#' @param vtrans A numeric. A vertical translation parameter for the transform.
 #'
 #' @return The difference of the mean of raster y to that of raster x in their shared extent.
-#'
-#' @examples
-#' NULL
+#' @noRd
 get_diff <- function(x, y, theta, htrans, vtrans) {
 
 	x_corners <- get_corners(x = y,
@@ -73,10 +71,7 @@ get_diff <- function(x, y, theta, htrans, vtrans) {
 #' @return A numeric vector of the same length as the number of rows in the input
 #' data.frame. The first value will be NA because the first picture has no previous
 #' picture.
-#'
-#' @export
-#' @examples
-#' NULL
+#' @noRd
 compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 	# Sanity checks
 	if(! all(c("theta", "htrans", "vtrans") %in% names(metadata))) {
@@ -120,6 +115,7 @@ compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 #'
 #' @return A list of spline and/or linear models, with one for each set of NUC
 #' settings.
+#' @noRd
 fit_model <- function(x, nuc_threshold, model_type = c("lm", "spline"), spline_spar = NULL) {
 
 	# Checking the validity of arguments
@@ -189,10 +185,7 @@ fit_model <- function(x, nuc_threshold, model_type = c("lm", "spline"), spline_s
 #' @inheritParams transfer_exif
 #'
 #' @return A character vector of the files that were written to disk, invisibly.
-#'
-#' @export
-#' @examples
-#' NULL
+#' @noRd
 correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = NULL,
 			  nuc_threshold = NULL, spline_spar = NULL, overwrite_dst = FALSE, tags = NULL,
 			  ncores = 1, verbose = TRUE) {
@@ -302,10 +295,7 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 #' @inheritParams transfer_exif
 #'
 #' @return A character vector of the files that were written to disk, invisibly.
-#'
-#' @export
-#' @examples
-#' NULL
+#' @noRd
 correct_vignetting <- function(metadata, output_dir, method = "overall", overwrite_dst = FALSE, tags = NULL,
 			       ncores = 1, verbose = TRUE) {
 
@@ -414,11 +404,9 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 #' use for fitting the linear models. See \code{\link{thermal_lm}}.
 #' @param midpoint The index of the image in metadata to use as a reference
 #' for adjusting the mean of the thermal pictures if drift correction is
-#' performed. See \code{\link{correct_drift}}. If NULL (the default), then
-#' the median image is used.
+#' performed. If NULL (the default), then  the median image is used.
 #' @param nuc_threshold The threshold to use for detecting non-uniformity
-#' correction events when correction_type is "lm" or "spline. See
-#' \code{\link{correct_drift}} for more details.
+#' correction events when correction_type is "lm" or "spline.
 #' @param spline_spar A numeric value, typically in the range (0, 1], used
 #' as a smoothing parameter when model_type = "spline". If NULL, (the default),
 #' then the smoothing parameter will be algorithmically determined. See

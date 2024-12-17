@@ -25,5 +25,4 @@ to be provided as a data.frame with "time" and "temp" columns.
 }
 \examples{
 NULL
-
 }

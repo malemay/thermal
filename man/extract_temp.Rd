@@ -35,5 +35,4 @@ by a datalogger.
 }
 \examples{
 NULL
-
 }

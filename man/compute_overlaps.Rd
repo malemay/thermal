@@ -2,7 +2,7 @@
 % Please edit documentation in R/overlap.R
 \name{compute_overlaps}
 \alias{compute_overlaps}
-\title{Add overlap transform parameters to flight metadata}
+\title{Compute and add overlap transform parameters to flight metadata}
 \usage{
 compute_overlaps(
   metadata,
@@ -46,10 +46,9 @@ is set to 0 with a warning.}
 \item{vtrans1}{A numeric. The initial value for vtrans.}
 
 \item{theta_range}{A numeric. The ± range of values to explore around
-theta1 should a call to find_initial be necessary.}
+theta1.}
 
-\item{theta_length}{A numeric. The number of values of theta to test initially
-if a call to find_initial is required.}
+\item{theta_length}{A numeric. The number of values of theta to test initially.}
 
 \item{htrans_range}{Similar to theta_range for the htrans parameter.}
 
@@ -64,18 +63,17 @@ that must be compared between two rasters for the correlation to be considered
 valid. Otherwise, a correlation of 0 is returned.}
 
 \item{fact}{A numeric. The factor to use to reduce the resolution of the
-rasters to speed up the estimation of the best parameters in find_initial.
+rasters to speed up the brute-force search for the best parameters.
 Defaults to 1 (no aggregation is performed).}
 
-\item{cores}{The number of cores to use for parallel computing in
-find_initial. Defaults to 1.}
+\item{cores}{The number of cores to use for parallel computing. Defaults to 1.}
 
 \item{min_cor}{A numeric. The minimum correlation that must be obtained
 from initial guesses to go on with optim.}
 
-\item{maxiter}{An integer. The maximum number of iterations of find_initial
-to go through. The number of parameter combinations texted increases by
-8 times for each iteration, so this number should be kept low otherwise
+\item{maxiter}{An integer. The maximum number of brute-force iterations of
+to go through. The number of parameter combinations tested increases by 8
+times for each iteration, so this number should be kept low otherwise
 computation time will become extremely long.}
 
 \item{method}{A character. The method to use for optimization, passed to optim.}

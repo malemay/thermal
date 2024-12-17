@@ -343,8 +343,7 @@ plot_drift <- function(metadata, nuc_threshold = NULL, ncores = 1) {
 #'     \item base_palette: the colors that were used for mapping the numeric values
 #'   }
 #'
-#' @examples
-#' NULL
+#' @noRd
 map_color <- function(values, pal, n_colors) {
 	base_palette <- RColorBrewer::brewer.pal(n = n_colors, name = pal)
 
@@ -385,6 +384,8 @@ map_color <- function(values, pal, n_colors) {
 #'
 #' @return \code{NULL}, invisibly. This function is invoked for its plotting
 #' side-effects.
+#'
+#' @noRd
 grid.colorscale <- function(breaks, base_palette, label_text, round_digits = 2,
 			    direction = "horizontal", fontsize = 12) {
 
@@ -455,6 +456,8 @@ grid.colorscale <- function(breaks, base_palette, label_text, round_digits = 2,
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting
 #' side-effect.
+#'
+#' @noRd
 grid.factorscale <- function(values) {
 	n_colors <- length(unique(values))
 
@@ -478,6 +481,8 @@ grid.factorscale <- function(values) {
 #' @param n An integer of length one. The number of colors to generate
 #'
 #' @return A vector of colors to be used for plotting
+#'
+#' @noRd
 gg_hue <- function(n) {
 	hues = seq(15, 375, length = n + 1)
 	grDevices::hcl(h = hues, l = 65, c = 100)[1:n]

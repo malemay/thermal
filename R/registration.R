@@ -13,7 +13,6 @@
 #' @export
 #' @examples
 #' NULL
-#'
 matching_points <- function(visible, thermal, npoints = 10) {
 	vlist <- list()
 	tlist <- list()
@@ -96,7 +95,6 @@ matching_points <- function(visible, thermal, npoints = 10) {
 #' @export
 #' @examples
 #' NULL
-#'
 align_images <- function(visible, thermal, start_values, distortion_center = c(2000, 1500),
 			 aggregate_factor = 1, crop_values = c(0, 0), min_overlap = 10000,
 			 na.rm = FALSE, method = "Nelder-Mead", reltol = 10^-8) {
@@ -165,7 +163,6 @@ align_images <- function(visible, thermal, start_values, distortion_center = c(2
 #' @export
 #' @examples
 #' NULL
-#'
 convert_coordinates <- function(coords, params, distortion_center = c(2000, 1500)) {
 
 	# Extract the parameters of the optimized model
@@ -211,7 +208,6 @@ convert_coordinates <- function(coords, params, distortion_center = c(2000, 1500
 #' @export
 #' @examples
 #' NULL
-#'
 thermclick <- function(visible, thermal, params, nclicks = 1, distortion_center = c(2000, 1500)) {
 
 	grDevices::dev.new()

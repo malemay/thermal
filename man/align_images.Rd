@@ -93,5 +93,4 @@ transformed coordinates based on a given set of parameters, see \code{\link{conv
 }
 \examples{
 NULL
-
 }

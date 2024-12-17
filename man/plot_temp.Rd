@@ -49,5 +49,4 @@ graph produced by this one after the function returns.
 }
 \examples{
 NULL
-
 }

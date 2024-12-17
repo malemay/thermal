@@ -25,5 +25,4 @@ model described in detail in \code{\link{align_images}}.
 }
 \examples{
 NULL
-
 }

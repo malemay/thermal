@@ -39,5 +39,4 @@ displayed automatically.
 }
 \examples{
 NULL
-
 }

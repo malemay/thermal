@@ -23,5 +23,4 @@ conversion model to manually identified points.
 }
 \examples{
 NULL
-
 }

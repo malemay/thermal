@@ -35,14 +35,12 @@ Takes metadata on thermal and visible images and returns a data.frame
 with their correspondence.
 }
 \details{
-There may not be a universal way to match visible and thermal images
-with 100\% certainty in the quality of the output. Therefore, this
-function provides a general framework for provding functions that
-do the matching. It also provides sanity checks to make sure that
-the output data makes sense. The function \code{\link{dji_filename_match}}
-may provided an appropriate match_func for some camera models.
-Otherwise, users will need to write their own function or file
-a bug report to have the requested functionality added.
+There may not be a universal way to match visible and thermal images with
+100\% certainty in the quality of the output. Therefore, this function
+provides a general framework for providing functions that do the matching.
+It also provides sanity checks to make sure that the output data makes
+sense. Users need to supply their own function for matching file names or
+else file a bug report to have the requested functionality added.
 }
 \examples{
 # Reading the metadata of test thermal images

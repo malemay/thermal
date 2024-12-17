@@ -544,7 +544,7 @@ parameter `reltol = 10^-2` also stops the `stats::optim` routine earlier in its
 search for optimal parameters. All three parameters speed up the search
 greatly, at the possible cost of not finding the right transformation
 parameters. Under normal circumstances, we advise to use more stringent
-parameters. Furthermore, we allow four cores to perform some of the
+parameters. Furthermore, we allow two cores to perform some of the
 computations in parallel.  However, this option is not available on Windows
 systems as it relies on `parallel::mclapply`.
 
@@ -561,7 +561,7 @@ parameters linking the first image in the dataset to a previous image.
 tmeta_df <- compute_overlaps(tmeta_df,
                              min_cor = 0.6,
                              fact = 4,
-                             cores = if(.Platform$OS.type == "unix") 4 else 1,
+                             cores = if(.Platform$OS.type == "unix") 2 else 1,
                              verbose = FALSE,
                              reltol = 10^-2)
 

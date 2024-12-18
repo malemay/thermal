@@ -82,8 +82,8 @@ for(i in thermal_files[1:4]) {
 
 Many operations in the `thermal` package access the images through their
 metadata instead of directly through the image files. Metadata is stored within
-the image files in as EXIF tags which can be read through functionality
-provided by the
+the image files as EXIF tags which can be read through functionality provided
+by the
 [exifr](https://cran.r-project.org/web/packages/exifr/index.html) package. The
 function `read_metadata` allows to read the metadata on a set of UAV-derived
 images by providing a vector of file paths. It serves as a starting point for

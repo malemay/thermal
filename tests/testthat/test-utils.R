@@ -14,7 +14,7 @@ test_that("thermal_mean works properly", {
     # Comparing the home-made solution to thermal_mean
     expect_identical(thermal_mean(tmeta), means)
     # Also testing with multiple cores
-    expect_identical(thermal_mean(tmeta, ncores = 2), means)
+    expect_identical(thermal_mean(tmeta, ncores = if(.Platform$OS.type == "unix") 2 else 1), means)
 })
 
 # Testing the compute_vignetting function

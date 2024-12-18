@@ -59,8 +59,9 @@ test_that("transfer_exif works properly", {
 		  # We do not test the "GPSPosition" column because numerical inaccuracies
 		  # can occur and since this is a string column, it cannot be numerically compared
 		  # The GPSLatitude column should be able to assess whether these are similar enough
+		  # We also remove the XMPToolkit column because its value depends on the system
 		  added_tags <- colnames(updated_metadata)[!colnames(updated_metadata) %in% colnames(intermediate_metadata)]
-		  added_tags <- added_tags[added_tags != "GPSPosition"]
+		  added_tags <- added_tags[!added_tags %in% c("GPSPosition", "XMPToolkit")]
 
 		  # --- SECOND CALL to transfer_exif: specifying a set of tags to transfer
 		  time_tags <- c("CreateDate", "DateTimeOriginal")

@@ -62,10 +62,83 @@ tmeta_df <- read_metadata(thermal_files,
                           display_tz = "Etc/GMT+4",
                           tags = "minimal")
 
+# Proviving IDs for each picture as row names
+rownames(tmeta_df) <- substr(basename(tmeta_df$SourceFile), 1, 8)
+
 head(tmeta_df)
 ```
 
+For the sake of radiometric calibration, we also provided row names to the
+metadata that we will used as IDs to uniquely identify individual pictures.
+
 # Formatting data for radiometric calibration
+
+Radiometric calibration of TIR images require two additional sources of data in
+addition to the images themselves:
+
+* Spatial location of the reference surfaces in the image(s)
+* Time series of temperature for each of the reference surfaces
+
+These two data sources are included in the package as datasets with names
+`panels` and `temperature`, respectively. The `panels` dataset is list of `sf`
+objects with indicating the coordinates of the reference surfaces (panels) in
+each of the images:
+
+```{r panels}
+length(panels)
+head(panels, n = 3)
+```
+
+The number of objects in the list is 27 rather than 30 (total number of images)
+because three of the images did not include the panels in their frame. The
+names of the list elements (DJI_0671, DJI_0677, DJI_0683, ...) link the panel
+coordinates to the image that they relate to. Apart from the panel coordinates,
+the `color` column of each sf object indicates the color of the panel that they
+reference to.
+
+Getting the panel coordinates in the right format for radiometric calibration
+(named list of sf objects, with a `color` column for the identifier of the
+surface) is probably the trickiest part of conducting radiometric calibration.
+The panel coordinates of the dataset used here were obtained through a
+semi-automated approach, but `thermal` also provides the function
+`panel_function` to interactively derive surface coordinates from the `R`
+console.
+
+`thermal` also provides the `temperature` object as an example of surface
+temperature data do be used for radiometric calibration:
+
+```{r temperature}
+str(temperature)
+```
+
+The package does not provide functions to read temperature data given the
+diversity of formats in which such data may be provided. However, as long as
+the following guidelines are followed for formatting temperature data,
+downstream analyses should work seamlessly:
+
+* Data is provided as a list with as many elements as the number of reference
+  surfaces used.
+* The name of each list element should match the `"color"` column of the
+  objects containing surface coordinates.
+* Each list element should be a data.frame containing the columns `"time"`
+  (vector of class POSIXct in the same time zone as the timestamps of the
+  images) and `"temp"` for the temperature. Here, the temperature is provided
+  in degrees Celsius, but any temperature scale should work.
+
+Plotting the location of the panels on top of the thermal images is easy using
+functionality from the `sf` and `terra` packages:
+
+```{r plot-panels, fig.width = 8, fig.height = 6}
+library(terra)
+library(sf)
+
+# We can use identifiers to index the metadata because we have set row names
+terra::plot(terra::rast(tmeta_df["DJI_0671", "SourceFile"]))
+plot(panels[["DJI_0671"]], col = "transparent", border = c("black", "gray", "white"), lwd = 2, add = TRUE)
+```
+
+Although image resolution is low, we can see that the black and gray panels are
+warmer than the white one, as we would expect.
 
 # Rationale for radiometric calibration with `thermal`
 

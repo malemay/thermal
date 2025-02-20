@@ -2,21 +2,25 @@
 % Please edit documentation in R/calibration.R
 \name{join_thermal}
 \alias{join_thermal}
-\title{Join thermal values to panel temperatures}
+\title{Join thermal values to surface temperatures}
 \usage{
-join_thermal(metadata, polygons, ncores = 1)
+join_thermal(metadata, polygons, columns, ncores = 1)
 }
 \arguments{
-\item{metadata}{A data.frame with metadata on thermal pictures taken
-during a flight. The data.frames must have row names that correspond
-to names in the polygons list to link the two. Must also have columns
-named "black", "gray" and "white" with the temperatures of the respective
-panels at the moment when the pictures were taken.}
+\item{metadata}{A data.frame with metadata on thermal pictures taken during
+a flight. The data.frames must have row names that correspond to names in
+the polygons list to link the two. Must also have columns with the
+temperatures of reference surfaces panels (see the argument \code{columns})
+at the moment when the pictures were taken.}
 
-\item{polygons}{A list of sf polygons representing the location of black,
-gray and white panels. A "color" column should be used to identify each of
-the three polygons. Each element of the list must be named according to
-the row names of the metadata.}
+\item{polygons}{A list of sf polygons representing the location of reference
+surfaces. A "color" column should be used to identify each of the reference
+surfaces Each element of the list must be named according to the row names
+of the metadata.}
+
+\item{columns}{A character vector of columns in the metadata that represent
+names of reference surfaces which are found in the column "color" of the
+\code{polygons} argument.}
 
 \item{ncores}{An integer indicating the number of cores to use. Passed to
 \code{\link[parallel]{mclapply}}. Defaults to 1 (no parallel processing).}
@@ -24,16 +28,15 @@ the row names of the metadata.}
 \value{
 A list of data.frames suitable for plotting and modelling with one
 row per pixel and the following columns:
-ID: the color of the panel
+ID: the name of the reference surface
 thermal: the value of the pixel
 temp: the temperature of the pixel (fixed for a given panel color)
-Each element of the list returned is named after the ID of the panel, which
-also matches the row names of the metadata.
+Each element of the list returned is named after the ID of the picture,
+which also matches the row names of the metadata.
 }
 \description{
-This generates data.frames relating thermal pixel values to temperature
-data for the three reference panels for each row in a metadata input
-data.frame.
+This generates data.frames relating thermal pixel values to temperature data
+for the reference surfaces for each row in a metadata input data.frame.
 }
 \examples{
 NULL

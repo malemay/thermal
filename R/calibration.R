@@ -134,10 +134,8 @@ extract_temp <- function(metadata, temperature, tolerance = as.difftime(10, unit
 
 #' Add reference panel temperature readings to a metadata dataset
 #'
-#' This is a convenience function that is a wrapper around
-#' \code{\link{extract_temp}} when temperature values for three (black, gray, white)
-#' reference panels are available. It allows to automatically add columns with the
-#' temperature at given time points to the flight metadata.
+#' This is a convenience function that adds columns with the temperature of
+#' reference surfaces at given time points to the flight metadata.
 #'
 #' @param metadata A data.frame containing metadata on a set of thermal images,
 #' as returned by \code{\link{read_metadata}}. Must minimally contain a column
@@ -169,40 +167,42 @@ add_temp_metadata <- function(metadata, temperature_list, tolerance = as.difftim
 	metadata
 }
 
-#' Join thermal values to panel temperatures
+#' Join thermal values to surface temperatures
 #'
-#' This generates data.frames relating thermal pixel values to temperature
-#' data for the three reference panels for each row in a metadata input
-#' data.frame.
+#' This generates data.frames relating thermal pixel values to temperature data
+#' for the reference surfaces for each row in a metadata input data.frame.
 #'
-#' @param metadata A data.frame with metadata on thermal pictures taken
-#' during a flight. The data.frames must have row names that correspond
-#' to names in the polygons list to link the two. Must also have columns
-#' named "black", "gray" and "white" with the temperatures of the respective
-#' panels at the moment when the pictures were taken.
-#' @param polygons A list of sf polygons representing the location of black,
-#' gray and white panels. A "color" column should be used to identify each of
-#' the three polygons. Each element of the list must be named according to
-#' the row names of the metadata.
+#' @param metadata A data.frame with metadata on thermal pictures taken during
+#' a flight. The data.frames must have row names that correspond to names in
+#' the polygons list to link the two. Must also have columns with the
+#' temperatures of reference surfaces panels (see the argument \code{columns})
+#' at the moment when the pictures were taken.
+#' @param polygons A list of sf polygons representing the location of reference
+#' surfaces. A "color" column should be used to identify each of the reference
+#' surfaces Each element of the list must be named according to the row names
+#' of the metadata.
+#' @param columns A character vector of columns in the metadata that represent
+#' names of reference surfaces which are found in the column "color" of the
+#' \code{polygons} argument.
 #' @param ncores An integer indicating the number of cores to use. Passed to
 #' \code{\link[parallel]{mclapply}}. Defaults to 1 (no parallel processing).
 #'
 #' @return A list of data.frames suitable for plotting and modelling with one
 #' row per pixel and the following columns:
-#' ID: the color of the panel
+#' ID: the name of the reference surface
 #' thermal: the value of the pixel
 #' temp: the temperature of the pixel (fixed for a given panel color)
-#' Each element of the list returned is named after the ID of the panel, which
-#' also matches the row names of the metadata.
+#' Each element of the list returned is named after the ID of the picture,
+#' which also matches the row names of the metadata.
 #' 
 #' @export
 #' @examples
 #' NULL
-join_thermal <- function(metadata, polygons, ncores = 1) {
+join_thermal <- function(metadata, polygons, columns, ncores = 1) {
 
 	# Ensuring that the metadata contains temperature data
-	if(!all(c("black", "gray", "white") %in% colnames(metadata))) {
-		stop("metadata input must contain columns for panel temperature (black, gray, white).")
+	if(!all(columns %in% colnames(metadata))) {
+		stop("metadata input does not contain the columns ", paste(columns, collapse = " "))
 	}
 
 	# Also ensuring that all polygons correspond to rows in the metadata
@@ -211,7 +211,12 @@ join_thermal <- function(metadata, polygons, ncores = 1) {
 	}
 
 	# Extracting the values of the thermal pixels based on the polygons
-	output <- parallel::mclapply(names(polygons), function(i, polygons, mdata){
+	output <- parallel::mclapply(names(polygons), function(i, polygons, mdata, columns){
+					     # Checking that the colors of the polygons match the columns
+					     if(!all(polygons[[i]]$color %in% columns)) {
+						     stop("The 'color' column of the polygons must match the 'columns' arguments.")
+					     }
+
 					     # Extracting the values from the thermal raster and naming the column
 					     irast <- suppressWarnings(terra::rast(mdata[i, "SourceFile"]))
 					     pix_values <- terra::extract(irast, polygons[[i]])
@@ -219,14 +224,14 @@ join_thermal <- function(metadata, polygons, ncores = 1) {
 
 					     # Using the color as ID and using this ID to extract temperature values
 					     pix_values$ID <- polygons[[i]]$color[pix_values$ID]
-					     temp_lookup <- as.numeric(mdata[i, c("black", "gray", "white")])
-					     names(temp_lookup) <- c("black", "gray", "white")
-					     pix_values$temp <- temp_lookup[pix_values$ID]
+					     temperature_lookup <- as.numeric(mdata[i, columns])
+					     names(temperature_lookup) <- columns
+					     pix_values$temp <- temperature_lookup[pix_values$ID]
 
 					     # A sanity check before returning
 					     if(any(!stats::complete.cases(pix_values))) stop("NA values not allowed in temperature or thermal pixels")
 					     pix_values
-	     }, polygons = polygons, mdata = metadata, mc.cores = ncores)
+	     }, polygons = polygons, mdata = metadata, columns = columns, mc.cores = ncores)
 
 	# Naming the list elements after the polygon IDs
 	names(output) <- names(polygons)

@@ -200,7 +200,7 @@ representing the positions of the panels as these IDs will be used to associate
 the polygons with their image.
 
 ```{r join-thermal}
-pixel_data <- join_thermal(tmeta_df, panels)
+pixel_data <- join_thermal(tmeta_df, panels, columns = c("black", "gray", "white"))
 
 head(pixel_data)
 ```
@@ -310,7 +310,7 @@ rownames(corrected_df) <- substr(basename(corrected_df$SourceFile), 1, 8)
 corrected_df <- add_temp_metadata(corrected_df, temperature, tolerance = as.difftime(5, units = "secs"))
 
 corrected_df <- thermal_lm(metadata = corrected_df,
-			   pixel_values = join_thermal(corrected_df, panels),
+			   pixel_values = join_thermal(corrected_df, panels, columns = c("black", "gray", "white")),
 			   summary_functions = list(black = median, gray = median, white = median),
 			   use_panels = c("black", "gray", "white"))$metadata
 

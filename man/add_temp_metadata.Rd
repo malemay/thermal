@@ -31,10 +31,8 @@ columns containing the temperatures of each reference surface at the time
 points when each picture was taken.
 }
 \description{
-This is a convenience function that is a wrapper around
-\code{\link{extract_temp}} when temperature values for three (black, gray, white)
-reference panels are available. It allows to automatically add columns with the
-temperature at given time points to the flight metadata.
+This is a convenience function that adds columns with the temperature of
+reference surfaces at given time points to the flight metadata.
 }
 \examples{
 NULL

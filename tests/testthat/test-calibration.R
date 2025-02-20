@@ -9,7 +9,7 @@ test_that("Radiometric calibration works as expected", {
 		  tmeta <- add_temp_metadata(tmeta, temperature, tolerance = as.difftime(5, units = "secs"))
 
 		  # Joining the pixel and temperature data in a format that can easily be used for fitting models
-		  pixel_data <- join_thermal(tmeta, panels)
+		  pixel_data <- join_thermal(tmeta, panels, columns = c("black", "gray", "white"))
 
 		  # Computing the linear models of temperature as a function of digital numbers
 		  thermal_models <- thermal_lm(metadata = tmeta,

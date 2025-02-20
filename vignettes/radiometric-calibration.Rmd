@@ -142,8 +142,184 @@ warmer than the white one, as we would expect.
 
 # Rationale for radiometric calibration with `thermal`
 
+The `thermal` package performs radiometric calibration by assuming linear
+models to compute surface temperature from thermal DN. A method for computing
+suchs models from images and surface temperature measured by the dataloggers is
+therefore necessary.
+
+By default, the functions used to compute these linear models will summarize
+the pixels corresponding to a given panel to a single value representing the
+maximum density of the DN distribution. This summarized measure is less
+sensitive to pixels ouside the panels than would be the mean, for example.
+However, other functions can be provided to summarize (or not) the pixels
+corresponding to each panel.
+
+Using the default approach means that, in our case, linear models of
+temperature will be computed from three values, one for each of the panels. The
+parameters of the linear models can then be used for radiometric calibration.
+
 # Fitting linear models of temperature as a function of digital number
 
+From a practical standpoint, fitting linear models of surface temperature as
+a function of thermal DN involves the following steps for each picture:
+
+* Getting the temperature corresponding to each panel at the time when the
+  picture was taken.
+* Retrieving the values of the pixels corresponding to the panels.
+* Summarizing the pixels to a single value per panel.
+* Using the temperature and DN data to fit a linear model.
+
+Many of these steps occur under the hood, but it is important to understand the
+sequence of manipulations because `thermal` exposes functionality to manipulate
+some of these steps through the functions `add_temp_metadata`, `join_thermal`
+and `thermal_lm`.
+
+The function `add_temp_metadata` adds columns for the temperature of the
+reference surfaces to the data.frame of flight metadata. Using the flight
+metadata and surface temperature as input, it will create a new temperature
+column for each of the reference surfaces. The temperature values are queried
+such that they are the closest measurement in time to when each picture was
+taken. A user-controllable threshold that returns an error when no temperature
+measurement is close enough (default: 10 seconds) to a picture.
+
+```{r add-temp-metadata}
+# Will return an error if any picture was taken more than 5 seconds apart from the
+# closest temperature measurement
+tmeta_df <- add_temp_metadata(tmeta_df, temperature, tolerance = as.difftime(5, units = "secs"))
+
+str(tmeta_df)
+```
+
+As can be seen from the output above, three new columns have been added to the
+metadata, one for the temperature of each of the three panels.
+
+Next, the function `join_thermal` joins the data from the thermal images and
+temperature in preparation for fitting thermal models. This step requires the
+row names of the flight metadata to match the IDs of the spatial polygons
+representing the positions of the panels as these IDs will be used to associate
+the polygons with their image.
+
+```{r join-thermal}
+pixel_data <- join_thermal(tmeta_df, panels)
+
+head(pixel_data)
+```
+
+Once the pixels have been extracted from the images, linear models can be
+fitted for each image. A summary function has to be provided to reduce the
+pixels for a given panel to a single value. Typically, this function would be
+`max_density`, a function that determines where the density of the distribution
+is maximal. However, since the images that we use here have very low
+resolution, we will use the median instead such that the analysis works even
+with a single pixel. This summary function needs to be provided for each surface
+as the function allows for using different functions for summarizing the values
+of each panel.
+
+```{r thermal-lm}
+thermal_models <- thermal_lm(metadata = tmeta_df,
+                             pixel_values = pixel_data,
+                             summary_functions = list(black = median, gray = median, white = median),
+                             use_panels = c("black", "gray", "white"))
+```
+
+The value returned by `thermal_lm` is a list of two elements, the first of which is
+the flight metadata updated with the results of the linear models for each picture.
+Pictures for which no panels were in the frame display `NA` for linear model-related
+variables such as slope and intercept:
+
+```{r thermal-lm-metadata}
+tmeta_df <- thermal_models$metadata
+head(tmeta_df)
+```
+
+While all the necessary information for downstream analyses is embedded in that
+metadata, the second element of the list contains the models themselves as well
+as the pixel values that were used to fit them, for example for the first model:
+
+```{r thermal-model-output}
+thermal_models$models[[1]]
+```
+
 # Quality control
+
+At this stage, it may by worth assessing the results critically. We can use the
+function `plot_pixtemp` to have a look at the linear models and the temperature/DN
+values that they were fitted with. Black panel pixel values are shown in black,
+gray panel pixel values are shown in gray, and white panel pixel values are shown
+in blue. The red point show the summarized values (one per panel) that were
+used to fit the models.
+
+```{r plot-pixtemp, fig.width = 8, fig.height = 24}
+par(mfrow = c(9, 3))
+
+for(i in names(thermal_models$models)) {
+        plot_pixtemp(pixel_values = pixel_data[[i]], model = thermal_models$model[[i]])
+}
+```
+
+We can see that the models are a bit off for some of the images, which is to be
+expected given the low resolution of the images we are using. If we were to do
+any serious analysis using this data, it would be worth removing these pictures
+or finding out why their results are bad.
+
+It may also be worth looking at the shift in linear model parameters over time,
+which may be an indication of thermal drift occurring. We will look at the
+intercept, slope, and the predicted temperature for a relatively average DN of 3500.
+
+```{r lm-drift, fig.width = 6, fig.height = 8}
+par(mfrow = c(3, 1))
+
+# A plot of temperature linear model intercept over time
+plot(tmeta_df$DateTimeOriginal, tmeta_df$intercept, main = "Intercept", xlab = "Time", ylab = "Intercept")
+lines(tmeta_df$DateTimeOriginal, tmeta_df$intercept, lty = 2)
+
+# A plot of temperature linear model slope over time
+plot(tmeta_df$DateTimeOriginal, tmeta_df$slope, main = "Slope", xlab = "Time", ylab = "Slope")
+lines(tmeta_df$DateTimeOriginal, tmeta_df$slope, lty = 2)
+
+# A plot of temperature predicted from a DN of 3500 from models fitted at various time points
+tmeta_df$prediction <- thermal_predict(tmeta_df, dn_value = 3500)
+plot(tmeta_df$DateTimeOriginal, tmeta_df$prediction, main = "Prediction", xlab = "Time", ylab = "Temp. predicted when DN = 3500 (°C)")
+lines(tmeta_df$DateTimeOriginal, tmeta_df$prediction, lty = 2)
+```
+
+It is clear from the plot above that drift is occurring in the dataset. Indeed,
+the temperature predicted from a fixed DN value varies depending on the image
+that was used to fit the models, indicating instability in radiometric parameters.
+If we correct the images assuming a linear model of drift, the results are
+considerably improved, although not perfect:
+
+```{r, fig.width = 6, fig.height = 6}
+corrected_df <- read_metadata(thermal_files,
+                              camera_tz = "Etc/GMT+5",
+                              display_tz = "Etc/GMT+4",
+                              tags = "minimal")
+
+corrected_df <- correct_thermal(base_data = corrected_df,
+                                correction_type = "lm",
+                                output_dir = tempdir(),
+                                camera_tz = "Etc/GMT+5",
+                                display_tz = "Etc/GMT+4",
+                                tags = "minimal",
+                                nuc_threshold = 80,
+                                overwrite_dst = TRUE,
+                                verbose = FALSE)
+
+rownames(corrected_df) <- substr(basename(corrected_df$SourceFile), 1, 8)
+
+corrected_df <- add_temp_metadata(corrected_df, temperature, tolerance = as.difftime(5, units = "secs"))
+
+corrected_df <- thermal_lm(metadata = corrected_df,
+			   pixel_values = join_thermal(corrected_df, panels),
+			   summary_functions = list(black = median, gray = median, white = median),
+			   use_panels = c("black", "gray", "white"))$metadata
+
+# A plot of temperature predicted from a DN of 3500 from models fitted at various time points
+corrected_df$prediction <- thermal_predict(corrected_df, dn_value = 3500)
+plot(corrected_df$DateTimeOriginal, corrected_df$prediction, main = "Prediction", xlab = "Time", ylab = "Temp. predicted when DN = 3500 (°C)")
+lines(corrected_df$DateTimeOriginal, corrected_df$prediction, lty = 2)
+```
+
+Although far from perfect, the stability of the predictions is better in the corrected data
 
 # Radiometric calibration

@@ -97,10 +97,9 @@ plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
 #' @param metadata A data.frame containing metadata on a set of thermal images,
 #' as returned by \code{\link{read_metadata}}. Must minimally contain a column
 #' called "DateTimeOriginal" which indicates when the picture was taken.
-#' @param temperature A data.frame of panel temperature data, as returned by
-#' the function \code{\link{read_temp}}. Should contain a column called "time"
-#' to allow matching the time stamps of both datasets and a "temp" column for
-#' the temperature.
+#' @param temperature A data.frame of panel temperature data. Should contain a
+#' column called "time" to allow matching the time stamps of both datasets and
+#' a "temp" column for the temperature.
 #' @param tolerance A difftime object of length 1 indicating the maximum time
 #' difference acceptable between a picture and a temperature measurement to allow
 #' both values to be matched.
@@ -140,24 +139,29 @@ extract_temp <- function(metadata, temperature, tolerance = as.difftime(10, unit
 #' reference panels are available. It allows to automatically add columns with the
 #' temperature at given time points to the flight metadata.
 #'
-#' @inheritParams extract_temp
-#' @param temperature_list A named list of temperature data.frames. The names must
-#' be "black", "gray", and "white" and the corresponding data.frames contain temperature
-#' data on their respective panels.
+#' @param metadata A data.frame containing metadata on a set of thermal images,
+#' as returned by \code{\link{read_metadata}}. Must minimally contain a column
+#' called "DateTimeOriginal" which indicates when the picture was taken.
+#' @param temperature_list A named list of data.frames with reference surface
+#' temperature data. The names of the list will be added as columns to the
+#' output with their respective temperatures at each time. Each data.frame
+#' should contain a column called "time" to allow matching the time stamps of
+#' both datasets and a "temp" column for the temperature.
+#' @param tolerance A difftime object of length 1 indicating the maximum time
+#' difference acceptable between a picture and a temperature measurement to allow
+#' both values to be matched.
 #'
-#' @return A metadata data.frame similar to the input one, but with three
-#' added columns ("black", "gray", "white") with the temperatures of each
-#' of the panels at the time points when each picture was taken.
+#' @return A metadata data.frame similar to the input one, but with added
+#' columns containing the temperatures of each reference surface at the time
+#' points when each picture was taken.
 #'
 #' @export
 #' @examples
 #' NULL
 add_temp_metadata <- function(metadata, temperature_list, tolerance = as.difftime(10, units = "secs")) {
-	# Some sanity checks that are conditions for this function
-	stopifnot(length(temperature_list) == 3 && identical(sort(names(temperature_list)), c("black", "gray", "white")))
 
 	# Adding the temperature of each of the panels to the metadata
-	for(i in sort(names(temperature_list))) {
+	for(i in names(temperature_list)) {
 		metadata[[i]] <- extract_temp(metadata, temperature_list[[i]], tolerance = tolerance)
 	}
 

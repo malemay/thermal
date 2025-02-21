@@ -1,24 +1,30 @@
 #' Plot panel temperature data over a given time range
 #'
-#' A function used to simplify the plotting of temperature data for the three
-#' reference panels over a given time range. Since this function uses base R
-#' graphics functionality, further lines or points can be drawn on top of the
-#' graph produced by this one after the function returns.
+#' This function plots the temperature data of reference surfaces over a given
+#' time range. Since this function uses base R graphics functionality, further
+#' lines or points can be drawn on top of the graph produced by this one after
+#' the function returns.
 #'
-#' @param tempdata A list with three elements named "black", "gray" and "white"
-#' for each of the three panel colors. Each element is a data.frame of
-#' temperature data with columns "time" for the time stamps in POSIXct format
-#' and "temp" for the surface temperature.
-#' @param xrange A pair of dates identifying the minimum and maximum values used
-#' for the x-axis. If NULL, the whole input range is plotted.
+#' @param tempdata A list with a data.frame of temperature data for each of the
+#' reference surfaces. Each data.frame must contain the columns "time" for the
+#' time stamps in POSIXct format and "temp" for the surface temperature. The
+#' names of the list elements must correspond to the names of the reference
+#' surfaces.
+#' @param xrange A pair of dates identifying the minimum and maximum values
+#' used for the x-axis. If NULL, the whole input range is plotted.
 #' @param at A date object indicating the location of the x-axis labels.  If
 #' NULL, the default is used.
 #' @param main A character. The title of the plot.
 #' @param xlab A character string. The title of the x-axis.
 #' @param ylab A character string. The title of the y-axis.
-#' @param lcol A named ("black", "gray", "white") character vector indicating
-#' the colors to use for plotting the temperature values of each panel.
-#' @param ... Further graphical arguments passed to the drawing functions.
+#' @param lcol A named character vector indicating the colors to use for
+#' plotting the temperature values of each reference surface. If NULL (the
+#' default), then R's default integer colors are used.
+#' @param legend.pos A character keyword specifying the position of the legend
+#' in the plot. If NULL (default), then no legend is drawn. See
+#' \code{\link[graphics]{legend}} for accepted keyword values.
+#' @param lty The line type to use for plotting. Defaults to a solid line.
+#' @param ... Further graphical parameters passed to the drawing functions.
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting
 #' side-effect.
@@ -28,8 +34,7 @@
 #' NULL
 plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
 		      xlab = "Time", ylab = "Temperature (\u00b0C)",
-		      lcol = c(black = "black", gray = "gray", white = "blue"),
-		      ...) {
+		      lcol = NULL, legend.pos = NULL, lty = 1, ...) {
 	
 	# Subsetting the input data to the range of interest
 	if(!is.null(xrange)) {
@@ -49,16 +54,28 @@ plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
 	plot(1, type = "n", xlim = as.numeric(xlim), ylim = ylim,
 	     xlab = xlab, ylab = ylab, main = main,
 	     xaxt = "n", ...)
+
+	# Setting the colors for each reference surface if they are not provided
+	if(is.null(lcol)) {
+		lcol <- 1:length(tempdata)
+		names(lcol) <- names(tempdata)
+	} else {
+		stopifnot(length(tempdata) == length(lcol))
+		stopifnot(all(names(lcol) %in% names(tempdata)) && all(names(tempdata) %in% names(lcol)))
+	}
 	
 	# Adding lines for each of the panels
-	# By default the white panel is plotted in skyblue (this should be allowed to vary as a parameter)
-	for(i in c("black", "gray", "white")) graphics::lines(tempdata[[i]]$time, tempdata[[i]]$temp, col = lcol[i], ...)
+	for(i in names(tempdata)) graphics::lines(tempdata[[i]]$time, tempdata[[i]]$temp, col = lcol[i], lty = lty, ...)
 
 	# Adding an axis for the time
 	if(is.null(at)) {
 		graphics::axis.POSIXct(1, tempdata$black$time, ...)
 	} else {
 		graphics::axis.POSIXct(1, tempdata$black$time, at = at, ...)
+	}
+
+	if(!is.null(legend.pos)) {
+		graphics::legend(x = legend.pos, legend = names(tempdata), lty = lty, col = lcol[names(tempdata)])
 	}
 
 	invisible(NULL)

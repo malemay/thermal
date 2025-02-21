@@ -125,6 +125,16 @@ downstream analyses should work seamlessly:
   images) and `"temp"` for the temperature. Here, the temperature is provided
   in degrees Celsius, but any temperature scale should work.
 
+The function `plot_temp` is provided to the time series of temperature data.
+
+
+```{r plot-temp, fig.width = 8, fig.height = 6}
+plot_temp(temperature,
+          lcol = c("black" = "black", "gray" = "gray", "white" = "blue"),
+          legend.pos = "topright")
+```
+
+
 Plotting the location of the panels on top of the thermal images is easy using
 functionality from the `sf` and `terra` packages:
 

@@ -11,18 +11,21 @@ plot_temp(
   main = NULL,
   xlab = "Time",
   ylab = "Temperature (°C)",
-  lcol = c(black = "black", gray = "gray", white = "blue"),
+  lcol = NULL,
+  legend.pos = NULL,
+  lty = 1,
   ...
 )
 }
 \arguments{
-\item{tempdata}{A list with three elements named "black", "gray" and "white"
-for each of the three panel colors. Each element is a data.frame of
-temperature data with columns "time" for the time stamps in POSIXct format
-and "temp" for the surface temperature.}
+\item{tempdata}{A list with a data.frame of temperature data for each of the
+reference surfaces. Each data.frame must contain the columns "time" for the
+time stamps in POSIXct format and "temp" for the surface temperature. The
+names of the list elements must correspond to the names of the reference
+surfaces.}
 
-\item{xrange}{A pair of dates identifying the minimum and maximum values used
-for the x-axis. If NULL, the whole input range is plotted.}
+\item{xrange}{A pair of dates identifying the minimum and maximum values
+used for the x-axis. If NULL, the whole input range is plotted.}
 
 \item{at}{A date object indicating the location of the x-axis labels.  If
 NULL, the default is used.}
@@ -33,20 +36,27 @@ NULL, the default is used.}
 
 \item{ylab}{A character string. The title of the y-axis.}
 
-\item{lcol}{A named ("black", "gray", "white") character vector indicating
-the colors to use for plotting the temperature values of each panel.}
+\item{lcol}{A named character vector indicating the colors to use for
+plotting the temperature values of each reference surface. If NULL (the
+default), then R's default integer colors are used.}
 
-\item{...}{Further graphical arguments passed to the drawing functions.}
+\item{legend.pos}{A character keyword specifying the position of the legend
+in the plot. If NULL (default), then no legend is drawn. See
+\code{\link[graphics]{legend}} for accepted keyword values.}
+
+\item{lty}{The line type to use for plotting. Defaults to a solid line.}
+
+\item{...}{Further graphical parameters passed to the drawing functions.}
 }
 \value{
 NULL, invisibly. This function is invoked for its plotting
 side-effect.
 }
 \description{
-A function used to simplify the plotting of temperature data for the three
-reference panels over a given time range. Since this function uses base R
-graphics functionality, further lines or points can be drawn on top of the
-graph produced by this one after the function returns.
+This function plots the temperature data of reference surfaces over a given
+time range. Since this function uses base R graphics functionality, further
+lines or points can be drawn on top of the graph produced by this one after
+the function returns.
 }
 \examples{
 NULL

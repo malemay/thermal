@@ -18,7 +18,8 @@ plot_temp(
 \arguments{
 \item{tempdata}{A list with three elements named "black", "gray" and "white"
 for each of the three panel colors. Each element is a data.frame of
-temperature data as read with \code{\link{read_temp}}.}
+temperature data with columns "time" for the time stamps in POSIXct format
+and "temp" for the surface temperature.}
 
 \item{xrange}{A pair of dates identifying the minimum and maximum values used
 for the x-axis. If NULL, the whole input range is plotted.}

@@ -1,28 +1,3 @@
-#' Load panel temperature data
-#'
-#' At the moment, this function is specific to output produced by a CR1000X
-#' data logger in a very specific format. Support for other data formats
-#' could be added upon request. Otherwise, temperature data simply needs
-#' to be provided as a data.frame with "time" and "temp" columns.
-#'
-#' @param filename A character, the name of the file.
-#' @param tz A character which can be interpreted as a valid timezone.
-#' Must be supplied such that the proper time zone is used when matching
-#' the temperature data and images.
-#'
-#' @return A data.frame of temperature values with the time column set
-#'         to the proper data type.
-#'
-#' @export
-#' @examples
-#' NULL
-read_temp <- function(filename, tz) {
-	tempdata <- utils::read.table(filename, sep = ",", skip = 4, na.strings = c("NA", "NAN"))
-	colnames(tempdata) <- c("time", "record", "battery", "devtemp", "temp")
-	tempdata$time <- as.POSIXct(tempdata$time, format = "%Y-%m-%d %H:%M:%S", tz = tz)
-	tempdata
-}
-
 #' Plot panel temperature data over a given time range
 #'
 #' A function used to simplify the plotting of temperature data for the three
@@ -32,7 +7,8 @@ read_temp <- function(filename, tz) {
 #'
 #' @param tempdata A list with three elements named "black", "gray" and "white"
 #' for each of the three panel colors. Each element is a data.frame of
-#' temperature data as read with \code{\link{read_temp}}.
+#' temperature data with columns "time" for the time stamps in POSIXct format
+#' and "temp" for the surface temperature.
 #' @param xrange A pair of dates identifying the minimum and maximum values used
 #' for the x-axis. If NULL, the whole input range is plotted.
 #' @param at A date object indicating the location of the x-axis labels.  If

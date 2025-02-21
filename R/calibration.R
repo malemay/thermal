@@ -194,7 +194,7 @@ join_thermal <- function(metadata, polygons, columns, ncores = 1) {
 					     }
 
 					     # Extracting the values from the thermal raster and naming the column
-					     irast <- suppressWarnings(terra::rast(mdata[i, "SourceFile"]))
+					     irast <- suppressWarnings(terra::rast(mdata[i, "SourceFile"], noflip = TRUE))
 					     pix_values <- terra::extract(irast, polygons[[i]])
 					     names(pix_values)[2] <- "thermal"
 

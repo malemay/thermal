@@ -499,8 +499,8 @@ compute_overlaps <- function(metadata, theta_guess = TRUE,
 		if(theta_guess) theta1 <- -(metadata[i, "GimbalYawDegree"] - metadata[i - 1, "GimbalYawDegree"])
 
 		# Filling the tparams list with the parameter estimates
-		tparams[[i - 1]] <- optimize_transform(x = terra::rast(metadata[i - 1, "SourceFile"]),
-						       y = terra::rast(metadata[i, "SourceFile"]),
+		tparams[[i - 1]] <- optimize_transform(x = terra::rast(metadata[i - 1, "SourceFile"], noflip = TRUE),
+						       y = terra::rast(metadata[i, "SourceFile"], noflip = TRUE),
 						       theta1 = theta1, theta_range = theta_range, theta_length = theta_length,
 						       htrans1 = htrans1, htrans_range = htrans_range, htrans_length = htrans_length,
 						       vtrans1 = vtrans1, vtrans_range = vtrans_range, vtrans_length = vtrans_length,

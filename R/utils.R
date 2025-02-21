@@ -13,7 +13,9 @@ thermal_mean <- function(metadata, ncores = 1) {
 	stopifnot("SourceFile" %in% names(metadata))
 
 	# Computing the means in parallel
-	output <- parallel::mclapply(metadata$SourceFile, function(x) terra::global(suppressWarnings(terra::rast(x)), mean)$mean,
+	output <- parallel::mclapply(metadata$SourceFile, function(x) {
+					     terra::global(suppressWarnings(terra::rast(x, noflip = TRUE)), mean)$mean
+                                     },
 				     mc.cores = ncores)
 	
 	unlist(output)
@@ -34,12 +36,12 @@ compute_vignetting <- function(metadata) {
 	stopifnot("SourceFile" %in% names(metadata))
 	filenames <- metadata$SourceFile
 
-	output <- suppressWarnings(terra::rast(filenames[1]))
+	output <- suppressWarnings(terra::rast(filenames[1], noflip = TRUE))
 
 	if(length(filenames) == 1) return(output)
 
 	for(i in 2:length(filenames)) {
-		output <- output + suppressWarnings(terra::rast(filenames[i]))
+		output <- output + suppressWarnings(terra::rast(filenames[i], noflip = TRUE))
 	}
 
 	output / length(filenames)

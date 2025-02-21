@@ -23,7 +23,7 @@ Imports:
     RColorBrewer,
     Rcpp,
     sf,
-    terra (>= 1.8.5)
+    terra (>= 1.8.26)
 Suggests: 
     knitr,
     rmarkdown,

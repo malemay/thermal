@@ -33,7 +33,7 @@ for(i in tmeta$SourceFile[c(TRUE, FALSE, FALSE)]) {
 	message("Processing image ", i)
 
 	# Aggregating the original raster and adjusting its extent so that it matches the resolution
-	i_rast <- aggregate(rast(i), fact = thermal_agg_fact)
+	i_rast <- aggregate(rast(i, noflip = TRUE), fact = thermal_agg_fact)
 	ext(i_rast) <- c(0, ncol(i_rast), 0, nrow(i_rast))
 
 	# Writing the aggregated raster to file and copying the original EXIF tags to it

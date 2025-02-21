@@ -238,7 +238,7 @@ join_thermal <- function(metadata, polygons, columns, ncores = 1) {
 	return(output)
 }
 
-#' Create a linear model of temperature as a function of thermal digital numbers
+#' Create linear models of temperature as a function of thermal digital numbers
 #'
 #' This function creates thermal models for each dataset of temperature and
 #' thermal digital numbers provided. This may be a subset of the provided
@@ -254,13 +254,13 @@ join_thermal <- function(metadata, polygons, columns, ncores = 1) {
 #' @param pixel_values A list of data.frames linking thermal pixel values to
 #' temperature, as returned by \code{\link{join_thermal}}. The names of the
 #' elements in this list must correspond to the row names of the metadata input.
-#' @param summary_functions A named (black, gray, white) list with functions
-#' used to summarize the values for each given panel color. The functions should
-#' return a single value from an input vector with multiple values. Defaults
-#' to the value at which the density of the pixel distribution is maximized.
-#' @param use_panels A character vector with the names of the panels to use for
-#' computing linear models. By default, all panels are used but this parameter
-#' may be used to remove one of the panels.
+#' @param summary_functions A named list with functions used to summarize the
+#' values for each given reference surface. The names of the list elements
+#' should correspond to the IDs of the reference surfaces. The functions should
+#' return a single value from an input vector with multiple values.
+#' @param surfaces A character vector with the names of the reference
+#' surfaces to use for computing linear models. Not all available surfaces
+#' may be used if any should be excluded from computation.
 #'
 #' @return A list of two elements, the first one containing the metadata
 #' updated with critical model information (the pixel values used to fit
@@ -272,18 +272,20 @@ join_thermal <- function(metadata, polygons, columns, ncores = 1) {
 #' @export
 #' @examples
 #' NULL
-thermal_lm <- function(metadata,
-		       pixel_values,
-		       summary_functions = list(black = max_density, gray = max_density, white = max_density),
-		       use_panels = c("black", "gray", "white")) {
+thermal_lm <- function(metadata, pixel_values, summary_functions, surfaces) {
 
 	# We check that all pixel_values names are in the metadata
 	if(!all(names(pixel_values) %in% rownames(metadata))) {
 		stop("The names of pixel_values must match row names in metadata.")
 	}
 
+	# Checking that all the names of the surfaces to use are in the summary_functions list
+	if(!all(surfaces %in% names(summary_functions))) {
+		stop("You need to provide a summary function for each reference surface.")
+	}
+
 	# Computing model data and the model itself for all elements in pixel_values
-	models <- lapply(names(pixel_values), function(i, pixels){
+	models <- lapply(names(pixel_values), function(i, pixels) {
 
 				 # Extracting the pixels for this picture
 				 i_pixels <- pixels[[i]]
@@ -295,7 +297,7 @@ thermal_lm <- function(metadata,
 
 				 rownames(model_data) <- model_data$ID
 
-				 # Looping over the three panel colors
+				 # Looping over the reference surfaces
 				 for(i in rownames(model_data)) {
 					 # Summarizing the pixel values based on the provided functions
 					 model_data[i, "pixel"] <- summary_functions[[i]](i_pixels[i_pixels$ID == i, "thermal"])
@@ -303,8 +305,8 @@ thermal_lm <- function(metadata,
 					 model_data[i, "temp"] <- i_temp
 				 }
 
-				 # Keeping only the panels that we do want to use
-				 model_data <- model_data[rownames(model_data) %in% use_panels, ]
+				 # Keeping only the surfaces that we do want to use
+				 model_data <- model_data[rownames(model_data) %in% surfaces, ]
 
 				 # Computing the linear model based on this data
 				 model <- stats::lm(temp ~ pixel, data = model_data)
@@ -317,17 +319,13 @@ thermal_lm <- function(metadata,
 	names(models) <- names(pixel_values)
 
 	# Updating the metadata with the model data and model parameters
-	metadata$blackpix <- NA
-	metadata$graypix <- NA
-	metadata$whitepix <- NA
+	for(i in surfaces) metadata[[paste0(i, "pix")]] <- NA
 	metadata$intercept <- NA
 	metadata$slope <- NA
 
 	# Filling in the values only for the metadata rows for which we have panels
 	for(i in names(models)) {
-		if("black" %in% use_panels) metadata[i, "blackpix"] <- models[[i]]$data["black", "pixel"]
-		if("gray" %in% use_panels) metadata[i, "graypix"] <- models[[i]]$data["gray", "pixel"]
-		if("white" %in% use_panels) metadata[i, "whitepix"] <- models[[i]]$data["white", "pixel"]
+		for(j in surfaces) metadata[i, paste0(j, "pix")] <- models[[i]]$data[j, "pixel"]
 		metadata[i, "intercept"] <- stats::coef(models[[i]]$model)[1]
 		metadata[i, "slope"] <- stats::coef(models[[i]]$model)[2]
 	}

@@ -219,7 +219,7 @@ of each panel.
 thermal_models <- thermal_lm(metadata = tmeta_df,
                              pixel_values = pixel_data,
                              summary_functions = list(black = median, gray = median, white = median),
-                             use_panels = c("black", "gray", "white"))
+                             surfaces = c("black", "gray", "white"))
 ```
 
 The value returned by `thermal_lm` is a list of two elements, the first of which is
@@ -312,7 +312,7 @@ corrected_df <- add_temp_metadata(corrected_df, temperature, tolerance = as.diff
 corrected_df <- thermal_lm(metadata = corrected_df,
 			   pixel_values = join_thermal(corrected_df, panels, columns = c("black", "gray", "white")),
 			   summary_functions = list(black = median, gray = median, white = median),
-			   use_panels = c("black", "gray", "white"))$metadata
+			   surfaces = c("black", "gray", "white"))$metadata
 
 # A plot of temperature predicted from a DN of 3500 from models fitted at various time points
 corrected_df$prediction <- thermal_predict(corrected_df, dn_value = 3500)

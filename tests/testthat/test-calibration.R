@@ -15,7 +15,7 @@ test_that("Radiometric calibration works as expected", {
 		  thermal_models <- thermal_lm(metadata = tmeta,
 					       pixel_values = pixel_data,
 					       summary_functions = list(black = median, gray = median, white = median),
-					       use_panels = c("black", "gray", "white"))
+					       surfaces = c("black", "gray", "white"))
 
 		  # Generating the prediction from the models
 		  thermal_models$metadata$prediction <- thermal_predict(thermal_models$metadata, dn = 3500)

@@ -2,14 +2,9 @@
 % Please edit documentation in R/calibration.R
 \name{thermal_lm}
 \alias{thermal_lm}
-\title{Create a linear model of temperature as a function of thermal digital numbers}
+\title{Create linear models of temperature as a function of thermal digital numbers}
 \usage{
-thermal_lm(
-  metadata,
-  pixel_values,
-  summary_functions = list(black = max_density, gray = max_density, white = max_density),
-  use_panels = c("black", "gray", "white")
-)
+thermal_lm(metadata, pixel_values, summary_functions, surfaces)
 }
 \arguments{
 \item{metadata}{A data.frame of metadata on a given flight, such
@@ -20,14 +15,14 @@ must correspond to the names of the elements in pixel_values.}
 temperature, as returned by \code{\link{join_thermal}}. The names of the
 elements in this list must correspond to the row names of the metadata input.}
 
-\item{summary_functions}{A named (black, gray, white) list with functions
-used to summarize the values for each given panel color. The functions should
-return a single value from an input vector with multiple values. Defaults
-to the value at which the density of the pixel distribution is maximized.}
+\item{summary_functions}{A named list with functions used to summarize the
+values for each given reference surface. The names of the list elements
+should correspond to the IDs of the reference surfaces. The functions should
+return a single value from an input vector with multiple values.}
 
-\item{use_panels}{A character vector with the names of the panels to use for
-computing linear models. By default, all panels are used but this parameter
-may be used to remove one of the panels.}
+\item{surfaces}{A character vector with the names of the reference
+surfaces to use for computing linear models. Not all available surfaces
+may be used if any should be excluded from computation.}
 }
 \value{
 A list of two elements, the first one containing the metadata

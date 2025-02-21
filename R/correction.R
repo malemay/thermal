@@ -280,80 +280,6 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 	invisible(dst_files)
 }
 
-#' Correct the effect of vignetting in a thermal picture dataset
-#'
-#' @param metadata A data.frame of metadata on a set of thermal pictures.
-#' @param output_dir The directory to which the output images should be written.
-#' The function will not allow source files to be overwritten, thus the output
-#' directory should be different from the one containing the source data. The directory
-#' will be created if it does not already exist.
-#' @param method A character. The method to use for drift correction. At the moment
-#' only "overall" is supported.
-#' @param overwrite_dst A logical. Whether the destination files should be overwritten if they already exist.
-#' @param ncores An integer. The number of cores to use for parallel processing.
-#' @param verbose A logical. Whether the function should output information on its progress (default = TRUE).
-#' @inheritParams transfer_exif
-#'
-#' @return A character vector of the files that were written to disk, invisibly.
-#' @noRd
-correct_vignetting <- function(metadata, output_dir, method = "overall", overwrite_dst = FALSE, tags = NULL,
-			       ncores = 1, verbose = TRUE) {
-
-	# Some sanity checks
-	stopifnot("SourceFile" %in% names(metadata))
-
-	# Should also check that we are not going to overwrite the original files
-	src_files <- metadata$SourceFile
-	dst_files <- file.path(output_dir, sub("\\..*$", ".tiff", basename(src_files)))
-	if(any(file.exists(dst_files)) && any(normalizePath(dst_files) %in% normalizePath(src_files))) stop("correct_vignetting does not allow overwriting source files")
-
-	# Also extracting the directory part and the extension for later use in transfer_exif
-	src_dir <- unique(dirname(src_files))
-	src_ext <- paste0(".", unique(tools::file_ext(src_files)))
-
-	stopifnot(length(src_dir) == 1 && length(src_ext) == 1)
-
-	# Also checking whether we are going to overwrite destination files
-	if(!overwrite_dst && any(file.exists(dst_files))) stop("Overwriting destination files not allowed with overwrite_dst = FALSE")
-
-	# Overall method adjusts the mean value of images based on the global vignetting pattern
-	if(method == "overall") {
-
-		# We compute the vignetting adjustment as the difference between the pattern of each pixel and the overall mean
-		vignetting_pattern <- compute_vignetting(metadata)
-		vignetting_adjustment <- terra::global(vignetting_pattern, mean)$mean -  vignetting_pattern
-
-		# Looping from the first to the last picture in the dataset
-		parallel::mclapply(1:length(src_files), FUN = function(i, src_files, dst_files, verbose, vignetting_adjustment, overwrite_dst) {
-					   src <- src_files[i]
-					   dst <- dst_files[i]
-
-					   if(verbose) message("Processing index ", i)
-
-					   raw_image <- suppressWarnings(terra::rast(src))
-					   processed_image <- raw_image + vignetting_adjustment
-
-					   terra::writeRaster(processed_image,
-							      filename = dst,
-							      datatype = "INT2U",
-							      overwrite = overwrite_dst)
-			     },
-			     src_files = src_files,
-			     dst_files = dst_files,
-			     verbose = verbose,
-			     vignetting_adjustment = vignetting_adjustment,
-			     overwrite_dst = overwrite_dst,
-			     mc.cores = ncores)
-
-	} else {
-		stop("Only method = 'overall' is supported at the moment.")
-	}
-
-	transfer_exif(src_dir, src_ext, output_dir, tags = tags, verbose = verbose)
-
-	invisible(dst_files)
-}
-
 #' Correct thermal drift in thermal infrared data
 #'
 #' From a metadata data.frame, such as returned by \code{\link{read_metadata}}
@@ -364,8 +290,8 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 #' @param base_data A metadata data.frame of the pictures to correct, such as
 #' returned by \code{\link{read_metadata}}.
 #' @param correction_type A character. The type of correction to apply to the
-#' images. At the moment, the values "overall", "overlap", "lm", "spline", and
-#' "vignetting_overall" are supported.
+#' images. At the moment, the values "overall", "overlap", "lm", and "spline"
+#' are supported.
 #' @param output_dir A character. The directory to which the corrected images
 #' should be output. The directory will be created if it does not already
 #' exist.
@@ -461,13 +387,6 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 						 tags = tags,
 						 verbose = verbose)
 
-	} else if(correction_type == "vignetting_overall") {
-
-		# Vignetting is computed and corrected on the fly
-		corrected_files <- correct_vignetting(base_data, output_dir, method = "overall",
-						      overwrite_dst = overwrite_dst,
-						      tags = tags,
-						      ncores = ncores, verbose = verbose)
 	} else {
 		stop("Unsupported correction type ", correction_type)
 	}

@@ -25,8 +25,8 @@ correct_thermal(
 returned by \code{\link{read_metadata}}.}
 
 \item{correction_type}{A character. The type of correction to apply to the
-images. At the moment, the values "overall", "overlap", "lm", "spline", and
-"vignetting_overall" are supported.}
+images. At the moment, the values "overall", "overlap", "lm", and "spline"
+are supported.}
 
 \item{output_dir}{A character. The directory to which the corrected images
 should be output. The directory will be created if it does not already

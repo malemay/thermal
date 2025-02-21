@@ -2,7 +2,7 @@
 % Please edit documentation in R/correction.R
 \name{correct_thermal}
 \alias{correct_thermal}
-\title{Correct thermal data and fit linear models of temperature}
+\title{Correct thermal drift in thermal infrared data}
 \usage{
 correct_thermal(
   base_data,
@@ -12,38 +12,32 @@ correct_thermal(
   display_tz,
   tags = NULL,
   tparams = NULL,
-  panels = NULL,
-  temperature = NULL,
-  use_panels = NULL,
   midpoint = NULL,
   nuc_threshold = NULL,
   spline_spar = NULL,
   overwrite_dst = FALSE,
-  rownames_tolerance = 1.5,
   verbose = TRUE,
   ncores = 1
 )
 }
 \arguments{
-\item{base_data}{A metadata data.frame of the pictures to correct,
-such as returned by \code{\link{read_metadata}}. Must have row names
-corresponding to names of list elements in panels if thermal models
-are to be fitted.}
+\item{base_data}{A metadata data.frame of the pictures to correct, such as
+returned by \code{\link{read_metadata}}.}
 
-\item{correction_type}{A chracter. The type of correction to apply to
-the images. At the moment, the values "overall", "overlap", "lm", "spline",
-and "vignetting_overall" are supported.}
+\item{correction_type}{A character. The type of correction to apply to the
+images. At the moment, the values "overall", "overlap", "lm", "spline", and
+"vignetting_overall" are supported.}
 
-\item{output_dir}{A character. The directory to which the corrected
-images should be output. The directory will be created if it does not
-already exist.}
+\item{output_dir}{A character. The directory to which the corrected images
+should be output. The directory will be created if it does not already
+exist.}
 
 \item{camera_tz}{A character that can be interpreted as a valid timezone.
 This is the timezone of the original pictures taken by the camera.}
 
 \item{display_tz}{A character that can be interpreted as a valid timezone.
-This is the timezone that will be used for the output metadata, and therefore
-the timezone that the user intends to use for downstream analyses.}
+This is the timezone that will be used for the output metadata, and
+therefore the timezone that the user intends to use for downstream analyses.}
 
 \item{tags}{A character vector of tags to read from the metadata or a single
 character string that identifies a set of vectors. This is also the set of
@@ -58,21 +52,9 @@ Alternatively, if \code{\link{compute_overlaps}} was used, then the
 transform parameters are already in the metadata and do not need to be
 specified here.}
 
-\item{panels}{A list of sf polygons containing the coordinates of
-reference (black, gray and white) thermal panels in the images taken
-during the flight. The names of the list must correspond to row names
-in the input data such that proper matching can be done. If NULL,
-then thermal linear models will not be fitted.}
-
-\item{temperature}{A list of three data.frames with the temperature
-data for each of the panels, such as returned by \code{\link{read_temp}}.}
-
-\item{use_panels}{A character vector with the names of the panels to
-use for fitting the linear models. See \code{\link{thermal_lm}}.}
-
-\item{midpoint}{The index of the image in metadata to use as a reference
-for adjusting the mean of the thermal pictures if drift correction is
-performed. If NULL (the default), then  the median image is used.}
+\item{midpoint}{The index of the image in metadata to use as a reference for
+adjusting the mean of the thermal pictures if drift correction is performed.
+If NULL (the default), then the median image is used.}
 
 \item{nuc_threshold}{The threshold to use for detecting non-uniformity
 correction events when correction_type is "lm" or "spline.}
@@ -82,14 +64,8 @@ as a smoothing parameter when model_type = "spline". If NULL, (the default),
 then the smoothing parameter will be algorithmically determined. See
 \code{\link[stats]{smooth.spline}} for more details.}
 
-\item{overwrite_dst}{A logical. Whether overwriting destination files
+\item{overwrite_dst}{A logical value. Whether overwriting destination files
 (the corrected images) should be allowed.}
-
-\item{rownames_tolerance}{A numeric interpreted as the difference
-(in seconds) that is allowed between the timestamps of the original
-and corrected pictures for the row names to be transferred between
-them. Mostly used as a safety measure to prevent bad transfers of
-row names.}
 
 \item{verbose}{A logical. Whether the function should output information
 on its progres.}
@@ -102,17 +78,10 @@ A data.frame of metadata describing the corrected pictures and
 (optionally) thermal linear models fit using those pictures.
 }
 \description{
-This function is a convenient wrapper for much of the functions
-provided by the thermal package. From a metadata data.frame,
-such as returned by \code{\link{read_metadata}} and other thermal
-flight related data, it performs thermal drift or vignetting
-correction in response to user-supplied parameters and returns
-a data.frame of metadata on the corrected pictures. Optionally,
-thermal models can also be fitted using the corrected data if
-panel coordinates are supplied.
-}
-\details{
-More details on correction methods should be added here.
+From a metadata data.frame, such as returned by \code{\link{read_metadata}}
+and other thermal flight related data, it performs thermal drift correction
+in response to user-supplied parameters and returns a data.frame of metadata
+on the corrected pictures.
 }
 \examples{
 NULL

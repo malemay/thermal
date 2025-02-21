@@ -354,34 +354,26 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 	invisible(dst_files)
 }
 
-#' Correct thermal data and fit linear models of temperature
+#' Correct thermal drift in thermal infrared data
 #'
-#' This function is a convenient wrapper for much of the functions
-#' provided by the thermal package. From a metadata data.frame,
-#' such as returned by \code{\link{read_metadata}} and other thermal
-#' flight related data, it performs thermal drift or vignetting
-#' correction in response to user-supplied parameters and returns
-#' a data.frame of metadata on the corrected pictures. Optionally,
-#' thermal models can also be fitted using the corrected data if
-#' panel coordinates are supplied.
+#' From a metadata data.frame, such as returned by \code{\link{read_metadata}}
+#' and other thermal flight related data, it performs thermal drift correction
+#' in response to user-supplied parameters and returns a data.frame of metadata
+#' on the corrected pictures.
 #'
-#' More details on correction methods should be added here.
-#'
-#' @param base_data A metadata data.frame of the pictures to correct,
-#' such as returned by \code{\link{read_metadata}}. Must have row names
-#' corresponding to names of list elements in panels if thermal models
-#' are to be fitted.
-#' @param correction_type A chracter. The type of correction to apply to
-#' the images. At the moment, the values "overall", "overlap", "lm", "spline",
-#' and "vignetting_overall" are supported.
-#' @param output_dir A character. The directory to which the corrected
-#' images should be output. The directory will be created if it does not
-#' already exist.
+#' @param base_data A metadata data.frame of the pictures to correct, such as
+#' returned by \code{\link{read_metadata}}.
+#' @param correction_type A character. The type of correction to apply to the
+#' images. At the moment, the values "overall", "overlap", "lm", "spline", and
+#' "vignetting_overall" are supported.
+#' @param output_dir A character. The directory to which the corrected images
+#' should be output. The directory will be created if it does not already
+#' exist.
 #' @param camera_tz A character that can be interpreted as a valid timezone.
 #' This is the timezone of the original pictures taken by the camera.
 #' @param display_tz A character that can be interpreted as a valid timezone.
-#' This is the timezone that will be used for the output metadata, and therefore
-#' the timezone that the user intends to use for downstream analyses.
+#' This is the timezone that will be used for the output metadata, and
+#' therefore the timezone that the user intends to use for downstream analyses.
 #' @param tags A character vector of tags to read from the metadata or a single
 #' character string that identifies a set of vectors. This is also the set of
 #' tags that wil be transferred to the corrected files. See
@@ -393,31 +385,17 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 #' Alternatively, if \code{\link{compute_overlaps}} was used, then the
 #' transform parameters are already in the metadata and do not need to be
 #' specified here.
-#' @param panels A list of sf polygons containing the coordinates of
-#' reference (black, gray and white) thermal panels in the images taken
-#' during the flight. The names of the list must correspond to row names
-#' in the input data such that proper matching can be done. If NULL,
-#' then thermal linear models will not be fitted.
-#' @param temperature A list of three data.frames with the temperature
-#' data for each of the panels, such as returned by \code{\link{read_temp}}.
-#' @param use_panels A character vector with the names of the panels to
-#' use for fitting the linear models. See \code{\link{thermal_lm}}.
-#' @param midpoint The index of the image in metadata to use as a reference
-#' for adjusting the mean of the thermal pictures if drift correction is
-#' performed. If NULL (the default), then  the median image is used.
+#' @param midpoint The index of the image in metadata to use as a reference for
+#' adjusting the mean of the thermal pictures if drift correction is performed.
+#' If NULL (the default), then the median image is used.
 #' @param nuc_threshold The threshold to use for detecting non-uniformity
 #' correction events when correction_type is "lm" or "spline.
 #' @param spline_spar A numeric value, typically in the range (0, 1], used
 #' as a smoothing parameter when model_type = "spline". If NULL, (the default),
 #' then the smoothing parameter will be algorithmically determined. See
 #' \code{\link[stats]{smooth.spline}} for more details.
-#' @param overwrite_dst A logical. Whether overwriting destination files
+#' @param overwrite_dst A logical value. Whether overwriting destination files
 #' (the corrected images) should be allowed.
-#' @param rownames_tolerance A numeric interpreted as the difference
-#' (in seconds) that is allowed between the timestamps of the original
-#' and corrected pictures for the row names to be transferred between
-#' them. Mostly used as a safety measure to prevent bad transfers of
-#' row names.
 #' @param verbose A logical. Whether the function should output information
 #' on its progres.
 #' @param ncores An single integer value specifying the number of cores
@@ -430,12 +408,10 @@ correct_vignetting <- function(metadata, output_dir, method = "overall", overwri
 #' @examples
 #' NULL
 correct_thermal <- function(base_data, correction_type, output_dir,
-			    camera_tz, display_tz, tags = NULL,
-			    tparams = NULL, panels = NULL,
-			    temperature = NULL, use_panels = NULL,
+			    camera_tz, display_tz,
+			    tags = NULL, tparams = NULL,
 			    midpoint = NULL, nuc_threshold = NULL,
-			    spline_spar = NULL,
-			    overwrite_dst = FALSE, rownames_tolerance = 1.5,
+			    spline_spar = NULL, overwrite_dst = FALSE,
 			    verbose = TRUE, ncores = 1) {
 
 	# base_data must be a data.frame of preprocessed metadata
@@ -498,20 +474,6 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 
 	# Now we need to re-read the metadata from the files we just created
 	corrected_meta <- read_metadata(corrected_files, camera_tz = camera_tz, display_tz = display_tz, tags = tags)
-
-	# Compute the thermal models if panels are provided
-	if(!is.null(panels)) {
-		corrected_meta <- add_temp_metadata(metadata = corrected_meta,
-						    temperature_list = temperature,
-						    tolerance = as.difftime(10, units = "secs"))
-
-		# Transferring the rownames of the original data to the corrected data
-		stopifnot(all.equal(base_data$DateTimeOriginal, corrected_meta$DateTimeOriginal, tolerance = rownames_tolerance))
-		rownames(corrected_meta) <- rownames(base_data)
-
-		pixels <- join_thermal(corrected_meta, panels, ncores = ncores)
-		corrected_meta <- thermal_lm(corrected_meta, pixels, use_panels = use_panels)$metadata
-	}
 
 	corrected_meta
 }

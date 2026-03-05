@@ -16,6 +16,8 @@
 #' string are: "default" (set of tags that may be interesting or useful),
 #' "minimal" (minimal set of tags needed for downstream analyses). If NULL (the default),
 #' then all tags are extracted.
+#' @param sort_output A logical value indicating whether the output should be sorted
+#' according to time stamps. Defaults to TRUE.
 #'
 #' @return A data.frame with the metadata for each file.
 #'
@@ -27,7 +29,7 @@
 #' # Reading the metadata ; we want to process the metadata in a different timezone
 #' # as the camera was set to winter time but data was acquired under the summer time
 #' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
-read_metadata <- function(files, camera_tz, display_tz = NULL, tags = NULL) {
+read_metadata <- function(files, camera_tz, display_tz = NULL, tags = NULL, sort_output = TRUE) {
 
 	# Determining which EXIF tags to extract from the file
 	if(!is.null(tags)) {
@@ -64,7 +66,7 @@ read_metadata <- function(files, camera_tz, display_tz = NULL, tags = NULL) {
 	stopifnot(all(abs(difftime(output$CreateDate, output$DateTimeOriginal, units = "secs")) <= 2))
 
 	# Sorting according to the moment when the picture was taken
-	output <- output[order(output$DateTimeOriginal), ]
+	if(sort_output) output <- output[order(output$DateTimeOriginal), ]
 
 	as.data.frame(output)
 }

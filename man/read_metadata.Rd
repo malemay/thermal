@@ -4,7 +4,13 @@
 \alias{read_metadata}
 \title{Read image metadata}
 \usage{
-read_metadata(files, camera_tz, display_tz = NULL, tags = NULL)
+read_metadata(
+  files,
+  camera_tz,
+  display_tz = NULL,
+  tags = NULL,
+  sort_output = TRUE
+)
 }
 \arguments{
 \item{files}{a character vector of files for which exif metadata
@@ -24,6 +30,9 @@ string denoting a set of tags to extract. Supported values for single
 string are: "default" (set of tags that may be interesting or useful),
 "minimal" (minimal set of tags needed for downstream analyses). If NULL (the default),
 then all tags are extracted.}
+
+\item{sort_output}{A logical value indicating whether the output should be sorted
+according to time stamps. Defaults to TRUE.}
 }
 \value{
 A data.frame with the metadata for each file.

@@ -28,16 +28,16 @@ by a camera into actual surface temperature readings.
 # Dataset
 
 The dataset used here is based on the same flight as the vignette on thermal
-drift correction, which we advised to read first. In brief, this dataset
+drift correction, which we advise to read first. In brief, this dataset
 comprises 30 TIR images taken around noon on September 1, 2023.
 
 Of particular importance for this vignette is that three reference sufaces were
 placed in the study area for the purposes of radiometric calibration. Those
-surfaces were aluminum panels painted with three different colors (black, gray
-and white) to allow for for differences in the temperature reached by the
-panels through solar radiation. The temperature of the panels was monitored by
-thermocouples plugged into CR1000X dataloggers that recorded temperature every
-five seconds. This allowed surface temperature as detected by the camera to be
+surfaces are aluminum panels painted with three different colors (black, gray
+and white) to allow for differences in panel temperature through absorbed solar
+radiation. The temperature of the panels was monitored by type T thermocouples
+plugged into CR1000X dataloggers that recorded temperature every five seconds.
+This allowed thermal infrared radiation as detected by the camera to be
 directly linked to high-quality temperature measurements which we will use for
 radiometric calibration.
 
@@ -62,19 +62,19 @@ tmeta_df <- read_metadata(thermal_files,
                           display_tz = "Etc/GMT+4",
                           tags = "minimal")
 
-# Proviving IDs for each picture as row names
+# Providing IDs for each picture as row names
 rownames(tmeta_df) <- substr(basename(tmeta_df$SourceFile), 1, 8)
 
 head(tmeta_df)
 ```
 
 For the sake of radiometric calibration, we also provided row names to the
-metadata that we will used as IDs to uniquely identify individual pictures.
+metadata that we will use as IDs to uniquely identify individual pictures.
 
 # Formatting data for radiometric calibration
 
-Radiometric calibration of TIR images require two additional sources of data in
-addition to the images themselves:
+Radiometric calibration of TIR images requires two additional sources of data
+in addition to the images themselves:
 
 * Spatial location of the reference surfaces in the image(s)
 * Time series of temperature for each of the reference surfaces
@@ -125,7 +125,8 @@ downstream analyses should work seamlessly:
   images) and `"temp"` for the temperature. Here, the temperature is provided
   in degrees Celsius, but any temperature scale should work.
 
-The function `plot_temp` is provided to the time series of temperature data.
+The function `plot_temp` is provided to display the time series of temperature
+data.
 
 
 ```{r plot-temp, fig.width = 8, fig.height = 6}
@@ -154,7 +155,7 @@ warmer than the white one, as we would expect.
 
 The `thermal` package performs radiometric calibration by assuming linear
 models to compute surface temperature from thermal DN. A method for computing
-suchs models from images and surface temperature measured by the dataloggers is
+such models from images and surface temperature measured by the dataloggers is
 therefore necessary.
 
 By default, the functions used to compute these linear models will summarize
@@ -189,7 +190,7 @@ reference surfaces to the data.frame of flight metadata. Using the flight
 metadata and surface temperature as input, it will create a new temperature
 column for each of the reference surfaces. The temperature values are queried
 such that they are the closest measurement in time to when each picture was
-taken. A user-controllable threshold that returns an error when no temperature
+taken. A user-controllable threshold returns an error when no temperature
 measurement is close enough (default: 10 seconds) to a picture.
 
 ```{r add-temp-metadata}

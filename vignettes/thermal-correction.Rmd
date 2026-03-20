@@ -40,7 +40,7 @@ that appears to be the best for their use case.
 # Test dataset
 
 As part of this vignette, we will use a set of 30 TIR images taken around noon
-on September 9, 2023. The UAV flew over a jack pine (*Pinus banksiana*) forest
+on September 1, 2023. The UAV flew over a jack pine (*Pinus banksiana*) forest
 but the area surveyed also includes a gravel/sand road and a parked pick-up
 truck. Three aluminum panels painted with different colors (black, gray and
 white) were also included to provide reference surfaces whose temperature was
@@ -571,7 +571,7 @@ str(tmeta_df)
 The `corr` column is not necessary for image correction but it provides a
 useful diagnostic for the quality of the overlap parameters. It corresponds to
 the correlation between the values of two successive images when applying the
-optimized transformation. The histrogram below shows the distribution of
+optimized transformation. The histogram below shows the distribution of
 correlation values of all coordinate transformations for our test flight. The
 quality of the transformation parameters is rather good as most values are > 0.8.
 

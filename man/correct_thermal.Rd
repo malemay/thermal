@@ -5,7 +5,7 @@
 \title{Correct thermal drift in thermal infrared data}
 \usage{
 correct_thermal(
-  base_data,
+  metadata,
   correction_type,
   output_dir,
   camera_tz,
@@ -21,7 +21,7 @@ correct_thermal(
 )
 }
 \arguments{
-\item{base_data}{A metadata data.frame of the pictures to correct, such as
+\item{metadata}{A metadata data.frame of the pictures to correct, such as
 returned by \code{\link{read_metadata}}.}
 
 \item{correction_type}{A character. The type of correction to apply to the
@@ -49,7 +49,8 @@ tags that wil be transferred to the corrected files. See
 details. Only needs to be specified for methods based on overlap correction.
 Alternatively, if \code{\link{compute_overlaps}} was used, then the
 transform parameters are already in the metadata and do not need to be
-specified here.}
+specified here. If tparams is specified, it will override any parameters
+already included in the input metadata.}
 
 \item{midpoint}{The index of the image in metadata to use as a reference for
 adjusting the mean of the thermal pictures if drift correction is performed.
@@ -58,23 +59,22 @@ If NULL (the default), then the median image is used.}
 \item{nuc_threshold}{The threshold to use for detecting non-uniformity
 correction events when correction_type is "lm" or "spline.}
 
-\item{spline_spar}{A numeric value, typically in the range (0, 1], used
-as a smoothing parameter when model_type = "spline". If NULL, (the default),
-then the smoothing parameter will be algorithmically determined. See
+\item{spline_spar}{A numeric value, typically in the range (0, 1], used as a
+smoothing parameter when model_type = "spline". If NULL, (the default), then
+the smoothing parameter will be algorithmically determined. See
 \code{\link[stats]{smooth.spline}} for more details.}
 
 \item{overwrite_dst}{A logical value. Whether overwriting destination files
 (the corrected images) should be allowed.}
 
-\item{verbose}{A logical. Whether the function should output information
-on its progres.}
+\item{verbose}{A logical. Whether the function should output information on
+its progress.}
 
-\item{ncores}{An single integer value specifying the number of cores
-to use for specific parts of the workflow. Defaults to 1 (no multithreading).}
+\item{ncores}{An single integer value specifying the number of cores to use
+for specific parts of the workflow. Defaults to 1 (no multithreading).}
 }
 \value{
-A data.frame of metadata describing the corrected pictures and
-(optionally) thermal linear models fit using those pictures.
+A data.frame of metadata describing the corrected images.
 }
 \description{
 From a metadata data.frame, such as returned by \code{\link{read_metadata}}

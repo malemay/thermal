@@ -2,13 +2,14 @@
 #'
 #' @param x A raster whose coordinates are to be transformed.
 #' @param theta A numeric. A rotation parameter (in degrees) for the transform.
-#' @param htrans A numeric. A horizontal translation parameter for the transform.
+#' @param htrans A numeric. A horizontal translation parameter for the
+#' transform.
 #' @param vtrans A numeric. A vertical translation parameter for the transform.
-#' @param reverse A logical. Whether the transformation should be reversed relative
-#' to the input parameters.
+#' @param reverse A logical. Whether the transformation should be reversed
+#' relative to the input parameters.
 #'
-#' @return An sf polygon that gives the coordinates of the raster in the transformed
-#' coordinate system.
+#' @return An sf polygon that gives the coordinates of the corners of the
+#' raster in the transformed coordinate system.
 #' @noRd
 get_corners <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 	corner_coords <- matrix(c(terra::xmin(x), terra::ymax(x),
@@ -30,24 +31,28 @@ get_corners <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 
 #' Compute the difference between the mean of the thermal regions in overlapping images
 #'
-#' The transformation parameters (theta, htrans, and vtrans) apply to the transformation
-#' from y to x.
+#' The transformation parameters (theta, htrans, and vtrans) apply to the
+#' transformation from y to x.
 #'
-#' @param x,y Two rasters that overlap each other with known transformation parameters
-#' from raster y to raster x.
+#' @param x,y Two rasters that overlap each other with known transformation
+#' parameters from raster y to raster x.
 #' @param theta A numeric. A rotation parameter (in degrees) for the transform.
-#' @param htrans A numeric. A horizontal translation parameter for the transform.
+#' @param htrans A numeric. A horizontal translation parameter for the
+#' transform.
 #' @param vtrans A numeric. A vertical translation parameter for the transform.
 #'
-#' @return The difference of the mean of raster y to that of raster x in their shared extent.
+#' @return A numeric value. The difference of the mean of raster y to that of
+#' raster x in their shared extent.
 #' @noRd
 get_diff <- function(x, y, theta, htrans, vtrans) {
 
+	# Polygon of the extent of raster y in the coordinate system of x
 	x_corners <- get_corners(x = y,
 				 theta = theta,
 				 htrans = htrans,
 				 vtrans = vtrans)
 
+	# Polygon of the extent of raster x in the coordinate system of y
 	y_corners <- get_corners(x = x,
 				 theta = theta,
 				 htrans = htrans,
@@ -63,19 +68,29 @@ get_diff <- function(x, y, theta, htrans, vtrans) {
 
 #' Compute difference in thermal values for all thermal pictures in a dataset
 #'
-#' @param metadata A data.frame of metadata on a set of thermal pictures, including
-#' transformation parameters (theta, htrans, vtrans).
-#' @param ncores An integer. The number of processes to launch (passed to \code{\link[parallel]{mclapply}})
-#' @param verbose A logical. Whether the function should output information on its progress.
+#' This is the difference in mean thermal values in the region of overlap
+#' between the two pictures.
 #'
-#' @return A numeric vector of the same length as the number of rows in the input
-#' data.frame. The first value will be NA because the first picture has no previous
-#' picture.
+#' @param metadata A data.frame of metadata on a set of thermal pictures,
+#' including transformation parameters (theta, htrans, vtrans).
+#' @param ncores An integer. The number of processes to launch (passed to
+#' \code{\link[parallel]{mclapply}})
+#' @param verbose A logical. Whether the function should output information on
+#' its progress.
+#'
+#' @return A numeric vector of the same length as the number of rows in the
+#' input data.frame. The first value will be NA because the first picture has
+#' no previous picture.
 #' @noRd
 compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 	# Sanity checks
 	if(! all(c("theta", "htrans", "vtrans") %in% names(metadata))) {
 		stop("Metadata columns must include transformation parameters theta, htrans and vtrans.")
+	}
+
+	# Checking that the input data is sorted by time stamp
+	if(! "DateTimeOriginal" %in% colnames(metadata) || is.unsorted(metadata$DateTimeOriginal)) {
+		stop("metadata must be sorted by time stamp DateTimeOriginal to use overlap correction")
 	}
 
 	# Using mclapply to compute the differences in parallel using multiple cores
@@ -106,11 +121,11 @@ compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 #' contain the "DateTimeOriginal" and "mean" columns.
 #' @param nuc_threshold A numeric. The threshold to use for grouping data
 #' points according to their non-uniformity correction settings.
-#' @param model_type The type of statistical model to use for fitting the
-#' time series, one of "lm" or "spline".
-#' @param spline_spar A numeric value, typically in the range (0, 1], used
-#' as a smoothing parameter when model_type = "spline". If NULL, (the default),
-#' then the smoothing parameter will be algorithmically determined. See
+#' @param model_type The type of statistical model to use for fitting the time
+#' series, one of "lm" or "spline".
+#' @param spline_spar A numeric value, typically in the range (0, 1], used as a
+#' smoothing parameter when model_type = "spline". If NULL, (the default), then
+#' the smoothing parameter will be algorithmically determined. See
 #' \code{\link[stats]{smooth.spline}} for more details.
 #'
 #' @return A list of spline and/or linear models, with one for each set of NUC
@@ -123,6 +138,11 @@ fit_model <- function(x, nuc_threshold, model_type = c("lm", "spline"), spline_s
 
 	# Checking that the required columns are supplied
 	stopifnot(all(c("DateTimeOriginal", "mean") %in% names(x)))
+
+	# Checking that the input data is sorted by time stamp
+	if(! "DateTimeOriginal" %in% colnames(x) || is.unsorted(x$DateTimeOriginal)) {
+		stop("metadata must be sorted by time stamp DateTimeOriginal to fit statistical drift model")
+	}
 
 	# A warning for users trying to set spline_spar in lm models
 	if(model_type != "spline" && !is.null(spline_spar)) warning("spline_spar value ignored, only relevant when using the 'spline' method")
@@ -155,33 +175,37 @@ fit_model <- function(x, nuc_threshold, model_type = c("lm", "spline"), spline_s
 
 #' Correct thermal drift in a set of pictures
 #'
-#' By default this function will output files to the specified directory
-#' and replace the file extension by ".tiff".
+#' By default, this function will output files to the specified directory and
+#' replace the file extension by ".tiff". It is not meant to be called directly
+#' by the user but is instead called by correct_thermal which does data
+#' preprocessing.
 #'
-#' More details on the correction methods to be added later.
-#'
-#' @param metadata A data.frame of metadata on a set of thermal pictures, sorted
-#' according to the time when the picture was taken ("DateTimeOriginal" column).
-#' @param output_dir The directory to which the output images should be written.
-#' The function will not allow source files to be overwritten, thus the output
-#' directory should be different from the one containing the source data. The directory
-#' will be created if it does not already exist.
-#' @param method A character. The method to use for drift correction. At the moment
-#' "overlap", "overall", "lm" and "spline" are supported.
-#' @param midpoint An integer. The index to start the correction from. Image values
-#' will be adjusted to match the image at that index. If NULL (the default), then
-#' the middle of the range is used.
+#' @param metadata A data.frame of metadata on a set of thermal pictures,
+#' sorted according to the time when the picture was taken ("DateTimeOriginal"
+#' column).
+#' @param output_dir The directory to which the output images should be
+#' written. The function will not allow source files to be overwritten, thus
+#' the output directory should be different from the one containing the source
+#' data. The directory will be created if it does not already exist.
+#' @param method A character. The method to use for drift correction. At the
+#' moment "overlap", "overall", "lm", and "spline" are supported.
+#' @param midpoint An integer. The index to start the correction from. Image
+#' values will be adjusted to match the image at that index. If NULL (the
+#' default), then the middle of the range is used.
 #' @param nuc_threshold The difference between the mean of successive pictures
 #' above which non-uniformity correction is presumed to have occurred. Only
 #' needs to be provided for methods "lm" and "spline". If these methods are
 #' chosen and nuc_threshold is NULL, it will be set to 50 with a warning.
-#' @param spline_spar A numeric value, typically in the range (0, 1], used
-#' as a smoothing parameter when model_type = "spline". If NULL, (the default),
-#' then the smoothing parameter will be algorithmically determined. See
+#' @param spline_spar A numeric value, typically in the range (0, 1], used as a
+#' smoothing parameter when model_type = "spline". If NULL, (the default), then
+#' the smoothing parameter will be algorithmically determined. See
 #' \code{\link[stats]{smooth.spline}} for more details.
-#' @param overwrite_dst A logical. Whether the destination files should be overwritten if they already exist.
-#' @param ncores An integer. The number of cores to use for parallel processing.
-#' @param verbose A logical. Whether the function should output information on its progress (default = TRUE).
+#' @param overwrite_dst A logical. Whether the destination files should be
+#' overwritten if they already exist.
+#' @param ncores An integer. The number of cores to use for parallel
+#' processing.
+#' @param verbose A logical. Whether the function should output information on
+#' its progress (default = TRUE).
 #' @inheritParams transfer_exif
 #'
 #' @return A character vector of the files that were written to disk, invisibly.
@@ -207,7 +231,9 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 	if(!overwrite_dst && any(file.exists(dst_files))) stop("Overwriting destination files not allowed with overwrite_dst = FALSE")
 
 	# Checking that all files are in increasing time order
-	stopifnot(!is.unsorted(metadata$DateTimeOriginal))
+	if(is.unsorted(metadata$DateTimeOriginal)) {
+		stop("metadata must be sorted by time stamp DateTimeOriginal to correct drift")
+	}
 
 	# Setting the midpoint if it is not already set
 	if(is.null(midpoint)) midpoint <- floor(length(src_files) / 2)
@@ -287,7 +313,7 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 #' in response to user-supplied parameters and returns a data.frame of metadata
 #' on the corrected pictures.
 #'
-#' @param base_data A metadata data.frame of the pictures to correct, such as
+#' @param metadata A metadata data.frame of the pictures to correct, such as
 #' returned by \code{\link{read_metadata}}.
 #' @param correction_type A character. The type of correction to apply to the
 #' images. At the moment, the values "overall", "overlap", "lm", and "spline"
@@ -309,39 +335,39 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 #' details. Only needs to be specified for methods based on overlap correction.
 #' Alternatively, if \code{\link{compute_overlaps}} was used, then the
 #' transform parameters are already in the metadata and do not need to be
-#' specified here.
+#' specified here. If tparams is specified, it will override any parameters
+#' already included in the input metadata.
 #' @param midpoint The index of the image in metadata to use as a reference for
 #' adjusting the mean of the thermal pictures if drift correction is performed.
 #' If NULL (the default), then the median image is used.
 #' @param nuc_threshold The threshold to use for detecting non-uniformity
 #' correction events when correction_type is "lm" or "spline.
-#' @param spline_spar A numeric value, typically in the range (0, 1], used
-#' as a smoothing parameter when model_type = "spline". If NULL, (the default),
-#' then the smoothing parameter will be algorithmically determined. See
+#' @param spline_spar A numeric value, typically in the range (0, 1], used as a
+#' smoothing parameter when model_type = "spline". If NULL, (the default), then
+#' the smoothing parameter will be algorithmically determined. See
 #' \code{\link[stats]{smooth.spline}} for more details.
 #' @param overwrite_dst A logical value. Whether overwriting destination files
 #' (the corrected images) should be allowed.
-#' @param verbose A logical. Whether the function should output information
-#' on its progres.
-#' @param ncores An single integer value specifying the number of cores
-#' to use for specific parts of the workflow. Defaults to 1 (no multithreading).
+#' @param verbose A logical. Whether the function should output information on
+#' its progress.
+#' @param ncores An single integer value specifying the number of cores to use
+#' for specific parts of the workflow. Defaults to 1 (no multithreading).
 #'
-#' @return A data.frame of metadata describing the corrected pictures and
-#' (optionally) thermal linear models fit using those pictures.
+#' @return A data.frame of metadata describing the corrected images.
 #'
 #' @export
 #' @examples
 #' NULL
-correct_thermal <- function(base_data, correction_type, output_dir,
+correct_thermal <- function(metadata, correction_type, output_dir,
 			    camera_tz, display_tz,
 			    tags = NULL, tparams = NULL,
 			    midpoint = NULL, nuc_threshold = NULL,
 			    spline_spar = NULL, overwrite_dst = FALSE,
 			    verbose = TRUE, ncores = 1) {
 
-	# base_data must be a data.frame of preprocessed metadata
+	# metadata must be a data.frame of preprocessed metadata
 	# it is the metadata on the source files to be used for correction
-	stopifnot(is.data.frame(base_data))
+	stopifnot(is.data.frame(metadata))
 
 	# Creating the output directory
 	if(!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
@@ -350,41 +376,39 @@ correct_thermal <- function(base_data, correction_type, output_dir,
 	if(correction_type %in% c("overall", "lm", "spline")) {
 
 		# For these methods we need to pre-compute the mean of each image in the dataset
-		base_data$mean <- thermal_mean(base_data, ncores = ncores)
+		metadata$mean <- thermal_mean(metadata, ncores = ncores)
 
 		# We then run the corretion routine, which returns the names of the modified files
-		corrected_files <- correct_drift(metadata = base_data, output_dir = output_dir,
+		corrected_files <- correct_drift(metadata = metadata, output_dir = output_dir,
 						 method = correction_type, midpoint = midpoint,
 						 overwrite_dst = overwrite_dst, ncores = ncores,
 						 nuc_threshold = nuc_threshold, spline_spar = spline_spar,
-						 tags = tags,
-						 verbose = verbose)
+						 tags = tags, verbose = verbose)
 
 	} else if(correction_type == "overlap") {
 		# We add the transformation parameters to the data.frame if necessary
 		if(!is.null(tparams)) {
-			if(!all(c("theta", "htrans", "vtrans") %in% colnames(base_data))) {
-				base_data <- add_tparams(base_data, tparams)
-			} else {
-				warning("transform parameters 'theta', 'htrans' and 'vtrans' already provided in input metadata; ignoring tparams argument")
+			if(any(c("theta", "htrans", "vtrans") %in% colnames(metadata))) {
+				warning("transform parameters 'theta', 'htrans' and 'vtrans' already provided in input metadata; overriding them with tparams argument")
 			}
+
+			metadata <- add_tparams(metadata, tparams)
 		}
 
 		# At this stage we absolutely need to have the transform parameters
-		if(!all(c("theta", "htrans", "vtrans") %in% colnames(base_data))) {
+		if(!all(c("theta", "htrans", "vtrans") %in% colnames(metadata))) {
 			stop("transform parameters 'theta', 'htrans' and 'vtrans' need to be provided for overlap correction")
 		}
 
 		# We compute the differences based on coordinate transform parameters
-		base_data$diff <- compute_diffs(base_data, ncores = ncores, verbose = verbose)
+		metadata$diff <- compute_diffs(metadata, ncores = ncores, verbose = verbose)
 
 		# We then run the correction routine, which returns the names of the modified files
-		corrected_files <- correct_drift(metadata = base_data, output_dir = output_dir,
+		corrected_files <- correct_drift(metadata = metadata, output_dir = output_dir,
 						 method = "overlap", midpoint = midpoint,
 						 overwrite_dst = overwrite_dst, ncores = ncores,
 						 nuc_threshold = nuc_threshold,
-						 tags = tags,
-						 verbose = verbose)
+						 tags = tags, verbose = verbose)
 
 	} else {
 		stop("Unsupported correction type ", correction_type)

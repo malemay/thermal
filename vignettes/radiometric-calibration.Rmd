@@ -306,7 +306,7 @@ corrected_df <- read_metadata(thermal_files,
                               display_tz = "Etc/GMT+4",
                               tags = "minimal")
 
-corrected_df <- correct_thermal(base_data = corrected_df,
+corrected_df <- correct_thermal(metadata = corrected_df,
                                 correction_type = "lm",
                                 output_dir = tempdir(),
                                 camera_tz = "Etc/GMT+5",

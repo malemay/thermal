@@ -298,7 +298,7 @@ tmpdir <- tempdir()
 # Running correct_thermal on the test data
 # Time zone arguments need to be provided again because EXIF tags are
 # transferred unmodified from the source files to the corrected files
-overall_tmeta <- correct_thermal(base_data = tmeta_df,
+overall_tmeta <- correct_thermal(metadata = tmeta_df,
                                  correction_type = "overall",
                                  output_dir = tmpdir,
                                  camera_tz = "Etc/GMT+5",
@@ -388,7 +388,7 @@ and can simply provide the `correction_type = "lm"` argument to
 `correct_thermal`.
 
 ```{r lm-correction}
-lm_tmeta <- correct_thermal(base_data = tmeta_df,
+lm_tmeta <- correct_thermal(metadata = tmeta_df,
                             correction_type = "lm",
                             output_dir = tmpdir,
                             camera_tz = "Etc/GMT+5",
@@ -437,7 +437,7 @@ Applying this correction method using `correct_thermal` is fairly easy using
 the `correction_type = "spline"` argument:
 
 ```{r spline-correction}
-spline_tmeta <- correct_thermal(base_data = tmeta_df,
+spline_tmeta <- correct_thermal(metadata = tmeta_df,
                                 correction_type = "spline",
                                 spline_spar = 0.5,
                                 output_dir = tmpdir,
@@ -613,7 +613,7 @@ successive images. Adjustment factors will then be computed based on the
 difference between the mean of the images in the region where they overlap.
 
 ```{r overlap-correction}
-overlap_tmeta <- correct_thermal(base_data = tmeta_df,
+overlap_tmeta <- correct_thermal(metadata = tmeta_df,
                                  correction_type = "overlap",
                                  output_dir = tmpdir,
                                  camera_tz = "Etc/GMT+5",

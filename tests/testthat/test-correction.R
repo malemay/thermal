@@ -6,7 +6,7 @@ test_that("overall mean correction works as expected", {
 
 		  overall_tmpdir <- withr::local_tempdir(pattern = "overall_test")
 
-		  overall_tmeta <- correct_thermal(base_data = tmeta,
+		  overall_tmeta <- correct_thermal(metadata = tmeta,
 						   correction_type = "overall",
 						   output_dir = overall_tmpdir,
 						   camera_tz = "Etc/GMT+5",
@@ -26,7 +26,7 @@ test_that("Linear model correction works as expected", {
 
 		  lm_tmpdir <- withr::local_tempdir(pattern = "lm_test")
 
-		  lm_tmeta <- correct_thermal(base_data = tmeta,
+		  lm_tmeta <- correct_thermal(metadata = tmeta,
 					      correction_type = "lm",
 					      output_dir = lm_tmpdir,
 					      camera_tz = "Etc/GMT+5",
@@ -47,7 +47,7 @@ test_that("Spline correction works as expected", {
 
 		  spline_tmpdir <- withr::local_tempdir(pattern = "spline_test")
 
-		  spline_tmeta <- correct_thermal(base_data = tmeta,
+		  spline_tmeta <- correct_thermal(metadata = tmeta,
 						  correction_type = "spline",
 						  output_dir = spline_tmpdir,
 						  camera_tz = "Etc/GMT+5",
@@ -77,7 +77,7 @@ test_that("Overlap correction works as expected", {
 		  # Performing the overlap correction
 		  overlap_tmpdir <- withr::local_tempdir(pattern = "overlap_test")
 
-		  overlap_tmeta <- correct_thermal(base_data = tmeta,
+		  overlap_tmeta <- correct_thermal(metadata = tmeta,
 						   correction_type = "overlap",
 						   output_dir = overlap_tmpdir,
 						   camera_tz = "Etc/GMT+5",

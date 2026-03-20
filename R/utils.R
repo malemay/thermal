@@ -77,6 +77,11 @@ add_tparams <- function(metadata, tparams) {
 	# Adding a column for the correlation between the images under the optimal parameters
 	params$corr <- sapply(tparams, function(x) -x$optim$value)
 
+	# If any of the parameters were already in the metadata then they are overriden
+	for(i in c("theta", "htrans", "vtrans")) {
+		if(i %in% colnames(metadata)) metadata[[i]] <- NULL
+	}
+
 	# Appending the parameters to the input metadata
 	metadata <- cbind(metadata, rbind(NA, params))
 

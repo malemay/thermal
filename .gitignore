@@ -4,3 +4,5 @@ todo.txt
 inst/doc
 *.rds
 *.swp
+/doc/
+/Meta/

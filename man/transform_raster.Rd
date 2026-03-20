@@ -9,19 +9,21 @@ transform_raster(x, theta, htrans, vtrans, reverse = FALSE)
 \arguments{
 \item{x}{A raster whose values will be rotated}
 
-\item{theta}{A numeric. The number of degrees to rotate the raster
-values, counterclockwise.}
+\item{theta}{A numeric. The number of degrees to rotate the raster values,
+counterclockwise.}
 
 \item{htrans}{A numeric. The translation along the x-axis.}
 
 \item{vtrans}{A numeric. The translation along the y-axis.}
 
-\item{reverse}{A logical. Whether the transformation (translation and rotation)
-should be inversed relative to the input parameters. If TRUE, then the inverse
-of the transformation matrix is used instead of the matrix itself.}
+\item{reverse}{A logical. Whether the transformation (translation and
+rotation) should be inversed relative to the input parameters. If TRUE, then
+the inverse of the transformation matrix is used instead of the matrix
+itself.}
 }
 \value{
-A raster similar to the input one, but whose values have been rotated.
+A raster similar to the input one, but whose values have been
+rotated.
 }
 \description{
 Transform a raster by rotation and translation

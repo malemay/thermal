@@ -20,7 +20,7 @@ computing the mean of thermal images, if not pre-computed.}
 }
 \value{
 The metadata including the mean column that was possibly added,
-invisibly. This function is mmainly invoked for its plotting side-effect.
+invisibly. This function is mainly invoked for its plotting side-effect.
 }
 \description{
 This function plots the mean value of thermal images taken during a flight

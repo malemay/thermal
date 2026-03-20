@@ -58,35 +58,35 @@ theta1.}
 
 \item{vtrans_length}{Similar to theta_length for the vtrans parameter.}
 
-\item{min_overlap}{A numeric value of length one. The minimum number of values
-that must be compared between two rasters for the correlation to be considered
-valid. Otherwise, a correlation of 0 is returned.}
+\item{min_overlap}{A numeric value of length one. The minimum number of
+values that must be compared between two rasters for the correlation to be
+considered valid. Otherwise, a correlation of 0 is returned.}
 
 \item{fact}{A numeric. The factor to use to reduce the resolution of the
 rasters to speed up the brute-force search for the best parameters.
 Defaults to 1 (no aggregation is performed).}
 
-\item{cores}{The number of cores to use for parallel computing. Defaults to 1.}
+\item{cores}{The number of cores to use for parallel computing. Defaults to
+1.}
 
-\item{min_cor}{A numeric. The minimum correlation that must be obtained
-from initial guesses to go on with optim.}
+\item{min_cor}{A numeric. The minimum correlation that must be obtained from
+initial guesses to go on with refining the estimates using optim.}
 
-\item{maxiter}{An integer. The maximum number of brute-force iterations of
-to go through. The number of parameter combinations tested increases by 8
-times for each iteration, so this number should be kept low otherwise
-computation time will become extremely long.}
+\item{maxiter}{An integer. The maximum number of brute-force iterations to
+go through. The number of parameter combinations tested increases by 8 times
+for each iteration, so this number should be kept low otherwise computation
+time will become extremely long.}
 
 \item{method}{A character. The method to use for optimization, passed to optim.}
 
 \item{reltol}{A numeric. The relative tolerance for convergence in optim.}
 
-\item{verbose}{A logical value. If TRUE, progress on the iterations
-in the search for parameters will be output to the console.}
+\item{verbose}{A logical value. If TRUE, progress on the iterations in the
+search for parameters will be output to the console.}
 
 \item{trace}{A numeric value passed to optim to determine the level of
-output verbosity. By default, it is set to the same value as verbose
-(1 if TRUE and 0 if FALSE), but this parameter allows to control it
-separately.}
+output verbosity. By default, it is set to the same value as verbose (1 if
+TRUE and 0 if FALSE), but this parameter allows to control it separately.}
 }
 \value{
 A metadata data.frame similar to the input one, but with added

@@ -7,13 +7,13 @@
 check_transform(x, y, params, reverse = TRUE, interactive = FALSE, n = 10)
 }
 \arguments{
-\item{x, y}{Two rast objects whose transform is to be verified.}
+\item{x, y}{Two rast objects whose transformation is to be verified.}
 
 \item{params}{A list of optimized parameters, as output by
 \code{\link{optimize_transform}}.}
 
 \item{reverse}{A logical. Whether the transformation (translation and
-rotation) should be inversed relative to the input parameters. If TRUE, then
+rotation) should be reversed relative to the input parameters. If TRUE, then
 the inverse of the transformation matrix is used instead of the matrix
 itself. This is TRUE by default because transformation parameters internally
 describe the transformation from one image to the previous one, but the
@@ -27,16 +27,17 @@ interactively?}
 Defaults to 10.}
 }
 \value{
-NULL, invisibly. This function is invoked for its plotting side-effect.
+NULL, invisibly. This function is invoked for its plotting
+side-effect.
 }
 \description{
 This function accepts two rasters and transformation parameters between the
-two, and generates a plot showing the correspondence between features in both
-rasters. It supports interactive analysis by clicking on a raster whose
+two, and generates a plot showing the correspondence between features in
+both rasters. It supports interactive analysis by clicking on a raster whose
 coordinates are to be transformed to match another raster and plotting where
-the clicks land on the target raster. Interactive analysis opens two distinct
-display devices whereas non-interactive analysis splits a display device
-into two parts.
+the clicks land on the target raster. Interactive analysis opens two
+distinct display devices whereas non-interactive analysis splits a display
+device into two parts.
 }
 \examples{
 NULL

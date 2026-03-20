@@ -2,8 +2,8 @@
 #'
 #' @param theta The angle (in degrees) to rotate the coordinates with.
 #'
-#' @return A 2x2 matrix that can be used in matrix product to rotate
-#' x-y coordinates in a counterclockwise direction.
+#' @return A 2x2 matrix that can be used in matrix product to rotate x-y
+#' coordinates in a counterclockwise direction.
 #'
 #' @noRd
 create_rmat <- function(theta) {
@@ -16,11 +16,11 @@ create_rmat <- function(theta) {
 #'
 #' @param x A template raster whose values will be changed.
 #' @param new_coords A matrix with two columns containing the new coordinates
-#' of the raster values, with x-coordinates in the first column and y-coordinates
-#' in the second column.
+#' of the raster values, with x-coordinates in the first column and
+#' y-coordinates in the second column.
 #'
-#' @return a raster with similar extent to the previous one, with values modified
-#' according to the new coordinates.
+#' @return a raster with similar extent to the previous one, with values
+#' modified according to the new coordinates.
 #'
 #' @noRd
 apply_transform <- function(x, new_coords) {
@@ -45,19 +45,21 @@ apply_transform <- function(x, new_coords) {
 
 #' Transform coordinates according to a rotation/translation model
 #'
-#' @param coords A 2-column matrix with x-coordinates as the first column
-#' and y-coordinates as the second column
-#' @param theta A numeric. The number of degrees to rotate the raster
-#' values, counterclockwise.
+#' @param coords A 2-column matrix with x-coordinates as the first column and
+#' y-coordinates as the second column
+#' @param theta A numeric. The number of degrees to rotate the raster values,
+#' counterclockwise.
 #' @param center A numeric vector of length 2 indicating the x, y coordinates
 #' of the rotation center
 #' @param htrans A numeric. The translation along the x-axis.
 #' @param vtrans A numeric. The translation along the y-axis.
-#' @param reverse A logical. Whether the transformation (translation and rotation)
-#' should be inversed relative to the input parameters. If TRUE, then the inverse
-#' of the transformation matrix is used instead of the matrix itself.
+#' @param reverse A logical. Whether the transformation (translation and
+#' rotation) should be inversed relative to the input parameters. If TRUE, then
+#' the inverse of the transformation matrix is used instead of the matrix
+#' itself.
 #'
-#' @return A raster similar to the input one, but whose values have been rotated.
+#' @return A data.frame of coordinates similar to the coords input, but with
+#' rotated and translated coordinates according to the supplied parameters.
 #'
 #' @noRd
 transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FALSE) {
@@ -74,7 +76,7 @@ transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FA
 	coords[, 1] <- coords[, 1] - center[1]
 	coords[, 2] <- coords[, 2] - center[2]
 
-	# We embed the translation back to the original coordinates in the transformation matrix<
+	# We embed the translation back to the original coordinates in the transformation matrix
 	transform_matrix[1, 3] <- transform_matrix[1, 3] + center[1]
 	transform_matrix[2, 3] <- transform_matrix[2, 3] + center[2]
 
@@ -85,15 +87,17 @@ transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FA
 #' Transform a raster by rotation and translation
 #'
 #' @param x A raster whose values will be rotated
-#' @param theta A numeric. The number of degrees to rotate the raster
-#' values, counterclockwise.
+#' @param theta A numeric. The number of degrees to rotate the raster values,
+#' counterclockwise.
 #' @param htrans A numeric. The translation along the x-axis.
 #' @param vtrans A numeric. The translation along the y-axis.
-#' @param reverse A logical. Whether the transformation (translation and rotation)
-#' should be inversed relative to the input parameters. If TRUE, then the inverse
-#' of the transformation matrix is used instead of the matrix itself.
+#' @param reverse A logical. Whether the transformation (translation and
+#' rotation) should be inversed relative to the input parameters. If TRUE, then
+#' the inverse of the transformation matrix is used instead of the matrix
+#' itself.
 #'
-#' @return A raster similar to the input one, but whose values have been rotated.
+#' @return A raster similar to the input one, but whose values have been
+#' rotated.
 #'
 #' @export
 #'
@@ -101,17 +105,17 @@ transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FA
 #' NULL
 transform_raster <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 
-	# We extract the x-y coordinates of the cells
+	# We compute the transformed x-y coordinates of the cells
 	new_coords <- transform_coords(terra::xyFromCell(x, 1:(terra::ncell(x))),
 				       theta = theta,
-				       center = c((terra::xmax(x) - terra::xmin(x)) / 2, (terra::ymax(x) - terra::ymin(x)) / 2),
+				       center = c(terra::xmax(x) - terra::xmin(x), terra::ymax(x) - terra::ymin(x)) / 2,
 				       htrans = htrans,
 				       vtrans = vtrans,
 				       reverse = reverse)
 
+	# We apply the transformation to assign new values to the raster
 	apply_transform(x, new_coords)
 }
-
 
 #' Optimize the transformation for a raster to match its target
 #'
@@ -127,30 +131,30 @@ transform_raster <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 #' @param htrans_length Similar to theta_length for the htrans parameter.
 #' @param vtrans_range Similar to theta_range for the vtrans parameter
 #' @param vtrans_length Similar to theta_length for the vtrans parameter.
-#' @param min_overlap A numeric value of length one. The minimum number of values
-#' that must be compared between two rasters for the correlation to be considered
-#' valid. Otherwise, a correlation of 0 is returned.
+#' @param min_overlap A numeric value of length one. The minimum number of
+#' values that must be compared between two rasters for the correlation to be
+#' considered valid. Otherwise, a correlation of 0 is returned.
 #' @param fact A numeric. The factor to use to reduce the resolution of the
 #' rasters to speed up the brute-force search for the best parameters.
 #' Defaults to 1 (no aggregation is performed).
-#' @param cores The number of cores to use for parallel computing. Defaults to 1.
-#' @param min_cor A numeric. The minimum correlation that must be obtained
-#' from initial guesses to go on with optim.
-#' @param maxiter An integer. The maximum number of brute-force iterations of
-#' to go through. The number of parameter combinations tested increases by 8
-#' times for each iteration, so this number should be kept low otherwise
-#' computation time will become extremely long.
+#' @param cores The number of cores to use for parallel computing. Defaults to
+#' 1.
+#' @param min_cor A numeric. The minimum correlation that must be obtained from
+#' initial guesses to go on with refining the estimates using optim.
+#' @param maxiter An integer. The maximum number of brute-force iterations to
+#' go through. The number of parameter combinations tested increases by 8 times
+#' for each iteration, so this number should be kept low otherwise computation
+#' time will become extremely long.
 #' @param method A character. The method to use for optimization, passed to optim.
 #' @param reltol A numeric. The relative tolerance for convergence in optim.
-#' @param verbose A logical value. If TRUE, progress on the iterations
-#' in the search for parameters will be output to the console.
+#' @param verbose A logical value. If TRUE, progress on the iterations in the
+#' search for parameters will be output to the console.
 #' @param trace A numeric value passed to optim to determine the level of
-#' output verbosity. By default, it is set to the same value as verbose
-#' (1 if TRUE and 0 if FALSE), but this parameter allows to control it
-#' separately.
+#' output verbosity. By default, it is set to the same value as verbose (1 if
+#' TRUE and 0 if FALSE), but this parameter allows to control it separately.
 #'
-#' @return The result of running the optim function on the transformation
-#' of y to the target raster x.
+#' @return The result of running the optim function on the transformation of y
+#' to the target raster x.
 #'
 #' @export
 #'
@@ -254,18 +258,18 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 #' Verify the accuracy of a raster transformation
 #'
 #' This function accepts two rasters and transformation parameters between the
-#' two, and generates a plot showing the correspondence between features in both
-#' rasters. It supports interactive analysis by clicking on a raster whose
+#' two, and generates a plot showing the correspondence between features in
+#' both rasters. It supports interactive analysis by clicking on a raster whose
 #' coordinates are to be transformed to match another raster and plotting where
-#' the clicks land on the target raster. Interactive analysis opens two distinct
-#' display devices whereas non-interactive analysis splits a display device
-#' into two parts.
+#' the clicks land on the target raster. Interactive analysis opens two
+#' distinct display devices whereas non-interactive analysis splits a display
+#' device into two parts.
 #'
-#' @param x,y Two rast objects whose transform is to be verified.
+#' @param x,y Two rast objects whose transformation is to be verified.
 #' @param params A list of optimized parameters, as output by
 #' \code{\link{optimize_transform}}.
 #' @param reverse A logical. Whether the transformation (translation and
-#' rotation) should be inversed relative to the input parameters. If TRUE, then
+#' rotation) should be reversed relative to the input parameters. If TRUE, then
 #' the inverse of the transformation matrix is used instead of the matrix
 #' itself. This is TRUE by default because transformation parameters internally
 #' describe the transformation from one image to the previous one, but the
@@ -276,7 +280,8 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 #' @param n An integer. The number of points to plot or clicks to query for.
 #' Defaults to 10.
 #'
-#' @return NULL, invisibly. This function is invoked for its plotting side-effect.
+#' @return NULL, invisibly. This function is invoked for its plotting
+#' side-effect.
 #' 
 #' @export
 #'
@@ -351,12 +356,13 @@ check_transform <- function(x, y, params, reverse = TRUE, interactive = FALSE, n
 		plot(x_corners, border = "red", add = TRUE)
 
 		# Plotting the raster to transform with points on top
+		# This will switch to the other column of the display
 		terra::plot(y, main = "y")
 
 		# With transformed coordinates on top of it
 		graphics::points(transform_coords(rpoints,
 						  theta = theta, htrans = htrans, vtrans = vtrans,
-						  center = c((terra::xmax(x) - terra::xmin(x)) / 2, (terra::ymax(x) - terra::ymin(x)) / 2),
+						  center = c(terra::xmax(x) - terra::xmin(x), terra::ymax(x) - terra::ymin(x)) / 2,
 						  reverse = TRUE),
 				 col = rcolors)
 
@@ -371,26 +377,28 @@ check_transform <- function(x, y, params, reverse = TRUE, interactive = FALSE, n
 #' Find initial values for thermal image overlap optimization using a brute-force approach
 #'
 #' This function will test several combinations of theta, htrans and vtrans for
-#' determining the optimal transformation between thermal images to find the best
-#' overlap. All combinations of the theta, htrans and vtrans values provided to
-#' the function will be tested, and the best combination returned.
+#' determining the optimal transformation between thermal images to find the
+#' best overlap. All combinations of the theta, htrans and vtrans values
+#' provided to the function will be tested, and the best combination returned.
 #'
 #' @param x The target raster.
 #' @param y A raster that will be transformed to match the target raster x.
 #' @param theta_vect A numeric vector of values to test for theta.
 #' @param htrans_vect A numeric vector of values to test for htrans.
 #' @param vtrans_vect A numeric vector of values to test for vtrans.
-#' @param min_overlap A numeric value of length one. The minimum number of values
-#' that must be compared between two rasters for the correlation to be considered
-#' valid. Otherwise, a correlation of 0 is returned.
+#' @param min_overlap A numeric value of length one. The minimum number of
+#' values that must be compared between two rasters for the correlation to be
+#' considered valid. Otherwise, a correlation of 0 is returned.
 #' @param fact A factor of aggregation for the rasters, passed on to
-#' \code{\link[terra]{aggregate}}.  Larger values will speed up computations
-#' but will result in less accurate estimates. Default value is 1, i.e. no aggregation.
+#' \code{\link[terra]{aggregate}}. Larger values will speed up computations
+#' but will result in less accurate estimates. Default value is 1, i.e. no
+#' aggregation.
 #' @param cores The number of cores to use when parallelizing the iterations,
-#' based on \code{\link[parallel]{mclapply}}. Defaults to 1, i.e. no parallel computing.
+#' based on \code{\link[parallel]{mclapply}}. Defaults to 1, i.e. no parallel
+#' computing.
 #'
-#' @return A numeric vector of length 3, with the first value corresponding to theta,
-#' the second to htrans, and the third to vtrans.
+#' @return A numeric vector of length 3, with the first value corresponding to
+#' theta, the second to htrans, and the third to vtrans.
 #'
 #' @noRd
 find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, min_overlap = 100, fact = 1, cores = 1) {

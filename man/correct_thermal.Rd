@@ -42,8 +42,7 @@ therefore the timezone that the user intends to use for downstream analyses.}
 \item{tags}{A character vector of tags to read from the metadata or a single
 character string that identifies a set of vectors. This is also the set of
 tags that wil be transferred to the corrected files. See
-\code{\link{read_metadata}}, \code{\link{exif_tags}}, and
-\code{\link{transfer_exif}} for more details.}
+\code{\link{read_metadata}} for more details.}
 
 \item{tparams}{A set of transformation parameters, as determined by
 \code{\link{optimize_transform}}. See \code{\link{add_tparams}} for more

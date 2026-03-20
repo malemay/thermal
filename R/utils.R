@@ -10,7 +10,7 @@
 #' NULL
 thermal_mean <- function(metadata, ncores = 1) {
 	# Sanity check
-	stopifnot("SourceFile" %in% names(metadata))
+	stopifnot("SourceFile" %in% names(metadata) && all(file.exists(metadata$SourceFile)))
 
 	# Computing the means in parallel
 	output <- parallel::mclapply(metadata$SourceFile, function(x) {
@@ -23,9 +23,9 @@ thermal_mean <- function(metadata, ncores = 1) {
 
 #' Extract the vignetting pattern of a thermal dataset
 #'
-#' @param metadata A data.frame of metadata on a thermal picture dataset
+#' @param metadata A data.frame of metadata on a thermal picture dataset.
 #' 
-#' @return A terra raster with the mean value of each pixel over the whole flight
+#' @return A terra raster with the mean value of each pixel over the whole flight.
 #'
 #' @export
 #' @examples
@@ -33,12 +33,15 @@ thermal_mean <- function(metadata, ncores = 1) {
 compute_vignetting <- function(metadata) {
 
 	# Extracting the file names from the metadata
-	stopifnot("SourceFile" %in% names(metadata))
+	stopifnot("SourceFile" %in% names(metadata) && all(file.exists(metadata$SourceFile)))
 	filenames <- metadata$SourceFile
 
 	output <- suppressWarnings(terra::rast(filenames[1], noflip = TRUE))
 
-	if(length(filenames) == 1) return(output)
+	if(length(filenames) == 1) {
+		warning("Only one picture found in dataset. Vignetting pattern is simply that picture.")
+		return(output)
+	}
 
 	for(i in 2:length(filenames)) {
 		output <- output + suppressWarnings(terra::rast(filenames[i], noflip = TRUE))
@@ -76,6 +79,8 @@ add_tparams <- function(metadata, tparams) {
 
 	# Appending the parameters to the input metadata
 	metadata <- cbind(metadata, rbind(NA, params))
+
+	return(metadata)
 }
 
 #' Plots the location of pictures from flight metadata
@@ -85,21 +90,23 @@ add_tparams <- function(metadata, tparams) {
 #' depending on characteristics of the metadata.
 #'
 #' @param metadata A data.frame of metadata on a flight, such as returned by
-#' \code{\link{read_metadata}}.  Must minimally contain columns GPSLongitude and
-#' GPSLatitude for longitude and latitude coordinates in the WGS84 datum.
+#' \code{\link{read_metadata}}. Must minimally contain columns that can be
+#' interpreted as coordinates.
 #' @param coords A character vector of length two indicating which columns
 #' in metadata are to be interpreted as X and Y coordinates (in that order).
+#' By default, these columns are GPSLongitude and GPSLatitude.
 #' @param base_crs An object that can be interpreted as a CRS description. Will
 #' be used to set the coordinate system of the metadata. If NULL (the default),
-#' then WGS84 (EPSG:4326) is assumed.
+#' then WGS84 longitude/latitude (EPSG:4326) is assumed.
 #' @param new_crs A coordinate reference system (such as returned by
 #' \code{\link[sf]{st_crs}} to project the points to before display. If NULL
 #' (the default), then data is displayed in the original coordinate system.
-#' @param color A vector of character, numeric or factor data to specify how
+#' @param color A vector of character, factor, or numeric data to specify how
 #' to color the points. If a character value, this is interpreted as a color
-#' value. If a factor, when a distinct color is used (from a predetermined set)
-#' to represent each value of the factor. If a numeric, then a color scale
-#' (see the color_scale argument) is used to translate numeric values to colors.
+#' value which will be vectorized as needed. If a factor, then a distinct color
+#' is used (from a predetermined set) to represent each value of the factor. If
+#' a numeric vector, then a color scale (see the color_palette argument) is
+#' used to translate numeric values to colors.
 #' @param color_palette A character specifying the color palette to use when
 #' mapping numeric values onto a color scale. Must correspond to a color
 #' palette in the RColorBrewer package. See
@@ -139,6 +146,10 @@ plot_metadata <- function(metadata,
 			  title = NULL, cex.axis = 1, cex.points = 1) {
 	# Checking the inputs
 	stopifnot(all(coords %in% colnames(metadata)))
+	
+	if(! "DateTimeOriginal" %in% colnames(metadata) || is.unsorted(metadata$DateTimeOriginal)) {
+		stop("metadata must be sorted by time stamp DateTimeOriginal to use plot_metadata")
+	}
 
 	# Checking if the base CRS was specified
 	if(is.null(base_crs)) {
@@ -152,7 +163,6 @@ plot_metadata <- function(metadata,
 	# Transforming the CRS if needed
 	if(!is.null(new_crs)) {
 		metadata <- sf::st_transform(metadata, crs = new_crs)
-
 		if(!is.null(features)) features <- sf::st_transform(features, crs = new_crs)
 	}
 
@@ -197,7 +207,7 @@ plot_metadata <- function(metadata,
 		}
 	}
 
-	# Adding the position of the panels (if provided)
+	# Adding the position of the feature (if provided)
 	if(!is.null(features)) {
 		grid::grid.draw(sf::st_as_grob(sf::st_geometry(features),
 					       gp = grid::gpar(col = feature_color),
@@ -235,13 +245,14 @@ plot_metadata <- function(metadata,
 
 #' Plot the fit of a drift model
 #'
-#' This function fits a statistical model of drift to flight metadata
-#' under the specified parameters. It is to be used interactively so
-#' as to visualize the impact of various methodological choices on
-#' the model that will be used for thermal drift correction.
+#' This function fits a statistical model of drift to flight metadata under the
+#' specified parameters. It is to be used interactively to visualize the impact
+#' of various methodological choices on the model that will be used for thermal
+#' drift correction.
 #'
 #' @param metadata A data.frame of metadata on a given flight. Must minimally
-#' contain the columns "mean" and "DateTimeOriginal"
+#' contain the column "DateTimeOriginal". If the column "mean" is not present,
+#' then the mean of the images will be computed on the fly (not efficient).
 #' @param nuc_threshold The threshold to use for declaring non-uniformity
 #' correction events. Will be used to split the dataset into different segments
 #' on which distinct models will be fitted
@@ -251,6 +262,8 @@ plot_metadata <- function(metadata,
 #' as a smoothing parameter when model_type = "spline". If NULL, (the default),
 #' then the smoothing parameter will be algorithmically determined. See
 #' \code{\link[stats]{smooth.spline}} for more details.
+#' @param ncores An integer value indicating the number of cores to use for
+#' computing the mean of thermal images, if not pre-computed.
 #'
 #' @return A data.frame similar to the input data with an added column
 #' "fitted" for the fitted values. The value is returned invisibly as this
@@ -259,7 +272,19 @@ plot_metadata <- function(metadata,
 #' @export
 #' @examples
 #' NULL
-plot_fit <- function(metadata, nuc_threshold, method = c("lm", "spline"), spline_spar = NULL) {
+plot_fit <- function(metadata, nuc_threshold, method = c("lm", "spline"), spline_spar = NULL, ncores = 1) {
+
+	# Checking that the input data is sorted by time stamp
+	if(! "DateTimeOriginal" %in% colnames(metadata) || is.unsorted(metadata$DateTimeOriginal)) {
+		stop("metadata must be sorted by time stamp DateTimeOriginal to use plot_fit")
+	}
+
+	# Computing the mean of the images if not provided
+	if(! "mean" %in% colnames(metadata)) {
+		message("Computing thermal image means on the fly as they were not pre-computed...")
+		metadata$mean <- thermal_mean(metadata, ncores = ncores)
+	}
+
 	# The heavy lifting is done by fit_model
 	models <- fit_model(x = metadata, nuc_threshold = nuc_threshold, model_type = method, spline_spar = spline_spar)
 
@@ -267,8 +292,7 @@ plot_fit <- function(metadata, nuc_threshold, method = c("lm", "spline"), spline
 	metadata$fitted <- unlist(lapply(models, stats::fitted))
 
 	# Base plotting is sufficient for this use case
-	plot(x = metadata$DateTimeOriginal, y = metadata$mean,
-	     xlab = "Time", ylab = "Image mean")
+	plot(x = metadata$DateTimeOriginal, y = metadata$mean, xlab = "Time", ylab = "Image mean")
 	graphics::lines(x = metadata$DateTimeOriginal, y = metadata$fitted, col = "blue", lty = 2)
 
 	invisible(metadata)
@@ -291,13 +315,19 @@ plot_fit <- function(metadata, nuc_threshold, method = c("lm", "spline"), spline
 #' @param ncores An integer value indicating the number of cores to use for
 #' computing the mean of thermal images, if not pre-computed.
 #'
-#' @return NULL, invisibly. This function is invoked for its plotting
-#' side-effect.
+#' @return The metadata including the mean column that was possibly added,
+#' invisibly. This function is mainly invoked for its plotting side-effect.
 #'
 #' @export
 #' @examples
 #' NULL
 plot_drift <- function(metadata, nuc_threshold = NULL, ncores = 1) {
+
+	# Checking that the input data is sorted by time stamp
+	if(! "DateTimeOriginal" %in% colnames(metadata) || is.unsorted(metadata$DateTimeOriginal)) {
+		stop("metadata must be sorted by time stamp DateTimeOriginal to use plot_drift")
+	}
+
 	# Computing the mean of the images if not provided
 	if(! "mean" %in% colnames(metadata)) {
 		message("Computing thermal image means on the fly as they were not pre-computed...")
@@ -321,7 +351,7 @@ plot_drift <- function(metadata, nuc_threshold = NULL, ncores = 1) {
 		}
 	}
 
-	invisible(NULL)
+	invisible(metadata)
 }
 
 #' Map a set of numeric values onto a color palette
@@ -371,8 +401,8 @@ map_color <- function(values, pal, n_colors) {
 #' colors used in a plot. This function is not exported from the package and is
 #' therefore meant to be used only internally by the package.
 #'
-#' @param breaks A numeric vector of breaks used for the color scale.  There
-#' must be one more break than the number of colors
+#' @param breaks A numeric vector of breaks used for the color scale. There
+#' must be one more break than the number of colors.
 #' @param base_palette A character vector of colors used in mapping the numeric
 #' values onto the color scale.
 #' @param label_text A character to use as a value for the legend label.

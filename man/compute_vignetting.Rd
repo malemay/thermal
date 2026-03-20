@@ -7,10 +7,10 @@
 compute_vignetting(metadata)
 }
 \arguments{
-\item{metadata}{A data.frame of metadata on a thermal picture dataset}
+\item{metadata}{A data.frame of metadata on a thermal picture dataset.}
 }
 \value{
-A terra raster with the mean value of each pixel over the whole flight
+A terra raster with the mean value of each pixel over the whole flight.
 }
 \description{
 Extract the vignetting pattern of a thermal dataset

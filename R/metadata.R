@@ -1,23 +1,25 @@
 #' Read image metadata
 #' 
-#' Read EXIF metadta for a set of images
+#' Read EXIF metadata for a set of images
 #'
 #' @param files a character vector of files for which exif metadata
 #' is to be read.
-#' @param camera_tz A character that can be interpreted as a valid timezone
-#' corresponding to that of the date/time values written by the camera.
-#' It is mandatory to specify this value so that downstream functions
+#' @param camera_tz A character string that can be interpreted as a valid
+#' timezone corresponding to that of the date/time values written by the
+#' camera. It is mandatory to specify this value so that downstream functions
 #' know how to interpret the time values of the camera.
-#' @param display_tz A character that can be interpreted as a valid timezone
-#' to use when displaying the data. If NULL (the default), then the values
-#' are the same as camera_tz.
+#' @param display_tz A character string that can be interpreted as a valid
+#' timezone to use when displaying the data. This will effectively convert the
+#' contents of columns 'CreateDate' and 'DateTimeOriginal' to that timezone. If
+#' NULL (the default), then the values are the same as camera_tz.
 #' @param tags A character vector of tags to extract or a single character
-#' string denoting a set of tags to extract. Supported values for single
-#' string are: "default" (set of tags that may be interesting or useful),
-#' "minimal" (minimal set of tags needed for downstream analyses). If NULL (the default),
+#' string denoting a set of tags to extract. Supported values for single string
+#' are: "default" (set of tags that may be interesting or useful) or "minimal"
+#' (minimal set of tags needed for downstream analyses). If NULL (the default),
 #' then all tags are extracted.
-#' @param sort_output A logical value indicating whether the output should be sorted
-#' according to time stamps. Defaults to TRUE.
+#' @param sort_output A logical value indicating whether the output should be
+#' sorted according to time stamps. Sorting is necessary for some downstream
+#' functionality, such as drift correction. Defaults to TRUE.
 #'
 #' @return A data.frame with the metadata for each file.
 #'
@@ -49,13 +51,8 @@ read_metadata <- function(files, camera_tz, display_tz = NULL, tags = NULL, sort
 
 		# The columns CreateDate and DateTimeOriginal need to be timezone-aware
 		if(i %in% c("CreateDate", "DateTimeOriginal")) {
-
 			output[[i]] <- as.POSIXct(output[[i]], format = "%Y:%m:%d %H:%M:%OS", tz = camera_tz)
-
-			if(!is.null(display_tz) && display_tz != camera_tz) {
-				attr(output[[i]], "tzone") <- display_tz
-			}
-
+			if(!is.null(display_tz) && display_tz != camera_tz) attr(output[[i]], "tzone") <- display_tz
 		} else {
 			# Time zone is not as critical for other date/time columns
 			output[[i]] <- strptime(output[[i]], format = "%Y:%m:%d %H:%M:%S")
@@ -77,8 +74,7 @@ read_metadata <- function(files, camera_tz, display_tz = NULL, tags = NULL, sort
 #'
 #' @return A character vector of tags to extract.
 #'
-#' @examples
-#' NULL
+#' @noRd
 exif_tags <- function(option) {
 	if(option == "default") {
 		output <- c("Make", "Model", "Orientation", "XResolution", "YResolution", "ResolutionUnit",
@@ -116,8 +112,7 @@ exif_tags <- function(option) {
 #'
 #' @return NULL, invisibly
 #'
-#' @examples
-#' NULL
+#' @noRd
 transfer_exif <- function(src_dir, src_ext, dst_dir, tags = NULL, verbose = TRUE) {
 
 	stopifnot(all(dir.exists(c(src_dir, dst_dir))))

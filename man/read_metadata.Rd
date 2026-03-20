@@ -16,29 +16,31 @@ read_metadata(
 \item{files}{a character vector of files for which exif metadata
 is to be read.}
 
-\item{camera_tz}{A character that can be interpreted as a valid timezone
-corresponding to that of the date/time values written by the camera.
-It is mandatory to specify this value so that downstream functions
+\item{camera_tz}{A character string that can be interpreted as a valid
+timezone corresponding to that of the date/time values written by the
+camera. It is mandatory to specify this value so that downstream functions
 know how to interpret the time values of the camera.}
 
-\item{display_tz}{A character that can be interpreted as a valid timezone
-to use when displaying the data. If NULL (the default), then the values
-are the same as camera_tz.}
+\item{display_tz}{A character string that can be interpreted as a valid
+timezone to use when displaying the data. This will effectively convert the
+contents of columns 'CreateDate' and 'DateTimeOriginal' to that timezone. If
+NULL (the default), then the values are the same as camera_tz.}
 
 \item{tags}{A character vector of tags to extract or a single character
-string denoting a set of tags to extract. Supported values for single
-string are: "default" (set of tags that may be interesting or useful),
-"minimal" (minimal set of tags needed for downstream analyses). If NULL (the default),
+string denoting a set of tags to extract. Supported values for single string
+are: "default" (set of tags that may be interesting or useful) or "minimal"
+(minimal set of tags needed for downstream analyses). If NULL (the default),
 then all tags are extracted.}
 
-\item{sort_output}{A logical value indicating whether the output should be sorted
-according to time stamps. Defaults to TRUE.}
+\item{sort_output}{A logical value indicating whether the output should be
+sorted according to time stamps. Sorting is necessary for some downstream
+functionality, such as drift correction. Defaults to TRUE.}
 }
 \value{
 A data.frame with the metadata for each file.
 }
 \description{
-Read EXIF metadta for a set of images
+Read EXIF metadata for a set of images
 }
 \examples{
 # Get the names of the thermal images in the test dataset

@@ -25,25 +25,27 @@ plot_metadata(
 }
 \arguments{
 \item{metadata}{A data.frame of metadata on a flight, such as returned by
-\code{\link{read_metadata}}.  Must minimally contain columns GPSLongitude and
-GPSLatitude for longitude and latitude coordinates in the WGS84 datum.}
+\code{\link{read_metadata}}. Must minimally contain columns that can be
+interpreted as coordinates.}
 
 \item{coords}{A character vector of length two indicating which columns
-in metadata are to be interpreted as X and Y coordinates (in that order).}
+in metadata are to be interpreted as X and Y coordinates (in that order).
+By default, these columns are GPSLongitude and GPSLatitude.}
 
 \item{base_crs}{An object that can be interpreted as a CRS description. Will
 be used to set the coordinate system of the metadata. If NULL (the default),
-then WGS84 (EPSG:4326) is assumed.}
+then WGS84 longitude/latitude (EPSG:4326) is assumed.}
 
 \item{new_crs}{A coordinate reference system (such as returned by
 \code{\link[sf]{st_crs}} to project the points to before display. If NULL
 (the default), then data is displayed in the original coordinate system.}
 
-\item{color}{A vector of character, numeric or factor data to specify how
+\item{color}{A vector of character, factor, or numeric data to specify how
 to color the points. If a character value, this is interpreted as a color
-value. If a factor, when a distinct color is used (from a predetermined set)
-to represent each value of the factor. If a numeric, then a color scale
-(see the color_scale argument) is used to translate numeric values to colors.}
+value which will be vectorized as needed. If a factor, then a distinct color
+is used (from a predetermined set) to represent each value of the factor. If
+a numeric vector, then a color scale (see the color_palette argument) is
+used to translate numeric values to colors.}
 
 \item{color_palette}{A character specifying the color palette to use when
 mapping numeric values onto a color scale. Must correspond to a color

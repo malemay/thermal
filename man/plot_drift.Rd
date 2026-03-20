@@ -19,8 +19,8 @@ the plot.}
 computing the mean of thermal images, if not pre-computed.}
 }
 \value{
-NULL, invisibly. This function is invoked for its plotting
-side-effect.
+The metadata including the mean column that was possibly added,
+invisibly. This function is mmainly invoked for its plotting side-effect.
 }
 \description{
 This function plots the mean value of thermal images taken during a flight

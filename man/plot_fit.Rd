@@ -8,12 +8,14 @@ plot_fit(
   metadata,
   nuc_threshold,
   method = c("lm", "spline"),
-  spline_spar = NULL
+  spline_spar = NULL,
+  ncores = 1
 )
 }
 \arguments{
 \item{metadata}{A data.frame of metadata on a given flight. Must minimally
-contain the columns "mean" and "DateTimeOriginal"}
+contain the column "DateTimeOriginal". If the column "mean" is not present,
+then the mean of the images will be computed on the fly (not efficient).}
 
 \item{nuc_threshold}{The threshold to use for declaring non-uniformity
 correction events. Will be used to split the dataset into different segments
@@ -26,6 +28,9 @@ One of "lm" or "spline".}
 as a smoothing parameter when model_type = "spline". If NULL, (the default),
 then the smoothing parameter will be algorithmically determined. See
 \code{\link[stats]{smooth.spline}} for more details.}
+
+\item{ncores}{An integer value indicating the number of cores to use for
+computing the mean of thermal images, if not pre-computed.}
 }
 \value{
 A data.frame similar to the input data with an added column
@@ -33,10 +38,10 @@ A data.frame similar to the input data with an added column
 functon is mostly invoked for its plotting side-effect.
 }
 \description{
-This function fits a statistical model of drift to flight metadata
-under the specified parameters. It is to be used interactively so
-as to visualize the impact of various methodological choices on
-the model that will be used for thermal drift correction.
+This function fits a statistical model of drift to flight metadata under the
+specified parameters. It is to be used interactively to visualize the impact
+of various methodological choices on the model that will be used for thermal
+drift correction.
 }
 \examples{
 NULL

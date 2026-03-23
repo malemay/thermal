@@ -35,10 +35,10 @@ rows for which no model was fitted will have model-related values set to NA.
 \description{
 This function creates thermal models for each dataset of temperature and
 thermal digital numbers provided. This may be a subset of the provided
-metadata (if for example some pictures did not include reference panels),
+metadata (if for example some pictures did not include reference surfaces),
 but all elements of the pixel_values list must be found within the input
 metadata. Computation of thermal models from multiple pixel values at once
-could eventually be supported, but at the moment every panel is summarized
+could eventually be supported, but at the moment every surface is summarized
 into a single value which is used for fitting the linear models.
 }
 \examples{

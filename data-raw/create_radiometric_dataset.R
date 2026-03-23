@@ -35,6 +35,9 @@ file_ids <- substr(thermal_files, 1, 8)
 
 panels <- panels[names(panels) %in% file_ids]
 
+# Changing the column name from "color" to "ID" to be consistent with the package's code
+panels <- lapply(panels, function(x) {colnames(x) <- c("x", "ID") ; return(x)})
+
 # A function that divides the coordinates by a given values and returns an updated
 # polygon object
 update_polygon <- function(x, fact = 8) {

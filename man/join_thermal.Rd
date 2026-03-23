@@ -10,16 +10,16 @@ join_thermal(metadata, polygons, columns, ncores = 1)
 \item{metadata}{A data.frame with metadata on thermal pictures taken during
 a flight. The data.frames must have row names that correspond to names in
 the polygons list to link the two. Must also have columns with the
-temperatures of reference surfaces panels (see the argument \code{columns})
+temperatures of reference surfaces (see the argument \code{columns})
 at the moment when the pictures were taken.}
 
 \item{polygons}{A list of sf polygons representing the location of reference
-surfaces. A "color" column should be used to identify each of the reference
+surfaces. An "ID" column should be used to identify each of the reference
 surfaces Each element of the list must be named according to the row names
 of the metadata.}
 
 \item{columns}{A character vector of columns in the metadata that represent
-names of reference surfaces which are found in the column "color" of the
+names of reference surfaces which are found in the column "ID" of the
 \code{polygons} argument.}
 
 \item{ncores}{An integer indicating the number of cores to use. Passed to
@@ -31,7 +31,7 @@ row per pixel and the following columns:
 \itemize{
 \item ID: the name of the reference surface
 \item thermal: the value of the pixel
-\item temp: the temperature of the pixel (fixed for a given panel color)
+\item temp: the temperature of the pixel (fixed for a given surface ID)
 }
 Each element of the list returned is named after the ID of the picture,
 which also matches the row names of the metadata.

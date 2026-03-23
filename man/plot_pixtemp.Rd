@@ -2,7 +2,7 @@
 % Please edit documentation in R/calibration.R
 \name{plot_pixtemp}
 \alias{plot_pixtemp}
-\title{Plot panel temperature as a function of thermal digital numbers}
+\title{Plot surface temperature as a function of thermal digital numbers}
 \usage{
 plot_pixtemp(
   pixel_values,
@@ -19,7 +19,7 @@ plot_pixtemp(
 temperature, as returned by \code{\link{join_thermal}}.}
 
 \item{lcol}{A named ("black", "gray", "white") character vector indicating
-the colors to use for plotting the pixel values of each panel.}
+the colors to use for plotting the pixel values of each surface.}
 
 \item{model}{A list containing data used for fitting a linear model that
 links the temperature to the pixel values, and the linear model itself, used

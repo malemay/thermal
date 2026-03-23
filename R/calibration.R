@@ -1,4 +1,4 @@
-#' Plot panel temperature data over a given time range
+#' Plot reference surface temperature data over a given time range
 #'
 #' This function plots the temperature data of reference surfaces over a given
 #' time range. Since this function uses base R graphics functionality, further
@@ -51,7 +51,8 @@ plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
 	ylim <- range(do.call("rbind", tempdata)$temp, na.rm = TRUE)
 
 	# Creating a blank canvas for the plot
-	plot(1, type = "n", xlim = as.numeric(xlim), ylim = ylim,
+	plot(1, type = "n",
+	     xlim = as.numeric(xlim), ylim = ylim,
 	     xlab = xlab, ylab = ylab, main = main,
 	     xaxt = "n", ...)
 
@@ -84,25 +85,22 @@ plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
 #' Extract the temperature at the nearest time point to a thermal image
 #'
 #' This function can be used to populate the columns in a flight metadata
-#' data.frame with the temperatures associated to a given panel as measured
-#' by a datalogger.
+#' data.frame with the temperatures associated to a given reference surface.
 #'
 #' @param metadata A data.frame containing metadata on a set of thermal images,
 #' as returned by \code{\link{read_metadata}}. Must minimally contain a column
 #' called "DateTimeOriginal" which indicates when the picture was taken.
-#' @param temperature A data.frame of panel temperature data. Should contain a
-#' column called "time" to allow matching the time stamps of both datasets and
-#' a "temp" column for the temperature.
+#' @param temperature A data.frame of reference surface temperature data.
+#' Should contain a column called "time" to allow matching the time stamps of
+#' both datasets and a "temp" column for the temperature.
 #' @param tolerance A difftime object of length 1 indicating the maximum time
-#' difference acceptable between a picture and a temperature measurement to allow
-#' both values to be matched.
+#' difference acceptable between a picture and a temperature measurement to
+#' allow both values to be matched.
 #'
 #' @return A numeric vector containing the temperature at the nearest time
 #' point for every row in the metadata input.
 #'
-#' @export
-#' @examples
-#' NULL
+#' @noRd
 extract_temp <- function(metadata, temperature, tolerance = as.difftime(10, units = "secs")) {
 
 	# Creating a vector of matches in the temperature data.frame
@@ -120,12 +118,12 @@ extract_temp <- function(metadata, temperature, tolerance = as.difftime(10, unit
 	for(i in 1:length(indices)) indices[i] <- which.min(abs(metadata_times[i] - temperature_times))
 
 	# Adding a sanity check to ensure that no time difference is greater than the tolerance
-	if(any(abs(metadata$DateTimeOriginal - temperature[indices, "time"]) > tolerance)) stop("No temperature available given tolerance value.")
+	if(any(abs(metadata$DateTimeOriginal - temperature[indices, "time"]) > tolerance)) stop("No temperature available given tolerance value ", tolerance)
 
 	temperature[indices, "temp"]
 }
 
-#' Add reference panel temperature readings to a metadata dataset
+#' Add reference surface temperature readings to a metadata dataset
 #'
 #' This is a convenience function that adds columns with the temperature of
 #' reference surfaces at given time points to the flight metadata.
@@ -139,8 +137,8 @@ extract_temp <- function(metadata, temperature, tolerance = as.difftime(10, unit
 #' should contain a column called "time" to allow matching the time stamps of
 #' both datasets and a "temp" column for the temperature.
 #' @param tolerance A difftime object of length 1 indicating the maximum time
-#' difference acceptable between a picture and a temperature measurement to allow
-#' both values to be matched.
+#' difference acceptable between a picture and a temperature measurement to
+#' allow both values to be matched.
 #'
 #' @return A metadata data.frame similar to the input one, but with added
 #' columns containing the temperatures of each reference surface at the time
@@ -153,6 +151,15 @@ add_temp_metadata <- function(metadata, temperature_list, tolerance = as.difftim
 
 	# Adding the temperature of each of the panels to the metadata
 	for(i in names(temperature_list)) {
+		# Check that there is a "time" column in the temperature data
+		if(! "time" %in% colnames(temperature_list[[i]]) || !inherits(temperature_list[[i]]$time, "POSIXct")) {
+			stop("Temperature data must contain POSIX")
+		}
+
+		# Warn if any of the panel names already correspond to columns in metadata
+		if(i %in% colnames(metadata)) warning("Column ", i, " already present in metadata. Overwriting its contents.")
+
+		# Add the temperature from that surface to the metadata
 		metadata[[i]] <- extract_temp(metadata, temperature_list[[i]], tolerance = tolerance)
 	}
 
@@ -182,9 +189,11 @@ add_temp_metadata <- function(metadata, temperature_list, tolerance = as.difftim
 #'
 #' @return A list of data.frames suitable for plotting and modelling with one
 #' row per pixel and the following columns:
-#' ID: the name of the reference surface
-#' thermal: the value of the pixel
-#' temp: the temperature of the pixel (fixed for a given panel color)
+#' \itemize{
+#'   \item ID: the name of the reference surface
+#'   \item thermal: the value of the pixel
+#'   \item temp: the temperature of the pixel (fixed for a given panel color)
+#'   }
 #' Each element of the list returned is named after the ID of the picture,
 #' which also matches the row names of the metadata.
 #' 
@@ -211,6 +220,7 @@ join_thermal <- function(metadata, polygons, columns, ncores = 1) {
 					     }
 
 					     # Extracting the values from the thermal raster and naming the column
+					     stopifnot(file.exists(mdata[i, "SourceFile"]))
 					     irast <- suppressWarnings(terra::rast(mdata[i, "SourceFile"], noflip = TRUE))
 					     pix_values <- terra::extract(irast, polygons[[i]])
 					     names(pix_values)[2] <- "thermal"
@@ -241,26 +251,26 @@ join_thermal <- function(metadata, polygons, columns, ncores = 1) {
 #' could eventually be supported, but at the moment every panel is summarized
 #' into a single value which is used for fitting the linear models.
 #'
-#' @param metadata A data.frame of metadata on a given flight, such
-#' as returned by \code{\link{read_metadata}}. Row names of this data.frame
-#' must correspond to the names of the elements in pixel_values.
+#' @param metadata A data.frame of metadata on a given flight, such as returned
+#' by \code{\link{read_metadata}}. Row names of this data.frame must correspond
+#' to the names of the elements in pixel_values.
 #' @param pixel_values A list of data.frames linking thermal pixel values to
 #' temperature, as returned by \code{\link{join_thermal}}. The names of the
-#' elements in this list must correspond to the row names of the metadata input.
+#' elements in this list must correspond to the row names of the metadata
+#' input.
 #' @param summary_functions A named list with functions used to summarize the
 #' values for each given reference surface. The names of the list elements
 #' should correspond to the IDs of the reference surfaces. The functions should
 #' return a single value from an input vector with multiple values.
-#' @param surfaces A character vector with the names of the reference
-#' surfaces to use for computing linear models. Not all available surfaces
-#' may be used if any should be excluded from computation.
+#' @param surfaces A character vector with the names of the reference surfaces
+#' to use for computing linear models. Not all available surfaces may be used
+#' if any should be excluded from computation.
 #'
 #' @return A list of two elements, the first one containing the metadata
-#' updated with critical model information (the pixel values used to fit
-#' the model and the model estimates) , and the second element containing a
-#' list of data used to fit the linear models and the models themselves.
-#' The metadata rows for which no model was fitted will have model-related
-#' values set to NA.
+#' updated with critical model information (the pixel values used to fit the
+#' model and the model estimates) , and the second element containing a list of
+#' data used to fit the linear models and the models themselves.  The metadata
+#' rows for which no model was fitted will have model-related values set to NA.
 #'
 #' @export
 #' @examples
@@ -349,15 +359,15 @@ max_density <- function(x) {
 #' Compute temperature predictions from thermal model parameters
 #'
 #' This function can be used to compute temperature predictions for a given
-#' digital number value based on linear model parameters that have been
-#' fit at various timepoints during a flight.
+#' digital number value based on linear model parameters that have been fit at
+#' various timepoints during a flight.
 #'
-#' @param metadata A data.frame of metadata on a given flight augmented
-#' with slope and intercept parameters of the relationship between digital
-#' number (DN) and temperature, such as returned in the metadata object
-#' of \code{\link{thermal_lm}}.
-#' @param dn_value A numeric. The fixed digital number (DN) value for which
-#' to generate predictions.
+#' @param metadata A data.frame of metadata on a given flight augmented with
+#' slope and intercept parameters of the relationship between digital number
+#' (DN) and temperature, such as returned in the metadata object of
+#' \code{\link{thermal_lm}}.
+#' @param dn_value A numeric. The fixed digital number (DN) value for which to
+#' generate predictions.
 #'
 #' @return A numeric vector of predicted temperature values for a fixed DN at
 #' each timepoint of the flight based on the linear model parameters.

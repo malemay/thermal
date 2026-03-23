@@ -28,9 +28,11 @@ names of reference surfaces which are found in the column "color" of the
 \value{
 A list of data.frames suitable for plotting and modelling with one
 row per pixel and the following columns:
-ID: the name of the reference surface
-thermal: the value of the pixel
-temp: the temperature of the pixel (fixed for a given panel color)
+\itemize{
+\item ID: the name of the reference surface
+\item thermal: the value of the pixel
+\item temp: the temperature of the pixel (fixed for a given panel color)
+}
 Each element of the list returned is named after the ID of the picture,
 which also matches the row names of the metadata.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/calibration.R
 \name{plot_temp}
 \alias{plot_temp}
-\title{Plot panel temperature data over a given time range}
+\title{Plot reference surface temperature data over a given time range}
 \usage{
 plot_temp(
   tempdata,

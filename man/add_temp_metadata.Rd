@@ -2,7 +2,7 @@
 % Please edit documentation in R/calibration.R
 \name{add_temp_metadata}
 \alias{add_temp_metadata}
-\title{Add reference panel temperature readings to a metadata dataset}
+\title{Add reference surface temperature readings to a metadata dataset}
 \usage{
 add_temp_metadata(
   metadata,
@@ -22,8 +22,8 @@ should contain a column called "time" to allow matching the time stamps of
 both datasets and a "temp" column for the temperature.}
 
 \item{tolerance}{A difftime object of length 1 indicating the maximum time
-difference acceptable between a picture and a temperature measurement to allow
-both values to be matched.}
+difference acceptable between a picture and a temperature measurement to
+allow both values to be matched.}
 }
 \value{
 A metadata data.frame similar to the input one, but with added

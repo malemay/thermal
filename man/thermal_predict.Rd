@@ -7,13 +7,13 @@
 thermal_predict(metadata, dn_value)
 }
 \arguments{
-\item{metadata}{A data.frame of metadata on a given flight augmented
-with slope and intercept parameters of the relationship between digital
-number (DN) and temperature, such as returned in the metadata object
-of \code{\link{thermal_lm}}.}
+\item{metadata}{A data.frame of metadata on a given flight augmented with
+slope and intercept parameters of the relationship between digital number
+(DN) and temperature, such as returned in the metadata object of
+\code{\link{thermal_lm}}.}
 
-\item{dn_value}{A numeric. The fixed digital number (DN) value for which
-to generate predictions.}
+\item{dn_value}{A numeric. The fixed digital number (DN) value for which to
+generate predictions.}
 }
 \value{
 A numeric vector of predicted temperature values for a fixed DN at
@@ -21,8 +21,8 @@ each timepoint of the flight based on the linear model parameters.
 }
 \description{
 This function can be used to compute temperature predictions for a given
-digital number value based on linear model parameters that have been
-fit at various timepoints during a flight.
+digital number value based on linear model parameters that have been fit at
+various timepoints during a flight.
 }
 \examples{
 NULL

@@ -19,9 +19,12 @@ test_that("Radiometric calibration works as expected", {
 		  thermal_models$metadata$prediction <- thermal_predict(thermal_models$metadata, dn = 3500)
 
 		  thermal_reference <- readRDS(test_path("test_files", "thermal_models.rds"))
-		  reference_meta <- thermal_reference$metadata[, -1]
 
-		  expect_identical(thermal_models$pixels, readRDS(test_path("test_files", "pixel_data.rds")))
+		  # Testing whether the pixels extracted from the panels are the same
+		  expect_identical(thermal_models$pixels, thermal_reference$pixels)
+
+		  # Testing whether the updated metadata (with linear model parameters) is the same
+		  reference_meta <- thermal_reference$metadata[, -1]
 
 		  # We allow for some numerical differences between model estimates by rounding to the 12th decimal
 		  thermal_models$metadata$intercept <- round(thermal_models$metadata$intercept, 12)

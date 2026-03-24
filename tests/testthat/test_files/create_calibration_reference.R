@@ -23,17 +23,14 @@ rownames(tmeta_df) <- substr(basename(tmeta_df$SourceFile), 1, 8)
 # Adding the temperature data to the metadata
 tmeta_df <- add_temp_metadata(tmeta_df, temperature, tolerance = as.difftime(5, units = "secs"))
 
-# Joining the pixel and temperature data in a format that can easily be used for fitting models
-pixel_data <- join_thermal(tmeta_df, panels)
-
 # Computing the linear models of temperature as a function of digital numbers
 thermal_models <- thermal_lm(metadata = tmeta_df,
-                             pixel_values = pixel_data,
+			     polygons = panels,
                              summary_functions = list(black = median, gray = median, white = median),
-                             use_panels = c("black", "gray", "white"))
+                             surfaces = c("black", "gray", "white"),
+			     ncores = 2)
 
 thermal_models$metadata$prediction <- thermal_predict(thermal_models$metadata, dn = 3500)
 
 # These two objects should be sufficient to test the stability of the calibration output
-saveRDS(pixel_data, "pixel_data.rds")
 saveRDS(thermal_models, "thermal_models.rds")

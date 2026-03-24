@@ -37,4 +37,19 @@ test_that("Radiometric calibration works as expected", {
 		  reference_meta$prediction <- round(reference_meta$prediction, 12)
 
 		  expect_identical(thermal_models$metadata[, -1], reference_meta)
+		  
+		  # We want to check that thermal_lm works even when supplying a single value for summary_functions
+		  single_func_models <- thermal_lm(metadata = tmeta,
+						   polygons = panels,
+						   summary_functions = median,
+						   surfaces = c("black", "gray", "white"),
+						   ncores = 2)
+		  
+		  single_func_models$metadata$prediction <- thermal_predict(single_func_models$metadata, dn = 3500)
+
+		  single_func_models$metadata$intercept <- round(single_func_models$metadata$intercept, 12)
+		  single_func_models$metadata$slope <- round(single_func_models$metadata$slope, 12)
+		  single_func_models$metadata$prediction <- round(single_func_models$metadata$prediction, 12)
+
+		  expect_identical(single_func_models$metadata[, -1], reference_meta)
 })

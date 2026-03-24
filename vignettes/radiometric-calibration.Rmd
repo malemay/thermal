@@ -217,9 +217,10 @@ pixels for a given panel to a single value. Typically, this function would be
 `max_density`, a function that determines where the density of the distribution
 is maximal. However, since the images that we use here have very low
 resolution, we will use the median instead such that the analysis works even
-with a single pixel. This summary function needs to be provided for each
-surface as the function allows for using different functions for summarizing
-the values of each panel.
+with a single pixel. It is also possible to use different summary functions to
+summarize the data for different reference surfaces (for examples, if the
+distinct properties of the surfaces warrant it) by providing a named list of
+functions with each name corresponding to the ID of a surface..
 
 Once each reference surface has been reduced to a single thermal infrared value
 and a single surface temperature value, `thermal_lm` will fit one linear model
@@ -230,7 +231,7 @@ each picture in the dataset for which such information is available.
 ```{r thermal-lm}
 thermal_models <- thermal_lm(metadata = tmeta_df,
 			     polygons = panels,
-                             summary_functions = list(black = median, gray = median, white = median),
+                             summary_functions = median,
                              surfaces = c("black", "gray", "white"),
 			     ncores = 2)
 ```
@@ -329,7 +330,7 @@ corrected_df <- add_temp_metadata(corrected_df, temperature, tolerance = as.diff
 
 corrected_df <- thermal_lm(metadata = corrected_df,
 			   polygons = panels,
-			   summary_functions = list(black = median, gray = median, white = median),
+			   summary_functions = median,
 			   surfaces = c("black", "gray", "white"),
 			   ncores = 2)$metadata
 

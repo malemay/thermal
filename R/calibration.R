@@ -251,10 +251,11 @@ join_thermal <- function(metadata, polygons, surfaces, ncores = 1) {
 #' surfaces. An "ID" column should be used to identify each of the reference
 #' surfaces Each element of the list must be named according to the row names
 #' of the metadata.
-#' @param summary_functions A named list with functions used to summarize the
-#' values for each given reference surface. The names of the list elements
-#' should correspond to the IDs of the reference surfaces. The functions should
-#' return a single value from an input vector with multiple values.
+#' @param summary_functions A single function or a named list with functions
+#' used to summarize the pixel values for each given reference surface. If a
+#' list, the names of the list elements should correspond to the IDs of the
+#' reference surfaces. The functions should return a single value from an input
+#' vector with multiple values.
 #' @param surfaces A character vector with the names of the reference surfaces
 #' to use for computing linear models. Not all available surfaces may be used
 #' if any should be excluded from computation.
@@ -274,7 +275,7 @@ join_thermal <- function(metadata, polygons, surfaces, ncores = 1) {
 #' @export
 #' @examples
 #' NULL
-thermal_lm <- function(metadata, polygons, summary_functions, surfaces, ncores = 1) {
+thermal_lm <- function(metadata, polygons, surfaces, summary_functions = max_density, ncores = 1) {
 
 	# Ensuring that the metadata contains temperature data
 	if(!all(surfaces %in% colnames(metadata))) {
@@ -286,9 +287,17 @@ thermal_lm <- function(metadata, polygons, summary_functions, surfaces, ncores =
 		stop("All input polygon names must correspond to row names in metadata.")
 	}
 
-	# Checking that all the names of the surfaces to use are in the summary_functions list
-	if(!all(surfaces %in% names(summary_functions))) {
-		stop("You need to provide a summary function for each reference surface.")
+	# Checking that summary_functions is accurately specified
+	if(length(summary_functions) == 1 && is.function(summary_functions)) {
+		# If this is a single function then we create a list in which every surface uses this function
+		# This allows for a unified interface to computation no matter how summary_functions is specified
+		temp_func <- summary_functions
+		summary_functions <- list()
+		for(i in surfaces) summary_functions[[i]] <- temp_func
+	} else if(is.list(summary_functions) && all(sapply(summary_functions, is.function))) {
+		if(!all(surfaces %in% names(summary_functions))) stop("You need to provide a summary function for each reference surface.")
+	} else {
+		stop("summary_functions must be either a single function or a named list with names corresponding to reference surfaces")
 	}
 
 	# Extracting data.frames relating thermal pixel values to temperature for each polygon

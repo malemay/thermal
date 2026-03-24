@@ -4,7 +4,13 @@
 \alias{thermal_lm}
 \title{Create linear models of temperature as a function of thermal digital numbers}
 \usage{
-thermal_lm(metadata, polygons, summary_functions, surfaces, ncores = 1)
+thermal_lm(
+  metadata,
+  polygons,
+  surfaces,
+  summary_functions = max_density,
+  ncores = 1
+)
 }
 \arguments{
 \item{metadata}{A data.frame of metadata on a given flight, such as returned
@@ -16,14 +22,15 @@ surfaces. An "ID" column should be used to identify each of the reference
 surfaces Each element of the list must be named according to the row names
 of the metadata.}
 
-\item{summary_functions}{A named list with functions used to summarize the
-values for each given reference surface. The names of the list elements
-should correspond to the IDs of the reference surfaces. The functions should
-return a single value from an input vector with multiple values.}
-
 \item{surfaces}{A character vector with the names of the reference surfaces
 to use for computing linear models. Not all available surfaces may be used
 if any should be excluded from computation.}
+
+\item{summary_functions}{A single function or a named list with functions
+used to summarize the pixel values for each given reference surface. If a
+list, the names of the list elements should correspond to the IDs of the
+reference surfaces. The functions should return a single value from an input
+vector with multiple values.}
 
 \item{ncores}{An integer indicating the number of cores to use. Passed to
 \code{\link[parallel]{mclapply}}. Defaults to 1 (no parallel processing).}

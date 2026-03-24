@@ -7,10 +7,11 @@
 plot_pixtemp(
   model_data,
   id = NULL,
-  lcol = c(black = "black", gray = "gray", white = "blue"),
+  lcol = "black",
   col.model.points = "red",
   cex.model.points = 2,
   cex.line = 1,
+  ask = FALSE,
   ...
 )
 }
@@ -21,10 +22,14 @@ were fitted by combining surface temperature data with thermal pixel values.}
 
 \item{id}{A character string indicating the ID of the picture for which the
 model data should be displayed. Must correspond to one of the polygon IDs
-used for extracting pixel values.}
+used for extracting pixel values. If NULL (the default), then the data for
+all pictures is displayed; this may not be what you want if you have a lot
+of pictures.}
 
-\item{lcol}{A named ("black", "gray", "white") character vector indicating
-the colors to use for plotting the pixel values of each surface.}
+\item{lcol}{Either a single value that can be interpreted as a color or a
+named character vector (with names corresponding to surface IDs) indicating
+the colors to use for plotting the pixel values of each surface. Defaults to
+"black".}
 
 \item{col.model.points}{The color(s) to use for the points used to compute
 the model.}
@@ -34,6 +39,10 @@ compute the model.}
 
 \item{cex.line}{A single numeric value. The cex parameter for the dotted
 line showing the values predicted by the linear model.}
+
+\item{ask}{A logical value indicating whether the function should wait
+for user input before displaying the next plot. Defaults to FALSE but it can
+be helpful to set it to TRUE for interactive analysis.}
 
 \item{...}{Other graphical parametres passed to the main plotting function}
 }

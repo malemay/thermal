@@ -70,9 +70,9 @@ plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
 
 	# Adding an axis for the time
 	if(is.null(at)) {
-		graphics::axis.POSIXct(1, tempdata$black$time, ...)
+		graphics::axis.POSIXct(1, tempdata[[1]]$time, ...)
 	} else {
-		graphics::axis.POSIXct(1, tempdata$black$time, at = at, ...)
+		graphics::axis.POSIXct(1, tempdata[[1]]$time, at = at, ...)
 	}
 
 	if(!is.null(legend.pos)) {
@@ -429,15 +429,22 @@ thermal_predict <- function(metadata, dn_value) {
 #' were fitted by combining surface temperature data with thermal pixel values.
 #' @param id A character string indicating the ID of the picture for which the
 #' model data should be displayed. Must correspond to one of the polygon IDs
-#' used for extracting pixel values.
-#' @param lcol A named ("black", "gray", "white") character vector indicating
-#' the colors to use for plotting the pixel values of each surface.
+#' used for extracting pixel values. If NULL (the default), then the data for
+#' all pictures is displayed; this may not be what you want if you have a lot
+#' of pictures.
+#' @param lcol Either a single value that can be interpreted as a color or a
+#' named character vector (with names corresponding to surface IDs) indicating
+#' the colors to use for plotting the pixel values of each surface. Defaults to
+#' "black".
 #' @param col.model.points The color(s) to use for the points used to compute
 #' the model.
 #' @param cex.model.points The cex parameter to use for the points used to
 #' compute the model.
 #' @param cex.line A single numeric value. The cex parameter for the dotted
 #' line showing the values predicted by the linear model.
+#' @param ask A logical value indicating whether the function should wait
+#' for user input before displaying the next plot. Defaults to FALSE but it can
+#' be helpful to set it to TRUE for interactive analysis.
 #' @param ... Other graphical parametres passed to the main plotting function
 #'
 #' @return NULL, invisibly. This function is invoked for its plotting
@@ -446,23 +453,46 @@ thermal_predict <- function(metadata, dn_value) {
 #' @export
 #' @examples
 #' NULL
-plot_pixtemp <- function(model_data, id = NULL,
-			 lcol = c(black = "black", gray = "gray", white = "blue"),
+plot_pixtemp <- function(model_data, id = NULL, lcol = "black",
 			 col.model.points = "red", cex.model.points = 2,
-			 cex.line = 1,
+			 cex.line = 1, ask = FALSE,
 			 ...) {
 
-	if(is.null(id)) stop("You need to specify the image ID to display prior to plotting with plot_pixtemp.")
+	# Setting ID to all images if ID is not specified
+	if(is.null(id)) {
+		id <- names(model_data$pixels)
+	}
 
-	model <- model_data$models[[id]]
-	pixel_values <- model_data$pixels[[id]]
+	stopifnot(all(id %in% names(model_data$pixels)))
 
-	# Plotting a scatterplot of the pixel/temperature values
-	plot(pixel_values$thermal, pixel_values$temp, col = lcol[pixel_values$ID], ...)
+	# Formatting the lcol vector if only one value was provided
+	surface_ids <- unique(unlist(lapply(model_data$pixels, function(x) x$ID)))
 
-	# Plotting a linear model of temperature as a function of thermal values if requested
-	if(!is.null(model)) {
+	if(length(lcol) == 1) {
+		lcol <- rep(lcol, length(surface_ids))
+		names(lcol) <- surface_ids
+	}
+
+	stopifnot(length(lcol) == length(surface_ids) && all(names(surface_ids) %in% names(lcol)))
+
+	# Looping over all the IDs
+	for(i in id) {
+
+		# Extracting the model and pixel values for that image
+		model <- model_data$models[[i]]
+		pixel_values <- model_data$pixels[[i]]
+
+		# Plotting a scatterplot of the pixel/temperature values
+		plot(pixel_values$thermal, pixel_values$temp,
+		     xlab = "Pixel value", ylab = "Surface temperature",
+		     main = i,
+		     col = lcol[pixel_values$ID],
+		     ask = ask,
+		     ...)
+
+		# Plotting a linear model of temperature as a function of thermal values
 		graphics::abline(reg = model, lty = 3, cex = cex.line)
+
 		# Also plotting the points used for the model
 		graphics::points(x = model$model$pixel,
 				 y = model$model$temp,

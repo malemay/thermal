@@ -268,12 +268,11 @@ gray panel pixel values are shown in gray, and white panel pixel values are show
 in blue. The red point show the summarized values (one per panel) that were
 used to fit the models.
 
-```{r plot-pixtemp, fig.width = 8, fig.height = 24}
-par(mfrow = c(9, 3))
+```{r plot-pixtemp, fig.width = 8, fig.height = 16}
+par(mfrow = c(7, 4))
 
-for(i in names(thermal_models$models)) {
-        plot_pixtemp(model_data = thermal_models, id = i)
-}
+plot_pixtemp(model_data = thermal_models,
+	     lcol = c(black = "black", gray = "gray", white = "blue"))
 ```
 
 We can see that the models are a bit off for some of the images, which is to be

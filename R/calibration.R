@@ -254,8 +254,11 @@ join_thermal <- function(metadata, polygons, surfaces, ncores = 1) {
 #' @param summary_functions A single function or a named list with functions
 #' used to summarize the pixel values for each given reference surface. If a
 #' list, the names of the list elements should correspond to the IDs of the
-#' reference surfaces. The functions should return a single value from an input
-#' vector with multiple values.
+#' reference surfaces. The functions used should return a single value
+#' summarizing the distribution of pixel values for each surface (for example,
+#' the mean or median) or a numeric vector of values that have been filtered or
+#' even left as is (if the function \code{\link[base]{identity}} is used, for
+#' example). By default, the function \code{\link{max_density}} is used.
 #' @param surfaces A character vector with the names of the reference surfaces
 #' to use for computing linear models. Not all available surfaces may be used
 #' if any should be excluded from computation.
@@ -265,7 +268,11 @@ join_thermal <- function(metadata, polygons, surfaces, ncores = 1) {
 #' @return A list of three elements: 
 #' \itemize{
 #' \item metadata: a data.frame of flight metadata updated with critical model
-#' information (the pixel values used to fit the model and the model estimates)
+#' information ('slope' and 'intercept' for the linear models' slope and
+#' intercept, respectively). If the summary functions used return a single
+#' value summarizing the distribution for a given surface, columns following
+#' the template 'surface name + pix' will be added with the summarized value
+#' for that surface.
 #' \item models: a list of the fitted linear models of radiometric calibration.
 #' \item pixels: a list of data.frames (one for each element in polygons) with
 #' the thermal pixels and temperature corresponding to each surface.
@@ -303,35 +310,41 @@ thermal_lm <- function(metadata, polygons, surfaces, summary_functions = max_den
 	pixel_values <- join_thermal(metadata, polygons, surfaces, ncores = ncores)
 
 	# Computing model data and the model itself for all elements in pixel_values
-	models <- parallel::mclapply(names(pixel_values), function(i, pixels) {
+	models <- parallel::mclapply(names(pixel_values), function(i, pixels, surfaces, functions) {
 
 				 # Extracting the pixels for this picture
 				 i_pixels <- pixels[[i]]
+				 
+				 # We only keep the surfaces that are explicitly asked for
+				 i_pixels <- i_pixels[i_pixels$ID %in% surfaces, ]
 
-				 # Initializing the model data and naming the rows according to surface ID
-				 model_data <- data.frame(ID = unique(i_pixels$ID),
-							  pixel = NA,
-							  temp = NA)
+				 # Formatting the data for fitting the model by summarizing the pixels from each surface
+				 model_data <- lapply(split(i_pixels, i_pixels$ID), function(x, functions) {
+							      # Extracting the ID and temperature for that image and surface
+							      id <- unique(x$ID)
+							      temp <- unique(x$temp)
+							      stopifnot(length(id) == 1 && length(temp) == 1)
 
-				 rownames(model_data) <- model_data$ID
+							      # Formatting the data.frame by summarizing the data
+							      data.frame(ID = id,
+									 pixel = functions[[id]](x$thermal),
+									 temp = temp)
+							  }, functions = functions)
 
-				 # Looping over the reference surfaces
-				 for(i in rownames(model_data)) {
-					 # Summarizing the pixel values based on the provided functions
-					 model_data[i, "pixel"] <- summary_functions[[i]](i_pixels[i_pixels$ID == i, "thermal"])
-					 stopifnot(length(i_temp <- unique(i_pixels[i_pixels$ID == i, "temp"])) == 1)
-					 model_data[i, "temp"] <- i_temp
+				 # Combining the data from all surfaces into a single data.frame
+				 model_data <- do.call("rbind", model_data)
+
+				 # If the function has summarized the data into a single pixel value, then we assign row names
+				 if(nrow(model_data) == length(surfaces) && all(surfaces %in% model_data$ID)) {
+					 rownames(model_data) <- model_data$ID
 				 }
-
-				 # Keeping only the surfaces that we do want to use
-				 model_data <- model_data[rownames(model_data) %in% surfaces, ]
 
 				 # Computing the linear model based on this data
 				 model <- stats::lm(temp ~ pixel, data = model_data)
 
-				 # We return a list with the data used to fit the model and the model itself
+				 # Returning the fitted model
 				 model
-			  }, pixels = pixel_values, mc.cores = ncores)
+			  }, pixels = pixel_values, surfaces = surfaces, functions = summary_functions, mc.cores = ncores)
 
 	# Naming the elements of the model list
 	names(models) <- names(pixel_values)
@@ -343,7 +356,13 @@ thermal_lm <- function(metadata, polygons, surfaces, summary_functions = max_den
 
 	# Filling in the values only for the metadata rows for which we have surfaces
 	for(i in names(models)) {
-		for(j in surfaces) metadata[i, paste0(j, "pix")] <- models[[i]]$model[j, "pixel"]
+
+		if(nrow(models[[i]]$model) == length(surfaces) && all(surfaces %in% rownames(models[[i]]$model))) {
+			for(j in surfaces) {
+				if(j %in% rownames(models[[i]]$model)) metadata[i, paste0(j, "pix")] <- models[[i]]$model[j, "pixel"]
+			}
+		}
+
 		metadata[i, "intercept"] <- stats::coef(models[[i]])[1]
 		metadata[i, "slope"] <- stats::coef(models[[i]])[2]
 	}

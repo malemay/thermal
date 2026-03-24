@@ -236,10 +236,10 @@ thermal_models <- thermal_lm(metadata = tmeta_df,
 			     ncores = 2)
 ```
 
-The value returned by `thermal_lm` is a list of three elements, the first of which is
-the flight metadata updated with the results of the linear models for each picture.
-Pictures for which no panels were in the frame display `NA` for linear model-related
-variables such as slope and intercept:
+The value returned by `thermal_lm` is a list of three elements, the first of
+which is the flight metadata updated with the results of the linear models for
+each picture.  Pictures for which no panels were in the frame display `NA` for
+linear model-related variables such as slope and intercept:
 
 ```{r thermal-lm-metadata}
 tmeta_df <- thermal_models$metadata

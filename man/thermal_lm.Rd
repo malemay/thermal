@@ -29,8 +29,11 @@ if any should be excluded from computation.}
 \item{summary_functions}{A single function or a named list with functions
 used to summarize the pixel values for each given reference surface. If a
 list, the names of the list elements should correspond to the IDs of the
-reference surfaces. The functions should return a single value from an input
-vector with multiple values.}
+reference surfaces. The functions used should return a single value
+summarizing the distribution of pixel values for each surface (for example,
+the mean or median) or a numeric vector of values that have been filtered or
+even left as is (if the function \code{\link[base]{identity}} is used, for
+example). By default, the function \code{\link{max_density}} is used.}
 
 \item{ncores}{An integer indicating the number of cores to use. Passed to
 \code{\link[parallel]{mclapply}}. Defaults to 1 (no parallel processing).}
@@ -39,7 +42,11 @@ vector with multiple values.}
 A list of three elements:
 \itemize{
 \item metadata: a data.frame of flight metadata updated with critical model
-information (the pixel values used to fit the model and the model estimates)
+information ('slope' and 'intercept' for the linear models' slope and
+intercept, respectively). If the summary functions used return a single
+value summarizing the distribution for a given surface, columns following
+the template 'surface name + pix' will be added with the summarized value
+for that surface.
 \item models: a list of the fitted linear models of radiometric calibration.
 \item pixels: a list of data.frames (one for each element in polygons) with
 the thermal pixels and temperature corresponding to each surface.

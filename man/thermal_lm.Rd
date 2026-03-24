@@ -40,8 +40,7 @@ A list of three elements:
 \itemize{
 \item metadata: a data.frame of flight metadata updated with critical model
 information (the pixel values used to fit the model and the model estimates)
-\item models: a list ofdata used to fit the linear models and the models
-themselves.
+\item models: a list of the fitted linear models of radiometric calibration.
 \item pixels: a list of data.frames (one for each element in polygons) with
 the thermal pixels and temperature corresponding to each surface.
 }

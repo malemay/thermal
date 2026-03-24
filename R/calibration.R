@@ -266,8 +266,7 @@ join_thermal <- function(metadata, polygons, surfaces, ncores = 1) {
 #' \itemize{
 #' \item metadata: a data.frame of flight metadata updated with critical model
 #' information (the pixel values used to fit the model and the model estimates)
-#' \item models: a list ofdata used to fit the linear models and the models
-#' themselves.
+#' \item models: a list of the fitted linear models of radiometric calibration.
 #' \item pixels: a list of data.frames (one for each element in polygons) with
 #' the thermal pixels and temperature corresponding to each surface.
 #' }
@@ -331,7 +330,7 @@ thermal_lm <- function(metadata, polygons, surfaces, summary_functions = max_den
 				 model <- stats::lm(temp ~ pixel, data = model_data)
 
 				 # We return a list with the data used to fit the model and the model itself
-				 list(data = model_data, model = model)
+				 model
 			  }, pixels = pixel_values, mc.cores = ncores)
 
 	# Naming the elements of the model list
@@ -344,9 +343,9 @@ thermal_lm <- function(metadata, polygons, surfaces, summary_functions = max_den
 
 	# Filling in the values only for the metadata rows for which we have surfaces
 	for(i in names(models)) {
-		for(j in surfaces) metadata[i, paste0(j, "pix")] <- models[[i]]$data[j, "pixel"]
-		metadata[i, "intercept"] <- stats::coef(models[[i]]$model)[1]
-		metadata[i, "slope"] <- stats::coef(models[[i]]$model)[2]
+		for(j in surfaces) metadata[i, paste0(j, "pix")] <- models[[i]]$model[j, "pixel"]
+		metadata[i, "intercept"] <- stats::coef(models[[i]])[1]
+		metadata[i, "slope"] <- stats::coef(models[[i]])[2]
 	}
 
 	# Returning a list with the metadata and the models
@@ -444,10 +443,10 @@ plot_pixtemp <- function(model_data, id = NULL,
 
 	# Plotting a linear model of temperature as a function of thermal values if requested
 	if(!is.null(model)) {
-		graphics::abline(reg = model$model, lty = 3, cex = cex.line)
+		graphics::abline(reg = model, lty = 3, cex = cex.line)
 		# Also plotting the points used for the model
-		graphics::points(x = model$data$pixel,
-				 y = model$data$temp,
+		graphics::points(x = model$model$pixel,
+				 y = model$model$temp,
 				 col = col.model.points,
 				 cex = cex.model.points)
 	}

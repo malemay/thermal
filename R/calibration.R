@@ -304,7 +304,7 @@ thermal_lm <- function(metadata, polygons, surfaces, summary_functions = max_den
 	pixel_values <- join_thermal(metadata, polygons, surfaces, ncores = ncores)
 
 	# Computing model data and the model itself for all elements in pixel_values
-	models <- lapply(names(pixel_values), function(i, pixels) {
+	models <- parallel::mclapply(names(pixel_values), function(i, pixels) {
 
 				 # Extracting the pixels for this picture
 				 i_pixels <- pixels[[i]]
@@ -332,7 +332,7 @@ thermal_lm <- function(metadata, polygons, surfaces, summary_functions = max_den
 
 				 # We return a list with the data used to fit the model and the model itself
 				 list(data = model_data, model = model)
-			  }, pixels = pixel_values)
+			  }, pixels = pixel_values, mc.cores = ncores)
 
 	# Naming the elements of the model list
 	names(models) <- names(pixel_values)

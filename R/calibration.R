@@ -181,7 +181,7 @@ add_temp_metadata <- function(metadata, temperature_list, tolerance = as.difftim
 #' surfaces. An "ID" column should be used to identify each of the reference
 #' surfaces Each element of the list must be named according to the row names
 #' of the metadata.
-#' @param columns A character vector of columns in the metadata that represent
+#' @param surfaces A character vector of columns in the metadata that represent
 #' names of reference surfaces which are found in the column "ID" of the
 #' \code{polygons} argument.
 #' @param ncores An integer indicating the number of cores to use. Passed to
@@ -197,26 +197,15 @@ add_temp_metadata <- function(metadata, temperature_list, tolerance = as.difftim
 #' Each element of the list returned is named after the ID of the picture,
 #' which also matches the row names of the metadata.
 #' 
-#' @export
-#' @examples
-#' NULL
-join_thermal <- function(metadata, polygons, columns, ncores = 1) {
-
-	# Ensuring that the metadata contains temperature data
-	if(!all(columns %in% colnames(metadata))) {
-		stop("metadata input does not contain the columns ", paste(columns, collapse = " "))
-	}
-
-	# Also ensuring that all polygons correspond to rows in the metadata
-	if(!all(names(polygons) %in% rownames(metadata))) {
-		stop("All input polygon names must correspond to row names in metadata.")
-	}
+#' @noRd
+join_thermal <- function(metadata, polygons, surfaces, ncores = 1) {
 
 	# Extracting the values of the thermal pixels based on the polygons
-	output <- parallel::mclapply(names(polygons), function(i, polygons, mdata, columns){
-					     # Checking that the IDs of the polygons match the columns
-					     if(!all(polygons[[i]]$ID %in% columns)) {
-						     stop("The 'ID' column of the polygons must match the 'columns' arguments.")
+	output <- parallel::mclapply(names(polygons), function(i, polygons, mdata, surfaces){
+					     # Checking that the IDs of the polygons match the surfaces
+					     if(!any(polygons[[i]]$ID %in% surfaces)) {
+						     warning("None of the polygon IDs in polygon ", i, " correspond to the requested surfaces.")
+						     return(data.frame(ID = character(), thermal = numeric(), temp = numeric()))
 					     }
 
 					     # Extracting the values from the thermal raster and naming the column
@@ -226,18 +215,22 @@ join_thermal <- function(metadata, polygons, columns, ncores = 1) {
 					     names(pix_values)[2] <- "thermal"
 
 					     # Using the ID to extract temperature values
+					     # by using surface IDs to index into temperature values
 					     pix_values$ID <- polygons[[i]]$ID[pix_values$ID]
-					     temperature_lookup <- as.numeric(mdata[i, columns])
-					     names(temperature_lookup) <- columns
+					     temperature_lookup <- as.numeric(mdata[i, surfaces])
+					     names(temperature_lookup) <- surfaces
 					     pix_values$temp <- temperature_lookup[pix_values$ID]
 
 					     # A sanity check before returning
-					     if(any(!stats::complete.cases(pix_values))) stop("NA values not allowed in temperature or thermal pixels")
-					     pix_values
-	     }, polygons = polygons, mdata = metadata, columns = columns, mc.cores = ncores)
+					     if(any(!stats::complete.cases(pix_values))) warning("NA values found in pixel data for polygon ", i)
+
+					     # Returning the data.frame of thermal pixel/temperature values
+					     return(pix_values)
+	     }, polygons = polygons, mdata = metadata, surfaces = surfaces, mc.cores = ncores)
 
 	# Naming the list elements after the polygon IDs
 	names(output) <- names(polygons)
+
 	return(output)
 }
 
@@ -254,10 +247,10 @@ join_thermal <- function(metadata, polygons, columns, ncores = 1) {
 #' @param metadata A data.frame of metadata on a given flight, such as returned
 #' by \code{\link{read_metadata}}. Row names of this data.frame must correspond
 #' to the names of the elements in pixel_values.
-#' @param pixel_values A list of data.frames linking thermal pixel values to
-#' temperature, as returned by \code{\link{join_thermal}}. The names of the
-#' elements in this list must correspond to the row names of the metadata
-#' input.
+#' @param polygons A list of sf polygons representing the location of reference
+#' surfaces. An "ID" column should be used to identify each of the reference
+#' surfaces Each element of the list must be named according to the row names
+#' of the metadata.
 #' @param summary_functions A named list with functions used to summarize the
 #' values for each given reference surface. The names of the list elements
 #' should correspond to the IDs of the reference surfaces. The functions should
@@ -265,27 +258,41 @@ join_thermal <- function(metadata, polygons, columns, ncores = 1) {
 #' @param surfaces A character vector with the names of the reference surfaces
 #' to use for computing linear models. Not all available surfaces may be used
 #' if any should be excluded from computation.
+#' @param ncores An integer indicating the number of cores to use. Passed to
+#' \code{\link[parallel]{mclapply}}. Defaults to 1 (no parallel processing).
 #'
-#' @return A list of two elements, the first one containing the metadata
-#' updated with critical model information (the pixel values used to fit the
-#' model and the model estimates) , and the second element containing a list of
-#' data used to fit the linear models and the models themselves.  The metadata
-#' rows for which no model was fitted will have model-related values set to NA.
+#' @return A list of three elements: 
+#' \itemize{
+#' \item metadata: a data.frame of flight metadata updated with critical model
+#' information (the pixel values used to fit the model and the model estimates)
+#' \item models: a list ofdata used to fit the linear models and the models
+#' themselves.
+#' \item pixels: a list of data.frames (one for each element in polygons) with
+#' the thermal pixels and temperature corresponding to each surface.
+#' }
 #'
 #' @export
 #' @examples
 #' NULL
-thermal_lm <- function(metadata, pixel_values, summary_functions, surfaces) {
+thermal_lm <- function(metadata, polygons, summary_functions, surfaces, ncores = 1) {
 
-	# We check that all pixel_values names are in the metadata
-	if(!all(names(pixel_values) %in% rownames(metadata))) {
-		stop("The names of pixel_values must match row names in metadata.")
+	# Ensuring that the metadata contains temperature data
+	if(!all(surfaces %in% colnames(metadata))) {
+		stop("metadata input does not contain the columns: ", paste(surfaces, collapse = ","))
+	}
+
+	# Ensuring that all polygons correspond to rows in the metadata
+	if(!all(names(polygons) %in% rownames(metadata))) {
+		stop("All input polygon names must correspond to row names in metadata.")
 	}
 
 	# Checking that all the names of the surfaces to use are in the summary_functions list
 	if(!all(surfaces %in% names(summary_functions))) {
 		stop("You need to provide a summary function for each reference surface.")
 	}
+
+	# Extracting data.frames relating thermal pixel values to temperature for each polygon
+	pixel_values <- join_thermal(metadata, polygons, surfaces, ncores = ncores)
 
 	# Computing model data and the model itself for all elements in pixel_values
 	models <- lapply(names(pixel_values), function(i, pixels) {
@@ -334,7 +341,7 @@ thermal_lm <- function(metadata, pixel_values, summary_functions, surfaces) {
 	}
 
 	# Returning a list with the metadata and the models
-	list(metadata = metadata, models = models)
+	list(metadata = metadata, models = models, pixels = pixel_values)
 }
 
 #' Identify the mode from the density of a distribution
@@ -390,15 +397,14 @@ thermal_predict <- function(metadata, dn_value) {
 #' pixel values to temperature by representing the raw data, summarized data,
 #' and model output in the same plot.
 #'
-#' @param pixel_values A data.frame linking thermal pixel values to
-#' temperature, as returned by \code{\link{join_thermal}}.
+#' @param model_data A list, such as returned by \code{\link{thermal_lm}},
+#' containing flight metadata along with radiometric calibration models that
+#' were fitted by combining surface temperature data with thermal pixel values.
+#' @param id A character string indicating the ID of the picture for which the
+#' model data should be displayed. Must correspond to one of the polygon IDs
+#' used for extracting pixel values.
 #' @param lcol A named ("black", "gray", "white") character vector indicating
 #' the colors to use for plotting the pixel values of each surface.
-#' @param model A list containing data used for fitting a linear model that
-#' links the temperature to the pixel values, and the linear model itself, used
-#' for plotting the regression line and values used for fitting the model. Such
-#' objects are returned by \code{\link{thermal_lm}}.  If NULL (the default),
-#' then the output of the model is not plotted.
 #' @param col.model.points The color(s) to use for the points used to compute
 #' the model.
 #' @param cex.model.points The cex parameter to use for the points used to
@@ -413,13 +419,16 @@ thermal_predict <- function(metadata, dn_value) {
 #' @export
 #' @examples
 #' NULL
-plot_pixtemp <- function(pixel_values,
+plot_pixtemp <- function(model_data, id = NULL,
 			 lcol = c(black = "black", gray = "gray", white = "blue"),
-			 model = NULL,
 			 col.model.points = "red", cex.model.points = 2,
 			 cex.line = 1,
 			 ...) {
 
+	if(is.null(id)) stop("You need to specify the image ID to display prior to plotting with plot_pixtemp.")
+
+	model <- model_data$models[[id]]
+	pixel_values <- model_data$pixels[[id]]
 
 	# Plotting a scatterplot of the pixel/temperature values
 	plot(pixel_values$thermal, pixel_values$temp, col = lcol[pixel_values$ID], ...)

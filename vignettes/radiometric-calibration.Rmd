@@ -182,8 +182,7 @@ a function of thermal DN involves the following steps for each picture:
 
 Many of these steps occur under the hood, but it is important to understand the
 sequence of manipulations because `thermal` exposes functionality to manipulate
-some of these steps through the functions `add_temp_metadata`, `join_thermal`
-and `thermal_lm`.
+some of these steps through the functions `add_temp_metadata` and `thermal_lm`.
 
 The function `add_temp_metadata` adds columns for the temperature of the
 reference surfaces to the data.frame of flight metadata. Using the flight
@@ -204,36 +203,39 @@ str(tmeta_df)
 As can be seen from the output above, three new columns have been added to the
 metadata, one for the temperature of each of the three panels.
 
-Next, the function `join_thermal` joins the data from the thermal images and
-temperature in preparation for fitting thermal models. This step requires the
-row names of the flight metadata to match the IDs of the spatial polygons
+Next, the function `thermal_lm` fits the radiometric calibration models by
+combining information from three sources: the thermal infrared images, the
+spatial location of the reference surfaces in the images, and the temperature
+of the surfaces at the time when the pictures were taken. This step requires
+the row names of the flight metadata to match the IDs of the spatial polygons
 representing the positions of the panels as these IDs will be used to associate
 the polygons with their image.
 
-```{r join-thermal}
-pixel_data <- join_thermal(tmeta_df, panels, columns = c("black", "gray", "white"))
-
-head(pixel_data)
-```
-
-Once the pixels have been extracted from the images, linear models can be
-fitted for each image. A summary function has to be provided to reduce the
+Internally, `thermal_lm` will first extract the pixels corresponding to each
+surface from the images. A summary function has to be provided to reduce the
 pixels for a given panel to a single value. Typically, this function would be
 `max_density`, a function that determines where the density of the distribution
 is maximal. However, since the images that we use here have very low
 resolution, we will use the median instead such that the analysis works even
-with a single pixel. This summary function needs to be provided for each surface
-as the function allows for using different functions for summarizing the values
-of each panel.
+with a single pixel. This summary function needs to be provided for each
+surface as the function allows for using different functions for summarizing
+the values of each panel.
+
+Once each reference surface has been reduced to a single thermal infrared value
+and a single surface temperature value, `thermal_lm` will fit one linear model
+of surface temperature as a function of measured thermal infrared radiation for
+each picture in the dataset for which such information is available.
+
 
 ```{r thermal-lm}
 thermal_models <- thermal_lm(metadata = tmeta_df,
-                             pixel_values = pixel_data,
+			     polygons = panels,
                              summary_functions = list(black = median, gray = median, white = median),
-                             surfaces = c("black", "gray", "white"))
+                             surfaces = c("black", "gray", "white"),
+			     ncores = 2)
 ```
 
-The value returned by `thermal_lm` is a list of two elements, the first of which is
+The value returned by `thermal_lm` is a list of three elements, the first of which is
 the flight metadata updated with the results of the linear models for each picture.
 Pictures for which no panels were in the frame display `NA` for linear model-related
 variables such as slope and intercept:
@@ -251,6 +253,11 @@ as the pixel values that were used to fit them, for example for the first model:
 thermal_models$models[[1]]
 ```
 
+Finally, the third element of the returned list contains information on the
+values of all the pixels that were extracted from the reference surfaces, prior
+to being reduced to a single value. This can be useful for diagnosing any
+issues with radiometric calibration.
+
 # Quality control
 
 At this stage, it may by worth assessing the results critically. We can use the
@@ -264,7 +271,7 @@ used to fit the models.
 par(mfrow = c(9, 3))
 
 for(i in names(thermal_models$models)) {
-        plot_pixtemp(pixel_values = pixel_data[[i]], model = thermal_models$model[[i]])
+        plot_pixtemp(model_data = thermal_models, id = i)
 }
 ```
 
@@ -321,9 +328,10 @@ rownames(corrected_df) <- substr(basename(corrected_df$SourceFile), 1, 8)
 corrected_df <- add_temp_metadata(corrected_df, temperature, tolerance = as.difftime(5, units = "secs"))
 
 corrected_df <- thermal_lm(metadata = corrected_df,
-			   pixel_values = join_thermal(corrected_df, panels, columns = c("black", "gray", "white")),
+			   polygons = panels,
 			   summary_functions = list(black = median, gray = median, white = median),
-			   surfaces = c("black", "gray", "white"))$metadata
+			   surfaces = c("black", "gray", "white"),
+			   ncores = 2)$metadata
 
 # A plot of temperature predicted from a DN of 3500 from models fitted at various time points
 corrected_df$prediction <- thermal_predict(corrected_df, dn_value = 3500)

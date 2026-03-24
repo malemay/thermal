@@ -5,9 +5,9 @@
 \title{Plot surface temperature as a function of thermal digital numbers}
 \usage{
 plot_pixtemp(
-  pixel_values,
+  model_data,
+  id = NULL,
   lcol = c(black = "black", gray = "gray", white = "blue"),
-  model = NULL,
   col.model.points = "red",
   cex.model.points = 2,
   cex.line = 1,
@@ -15,17 +15,16 @@ plot_pixtemp(
 )
 }
 \arguments{
-\item{pixel_values}{A data.frame linking thermal pixel values to
-temperature, as returned by \code{\link{join_thermal}}.}
+\item{model_data}{A list, such as returned by \code{\link{thermal_lm}},
+containing flight metadata along with radiometric calibration models that
+were fitted by combining surface temperature data with thermal pixel values.}
+
+\item{id}{A character string indicating the ID of the picture for which the
+model data should be displayed. Must correspond to one of the polygon IDs
+used for extracting pixel values.}
 
 \item{lcol}{A named ("black", "gray", "white") character vector indicating
 the colors to use for plotting the pixel values of each surface.}
-
-\item{model}{A list containing data used for fitting a linear model that
-links the temperature to the pixel values, and the linear model itself, used
-for plotting the regression line and values used for fitting the model. Such
-objects are returned by \code{\link{thermal_lm}}.  If NULL (the default),
-then the output of the model is not plotted.}
 
 \item{col.model.points}{The color(s) to use for the points used to compute
 the model.}

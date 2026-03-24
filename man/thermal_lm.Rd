@@ -4,17 +4,17 @@
 \alias{thermal_lm}
 \title{Create linear models of temperature as a function of thermal digital numbers}
 \usage{
-thermal_lm(metadata, pixel_values, summary_functions, surfaces)
+thermal_lm(metadata, polygons, summary_functions, surfaces, ncores = 1)
 }
 \arguments{
 \item{metadata}{A data.frame of metadata on a given flight, such as returned
 by \code{\link{read_metadata}}. Row names of this data.frame must correspond
 to the names of the elements in pixel_values.}
 
-\item{pixel_values}{A list of data.frames linking thermal pixel values to
-temperature, as returned by \code{\link{join_thermal}}. The names of the
-elements in this list must correspond to the row names of the metadata
-input.}
+\item{polygons}{A list of sf polygons representing the location of reference
+surfaces. An "ID" column should be used to identify each of the reference
+surfaces Each element of the list must be named according to the row names
+of the metadata.}
 
 \item{summary_functions}{A named list with functions used to summarize the
 values for each given reference surface. The names of the list elements
@@ -24,13 +24,20 @@ return a single value from an input vector with multiple values.}
 \item{surfaces}{A character vector with the names of the reference surfaces
 to use for computing linear models. Not all available surfaces may be used
 if any should be excluded from computation.}
+
+\item{ncores}{An integer indicating the number of cores to use. Passed to
+\code{\link[parallel]{mclapply}}. Defaults to 1 (no parallel processing).}
 }
 \value{
-A list of two elements, the first one containing the metadata
-updated with critical model information (the pixel values used to fit the
-model and the model estimates) , and the second element containing a list of
-data used to fit the linear models and the models themselves.  The metadata
-rows for which no model was fitted will have model-related values set to NA.
+A list of three elements:
+\itemize{
+\item metadata: a data.frame of flight metadata updated with critical model
+information (the pixel values used to fit the model and the model estimates)
+\item models: a list ofdata used to fit the linear models and the models
+themselves.
+\item pixels: a list of data.frames (one for each element in polygons) with
+the thermal pixels and temperature corresponding to each surface.
+}
 }
 \description{
 This function creates thermal models for each dataset of temperature and

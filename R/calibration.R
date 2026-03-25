@@ -1,3 +1,89 @@
+#' Set reference surface coordinates through interactive clicking
+#'
+#' Panel corners are to be clicked on clockwise.
+#'
+#' @param x A SpatRaster object to query for coordinates.
+#'
+#' @return An polygon object of class sfc that represents the coordinates of a
+#' surface in a reference coordinate system.
+#'
+#' @noRd
+set_coords <- function(x, nclicks = 4) {
+
+	# Interactively getting the coordinates of the panel
+	coords <- terra::click(x, n = nclicks, xy = TRUE)
+
+	# Formatting the coordinates and closing the shape by repeating the first row
+	coords <- rbind(coords[, c("x", "y")], coords[1, c("x", "y")])
+
+	# Creating an object of the sfc class from the supplied coordinates
+	output <- sf::st_as_sf(sf::st_as_sfc(sf::st_as_binary(sf::st_polygon(list(as.matrix(coords))))))
+
+	# Setting the coordinate reference system (same as the raster)
+	sf::st_crs(output) <- sf::st_crs(x)
+
+	output
+}
+
+#' Interactively identify reference surface coordinates from a raster
+#'
+#' This function is meant as a helper to interactively define the coordinates
+#' of reference surfaces to be used in radiometric calibration with package
+#' thermal. Calling this function will zoom onto an area of the input image
+#' where reference surfaces are located and will query for as many polygons as
+#' the number of values in the vector 'ids'. The user will be asked to click in
+#' clockwise order on as many vertices as specified by argument 'nclicks' to
+#' define the shape of each surface.  The resulting shapes can be written to
+#' disk storage using \code{\link[sf]{st_write}}.
+#'
+#' @param image Either a SpatRaster object loaded using
+#' \code{\link[terra]{rast}} or a character value which is interpreted as the
+#' path to a file which can be read using \code{\link[terra]{rast}}.
+#' @param ids A charactor vector of reference surface identifiers.
+#' @param nclicks A numeric value corresponding to the number of clicks to
+#' query for each surface. At the moment, the number of clicks is the same for
+#' all surfaces in the vector 'ids'. Defaults to 4, assuming a square or
+#' rectangular shape.
+#'
+#' @return An sf object with the coordinates of the reference surfaces,
+#' including column 'id' for the identifier of the surface. The value returned
+#' by this function can be combined in a named list with other sf objects to
+#' use as input to function \code{\link{thermal_lm}}.
+#'
+#' @export
+#' @examples
+#' NULL
+create_surfaces <- function(image, ids, nclicks = 4) {
+
+	if(!interactive()) stop("create_surfaces can only be called in interactive mode")
+
+	# Reading a picture if provided with a file path
+	if(is.character(image)) image <- terra::rast(image, noflip = TRUE)
+
+	# Querying for an area to zoom on the picture
+	message("Click on the image twice to zoom on an area of interest (top left and botton right corners)")
+	terra::plot(image)
+	panel_region <- terra::zoom(image)
+
+	# Initializing an object to return as output
+	output_shapes <- list()
+
+	# Looping over the ids
+	for(i in ids) {
+		# Getting the coordinates for each of the panels
+		message("Click clockwise on ", nclicks, " vertices of surface ", i)
+		output_shapes[[i]] <- set_coords(terra::crop(image, panel_region), nclicks = nclicks)
+	}
+
+	# Joining all the shapes together and assigning the id column
+	output_shapes <- do.call("rbind", output_shapes)
+	output_shapes$ID <- ids
+
+	plot(output_shapes, add = TRUE)
+
+	return(output_shapes)
+}
+
 #' Plot reference surface temperature data over a given time range
 #'
 #' This function plots the temperature data of reference surfaces over a given
@@ -200,10 +286,16 @@ add_temp_metadata <- function(metadata, temperature_list, tolerance = as.difftim
 #' @noRd
 join_thermal <- function(metadata, polygons, surfaces, ncores = 1) {
 
+	# We verify that the geometry of all polygons is valid and therefore force loading the sf namespace
+	stopifnot(all(sapply(polygons, sf::st_is_valid)))
+
 	# Extracting the values of the thermal pixels based on the polygons
 	output <- parallel::mclapply(names(polygons), function(i, polygons, mdata, surfaces){
+					     # We subset the polygons to the requested surfaces
+					     i_poly <- polygons[[i]][polygons[[i]]$ID %in% surfaces, ]
+
 					     # Checking that the IDs of the polygons match the surfaces
-					     if(!any(polygons[[i]]$ID %in% surfaces)) {
+					     if(!any(i_poly$ID %in% surfaces)) {
 						     warning("None of the polygon IDs in polygon ", i, " correspond to the requested surfaces.")
 						     return(data.frame(ID = character(), thermal = numeric(), temp = numeric()))
 					     }
@@ -211,12 +303,12 @@ join_thermal <- function(metadata, polygons, surfaces, ncores = 1) {
 					     # Extracting the values from the thermal raster and naming the column
 					     stopifnot(file.exists(mdata[i, "SourceFile"]))
 					     irast <- suppressWarnings(terra::rast(mdata[i, "SourceFile"], noflip = TRUE))
-					     pix_values <- terra::extract(irast, polygons[[i]])
+					     pix_values <- terra::extract(irast, i_poly)
 					     names(pix_values)[2] <- "thermal"
 
 					     # Using the ID to extract temperature values
 					     # by using surface IDs to index into temperature values
-					     pix_values$ID <- polygons[[i]]$ID[pix_values$ID]
+					     pix_values$ID <- i_poly$ID[pix_values$ID]
 					     temperature_lookup <- as.numeric(mdata[i, surfaces])
 					     names(temperature_lookup) <- surfaces
 					     pix_values$temp <- temperature_lookup[pix_values$ID]
@@ -475,6 +567,10 @@ plot_pixtemp <- function(model_data, id = NULL, lcol = "black",
 
 	stopifnot(length(lcol) == length(surface_ids) && all(names(surface_ids) %in% names(lcol)))
 
+	# Setting the ask parameter and making sure it returns to original value when exiting function
+	opar <- graphics::par(ask = ask)
+	on.exit(graphics::par(opar))
+
 	# Looping over all the IDs
 	for(i in id) {
 
@@ -487,7 +583,6 @@ plot_pixtemp <- function(model_data, id = NULL, lcol = "black",
 		     xlab = "Pixel value", ylab = "Surface temperature",
 		     main = i,
 		     col = lcol[pixel_values$ID],
-		     ask = ask,
 		     ...)
 
 		# Plotting a linear model of temperature as a function of thermal values

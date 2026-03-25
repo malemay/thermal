@@ -52,4 +52,23 @@ test_that("Radiometric calibration works as expected", {
 		  single_func_models$metadata$prediction <- round(single_func_models$metadata$prediction, 12)
 
 		  expect_identical(single_func_models$metadata[, -1], reference_meta)
+
+		  # Also testing global_lm functionality
+		  global_model <- global_lm(thermal_models)
+		  global_model$metadata$SourceFile <- NULL
+		  global_model$metadata$prediction <- NULL
+		  global_model$metadata$intercept <- round(global_model$metadata$intercept, 12)
+		  global_model$metadata$slope <- round(global_model$metadata$slope, 12)
+
+		  global_reference <- readRDS(test_path("test_files", "global_model.rds"))
+		  global_reference$metadata$SourceFile <- NULL
+		  global_reference$metadata$intercept <- round(global_reference$metadata$intercept, 12)
+		  global_reference$metadata$slope <- round(global_reference$metadata$slope, 12)
+
+		  # We do not test the models themselves because they contain complex data
+		  # However, we do test both the metadata and pixels
+		  global_model$models <- NULL
+		  global_reference$models <- NULL
+
+		  expect_identical(global_model, global_reference)
 })

@@ -30,7 +30,12 @@ thermal_models <- thermal_lm(metadata = tmeta_df,
                              surfaces = c("black", "gray", "white"),
 			     ncores = 2)
 
+# Also creating a reference for the global_lm function
+global_model <- global_lm(thermal_models)
+
 thermal_models$metadata$prediction <- thermal_predict(thermal_models$metadata, dn = 3500)
 
 # These two objects should be sufficient to test the stability of the calibration output
 saveRDS(thermal_models, "thermal_models.rds")
+saveRDS(global_model, "global_model.rds")
+

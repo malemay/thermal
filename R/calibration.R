@@ -463,6 +463,51 @@ thermal_lm <- function(metadata, polygons, surfaces, summary_functions = max_den
 	list(metadata = metadata, models = models, pixels = pixel_values)
 }
 
+#' Create a global radiometric calibration model from all images used in a flight
+#'
+#' Whereas \code{\link{thermal_lm}} creates one radiometric calibration model
+#' for each image in a flight, this function combines data from all images in
+#' the flight to create a global radiometric calibration model from all the
+#' images.
+#'
+#' @param model_data A list of flight metadata, individual models for each
+#' image, and pixel values, such as returned by \code{\link{thermal_lm}}.
+#'
+#' @return A list similar to that provided as input, but in which the metadata,
+#' models, and pixels have been updated to reflect the fact that the model now
+#' globally applies to all images in the flight. The names of the model and pixel
+#' values elements will be called "global". This list is suitable for input to
+#' \code{\link{plot_pixtemp}}.
+#'
+#' @export
+#' @examples
+#' NULL
+global_lm <- function(model_data) {
+	# Checking that the inputs are appropriate
+	if(length(model_data) != 3 || ! identical(names(model_data), c("metadata", "models", "pixels"))) {
+		stop("The input to global_lm must be an object returned by function thermal_lm")
+	}
+
+	# Joining the data used for all models in a single data.frame
+	model_df <- lapply(model_data$models, function(x) x$model)
+	model_df <- do.call("rbind", model_df)
+
+	# Recomputing the model using that data
+	new_model <- stats::lm(temp ~ pixel, data = model_df)
+
+	# Setting the intercept and slope in the metadata to the new values
+	model_data$metadata$intercept <- stats::coef(new_model)[1]
+	model_data$metadata$slope <- stats::coef(new_model)[2]
+
+	# Replacing the models element by the global model
+	model_data$models <- list(global = new_model)
+
+	# Also replacing the pixel values by a single data.frame with all value
+	model_data$pixels <- list(global = do.call("rbind", model_data$pixels))
+
+	return(model_data)
+}
+
 #' Identify the mode from the density of a distribution
 #'
 #' This function is mainly meant to be used in the argument summary_functions

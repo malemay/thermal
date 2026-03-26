@@ -2,7 +2,7 @@
 % Please edit documentation in R/calibration.R
 \name{thermal_predict}
 \alias{thermal_predict}
-\title{Compute temperature predictions from thermal model parameters}
+\title{Predict surface temperature from radiometric calibration model}
 \usage{
 thermal_predict(x, model = NULL, slope = NULL, intercept = NULL)
 }
@@ -29,8 +29,8 @@ A SpatRaster object similar to the input one, but with values
 representing surface temperature instead of digital number.
 }
 \description{
-This function can be used to compute surface temperature from a digital number raster
-based on radiometric calibration linear model parameters.
+This function can be used to compute surface temperature from a digital
+number raster based on radiometric calibration linear model parameters.
 }
 \examples{
 NULL

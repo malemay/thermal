@@ -31,6 +31,7 @@
 #' # Reading the metadata ; we want to process the metadata in a different timezone
 #' # as the camera was set to winter time but data was acquired under the summer time
 #' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#' head(tmeta)
 read_metadata <- function(files, camera_tz, display_tz = NULL, tags = NULL, sort_output = TRUE) {
 
 	# Determining which EXIF tags to extract from the file

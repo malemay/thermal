@@ -56,5 +56,30 @@ pixel values to temperature by representing the raw data, summarized data,
 and model output in the same plot.
 }
 \examples{
-NULL
+# Reading the metadata from the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+tmeta <- add_temp_metadata(tmeta, temperature)
+
+# Naming the rows of the metadata according to the image identifier
+rownames(tmeta) <- substr(basename(tmeta$SourceFile), 1, 8)
+
+# Computing the radiometric calibration model on all surfaces
+# We use the median of the distribution of pixel values for each surface
+median_models <- thermal_lm(metadata = tmeta,
+                            polygons = panels,
+                            surfaces = c("black", "gray", "white"),
+                            summary_functions = median)
+
+# Visualizing the results for the first three images
+opar <- par(mfrow = c(3, 3))
+
+plot_pixtemp(median_models,
+             id = names(panels)[1:9],
+             lcol = c(black = "black", gray = "gray", white = "blue"),
+             ask = TRUE)
+
+# Restoring the original graphical parameters
+par(opar)
 }

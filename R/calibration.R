@@ -51,8 +51,33 @@ set_coords <- function(x, nclicks = 4) {
 #' use as input to function \code{\link{thermal_lm}}.
 #'
 #' @export
-#' @examples
-#' NULL
+#' @examplesIf interactive()
+#' # We use the first image in the test dataset
+#' image <- system.file("extdata/DJI_0665_thermal.tiff", package = "thermal")
+#'
+#' # We pretend that there are three panels (black, gray, and white) to identify
+#' surfaces <- create_surfaces(image = image, ids = c("black", "gray", "white"), nclicks = 4)
+#'
+#' # We use this makeshift data for radiometric calibration
+#' surfaces <- list(DJI_0665 = surfaces)
+#' 
+#' # Reading the metadata from the test dataset
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#' tmeta <- add_temp_metadata(tmeta, temperature)
+#'
+#' # Naming the rows of the metadata according to the image identifier
+#' rownames(tmeta) <- substr(basename(tmeta$SourceFile), 1, 8)
+#'
+#' # Fitting the radiometric calibration model
+#' thermal_model <- thermal_lm(metadata = tmeta,
+#'                             polygons = surfaces,
+#'                             surfaces = c("black", "gray", "white"),
+#'                             summary_functions = median)
+#'
+#' # Visualizing the model
+#' plot_pixtemp(thermal_model, id = "DJI_0665")
 create_surfaces <- function(image, ids, nclicks = 4) {
 
 	if(!interactive()) stop("create_surfaces can only be called in interactive mode")
@@ -117,7 +142,22 @@ create_surfaces <- function(image, ids, nclicks = 4) {
 #'
 #' @export
 #' @examples
-#' NULL
+#' # Plotting the test dataset temperature time series over the whole day
+#' plot_temp(temperature)
+#'
+#' # An example with explicit colors and legend
+#' plot_temp(temperature,
+#'           lcol = c(black = "black", gray = "gray", white = "blue"),
+#'           legend.pos = "topright")
+#'
+#' # Zooming in over the period of time of the test flight data
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#'
+#' #plot_temp(temperature,
+#' #          xrange = range(tmeta$DateTimeOriginal),
+#' #          lcol = c(black = "black", gray = "gray", white = "blue"))
 plot_temp <- function(tempdata, xrange = NULL, at = NULL, main = NULL,
 		      xlab = "Time", ylab = "Temperature (\u00b0C)",
 		      lcol = NULL, legend.pos = NULL, lty = 1, ...) {
@@ -232,7 +272,14 @@ extract_temp <- function(metadata, temperature, tolerance = as.difftime(10, unit
 #'
 #' @export
 #' @examples
-#' NULL
+#' # Reading the metadata of the test dataset
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#'
+#' # Adding the temperature data to the metadata
+#' tmeta <- add_temp_metadata(tmeta, temperature, tolerance = as.difftime(10, units = "secs"))
+#' head(tmeta)
 add_temp_metadata <- function(metadata, temperature_list, tolerance = as.difftime(10, units = "secs")) {
 
 	# Adding the temperature of each of the surfaces to the metadata
@@ -372,7 +419,54 @@ join_thermal <- function(metadata, polygons, surfaces, ncores = 1) {
 #'
 #' @export
 #' @examples
-#' NULL
+#' # Reading the metadata from the test dataset
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#' tmeta <- add_temp_metadata(tmeta, temperature)
+#'
+#' # Naming the rows of the metadata according to the image identifier
+#' rownames(tmeta) <- substr(basename(tmeta$SourceFile), 1, 8)
+#'
+#' # Computing the radiometric calibration model on all surfaces
+#' # We use the median of the distribution of pixel values for each surface
+#' median_models <- thermal_lm(metadata = tmeta,
+#'                             polygons = panels,
+#'                             surfaces = c("black", "gray", "white"),
+#'                             summary_functions = median)
+#'
+#' # Visualizing the results for the first three images
+#' opar <- par(mfrow = c(3, 3))
+#'
+#' plot_pixtemp(median_models,
+#'              id = names(panels)[1:9],
+#'              lcol = c(black = "black", gray = "gray", white = "blue"),
+#'              ask = TRUE)
+#'
+#' # Computing the radiometric calibration model on black and white surfaces
+#' bw_models <- thermal_lm(metadata = tmeta,
+#'                         polygons = panels,
+#'                         surfaces = c("black", "white"),
+#'                         summary_functions = median)
+#' 
+#' plot_pixtemp(bw_models,
+#'              id = names(panels)[1:9],
+#'              lcol = c(black = "black", white = "blue"),
+#'              ask = TRUE)
+#'
+#' # Computing the radiometric calibration model on all data (function identity)
+#' identity_models <- thermal_lm(metadata = tmeta,
+#'                               polygons = panels,
+#'                               surfaces = c("black", "gray", "white"),
+#'                               summary_functions = identity)
+#'
+#' plot_pixtemp(identity_models,
+#'              id = names(panels)[1:9],
+#'              lcol = c(black = "black", gray = "gray", white = "blue"),
+#'              ask = TRUE)
+#'
+#' # Resetting graphical parameters
+#' par(opar)
 thermal_lm <- function(metadata, polygons, surfaces, summary_functions = max_density, ncores = 1) {
 
 	# Ensuring that the metadata contains temperature data
@@ -481,7 +575,29 @@ thermal_lm <- function(metadata, polygons, surfaces, summary_functions = max_den
 #'
 #' @export
 #' @examples
-#' NULL
+#' # Reading the metadata from the test dataset
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#' tmeta <- add_temp_metadata(tmeta, temperature)
+#'
+#' # Naming the rows of the metadata according to the image identifier
+#' rownames(tmeta) <- substr(basename(tmeta$SourceFile), 1, 8)
+#'
+#' # Computing the radiometric calibration model on all surfaces
+#' # We use the median of the distribution of pixel values for each surface
+#' median_models <- thermal_lm(metadata = tmeta,
+#'                             polygons = panels,
+#'                             surfaces = c("black", "gray", "white"),
+#'                             summary_functions = median)
+#'
+#' # Computing a radiometric calibration model on data from all images combined
+#' # It uses the data that has been pre-summarized to median per surface
+#' global_model <- global_lm(median_models)
+#'
+#' plot_pixtemp(global_model,
+#'              lcol = c(black = "black", gray = "gray", white = "blue"),
+#'              ask = TRUE)
 global_lm <- function(model_data) {
 	# Checking that the inputs are appropriate
 	if(length(model_data) != 3 || ! identical(names(model_data), c("metadata", "models", "pixels"))) {
@@ -518,10 +634,17 @@ global_lm <- function(model_data) {
 #'
 #' @return A single numeric value that represents the value of x at which the
 #' density of the distribution is maximized.
+#'
+#' @seealso \code{\link{thermal_lm}}
 #' 
 #' @export
 #' @examples
-#' NULL
+#' # This function is identify peak density in a distribution of thermal values
+#' # Here we show how it works generally with any distribution
+#' # We generate some values from a mixture of two normal distributions
+#' x <- rnorm(1000, mean = c(3, 10), sd = c(3, 1))
+#' plot(density(x))
+#' abline(v = max_density(x), lty = 2, col = "red")
 max_density <- function(x) {
 	output <- stats::density(x)
 	output$x[which.max(output$y)]
@@ -551,7 +674,37 @@ max_density <- function(x) {
 #'
 #' @export
 #' @examples
-#' NULL
+#' # Reading the metadata from the test dataset
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#' tmeta <- add_temp_metadata(tmeta, temperature)
+#'
+#' # Naming the rows of the metadata according to the image identifier
+#' rownames(tmeta) <- substr(basename(tmeta$SourceFile), 1, 8)
+#'
+#' # Computing the radiometric calibration model on all surfaces
+#' # We use the median of the distribution of pixel values for each surface
+#' median_models <- thermal_lm(metadata = tmeta,
+#'                             polygons = panels,
+#'                             surfaces = c("black", "gray", "white"),
+#'                             summary_functions = median)
+#'
+#' # Reading the first image of the dataset that contains the panels
+#' test_raster <- terra::rast(tmeta["DJI_0671", "SourceFile"], noflip = TRUE)
+#'
+#' # Computing the surface temperature (in Celisius) of that image
+#' surface_temp <- thermal_predict(test_raster,
+#'                                 model = median_models$models[["DJI_0671"]])
+#'
+#' terra::plot(surface_temp, main = "Surface temperature")
+#'
+#' # Alternative parameterization using explicit slope and intercept
+#' surface_temp_alt <- thermal_predict(test_raster,
+#'                                     slope = median_models$metadata["DJI_0671", "slope"],
+#'                                     intercept = median_models$metadata["DJI_0671", "intercept"])
+#'
+#' identical(terra::values(surface_temp), terra::values(surface_temp_alt))
 thermal_predict <- function(x, model = NULL, slope = NULL, intercept = NULL) {
 
 	# Checking the validity of the arguments provided
@@ -606,7 +759,32 @@ thermal_predict <- function(x, model = NULL, slope = NULL, intercept = NULL) {
 #'
 #' @export
 #' @examples
-#' NULL
+#' # Reading the metadata from the test dataset
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#' tmeta <- add_temp_metadata(tmeta, temperature)
+#'
+#' # Naming the rows of the metadata according to the image identifier
+#' rownames(tmeta) <- substr(basename(tmeta$SourceFile), 1, 8)
+#'
+#' # Computing the radiometric calibration model on all surfaces
+#' # We use the median of the distribution of pixel values for each surface
+#' median_models <- thermal_lm(metadata = tmeta,
+#'                             polygons = panels,
+#'                             surfaces = c("black", "gray", "white"),
+#'                             summary_functions = median)
+#'
+#' # Visualizing the results for the first three images
+#' opar <- par(mfrow = c(3, 3))
+#'
+#' plot_pixtemp(median_models,
+#'              id = names(panels)[1:9],
+#'              lcol = c(black = "black", gray = "gray", white = "blue"),
+#'              ask = TRUE)
+#'
+#' # Restoring the original graphical parameters
+#' par(opar)
 plot_pixtemp <- function(model_data, id = NULL, lcol = "black",
 			 col.model.points = "red", cex.model.points = 2,
 			 cex.line = 1, ask = FALSE,

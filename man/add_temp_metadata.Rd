@@ -35,5 +35,12 @@ This is a convenience function that adds columns with the temperature of
 reference surfaces at given time points to the flight metadata.
 }
 \examples{
-NULL
+# Reading the metadata of the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+
+# Adding the temperature data to the metadata
+tmeta <- add_temp_metadata(tmeta, temperature, tolerance = as.difftime(10, units = "secs"))
+head(tmeta)
 }

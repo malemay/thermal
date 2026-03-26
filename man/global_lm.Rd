@@ -24,5 +24,27 @@ the flight to create a global radiometric calibration model from all the
 images.
 }
 \examples{
-NULL
+# Reading the metadata from the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+tmeta <- add_temp_metadata(tmeta, temperature)
+
+# Naming the rows of the metadata according to the image identifier
+rownames(tmeta) <- substr(basename(tmeta$SourceFile), 1, 8)
+
+# Computing the radiometric calibration model on all surfaces
+# We use the median of the distribution of pixel values for each surface
+median_models <- thermal_lm(metadata = tmeta,
+                            polygons = panels,
+                            surfaces = c("black", "gray", "white"),
+                            summary_functions = median)
+
+# Computing a radiometric calibration model on data from all images combined
+# It uses the data that has been pre-summarized to median per surface
+global_model <- global_lm(median_models)
+
+plot_pixtemp(global_model,
+             lcol = c(black = "black", gray = "gray", white = "blue"),
+             ask = TRUE)
 }

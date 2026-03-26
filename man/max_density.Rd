@@ -19,5 +19,13 @@ of \code{\link{thermal_lm}} to obtain a single pixel value from a large
 number of observed pixels.
 }
 \examples{
-NULL
+# This function is identify peak density in a distribution of thermal values
+# Here we show how it works generally with any distribution
+# We generate some values from a mixture of two normal distributions
+x <- rnorm(1000, mean = c(3, 10), sd = c(3, 1))
+plot(density(x))
+abline(v = max_density(x), lty = 2, col = "red")
+}
+\seealso{
+\code{\link{thermal_lm}}
 }

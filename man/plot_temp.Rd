@@ -59,5 +59,20 @@ lines or points can be drawn on top of the graph produced by this one after
 the function returns.
 }
 \examples{
-NULL
+# Plotting the test dataset temperature time series over the whole day
+plot_temp(temperature)
+
+# An example with explicit colors and legend
+plot_temp(temperature,
+          lcol = c(black = "black", gray = "gray", white = "blue"),
+          legend.pos = "topright")
+
+# Zooming in over the period of time of the test flight data
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+
+#plot_temp(temperature,
+#          xrange = range(tmeta$DateTimeOriginal),
+#          lcol = c(black = "black", gray = "gray", white = "blue"))
 }

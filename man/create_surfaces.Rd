@@ -35,5 +35,32 @@ define the shape of each surface.  The resulting shapes can be written to
 disk storage using \code{\link[sf]{st_write}}.
 }
 \examples{
-NULL
+\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
+# We use the first image in the test dataset
+image <- system.file("extdata/DJI_0665_thermal.tiff", package = "thermal")
+
+# We pretend that there are three panels (black, gray, and white) to identify
+surfaces <- create_surfaces(image = image, ids = c("black", "gray", "white"), nclicks = 4)
+
+# We use this makeshift data for radiometric calibration
+surfaces <- list(DJI_0665 = surfaces)
+
+# Reading the metadata from the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+tmeta <- add_temp_metadata(tmeta, temperature)
+
+# Naming the rows of the metadata according to the image identifier
+rownames(tmeta) <- substr(basename(tmeta$SourceFile), 1, 8)
+
+# Fitting the radiometric calibration model
+thermal_model <- thermal_lm(metadata = tmeta,
+                            polygons = surfaces,
+                            surfaces = c("black", "gray", "white"),
+                            summary_functions = median)
+
+# Visualizing the model
+plot_pixtemp(thermal_model, id = "DJI_0665")
+\dontshow{\}) # examplesIf}
 }

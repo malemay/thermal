@@ -33,5 +33,35 @@ This function can be used to compute surface temperature from a digital
 number raster based on radiometric calibration linear model parameters.
 }
 \examples{
-NULL
+# Reading the metadata from the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+tmeta <- add_temp_metadata(tmeta, temperature)
+
+# Naming the rows of the metadata according to the image identifier
+rownames(tmeta) <- substr(basename(tmeta$SourceFile), 1, 8)
+
+# Computing the radiometric calibration model on all surfaces
+# We use the median of the distribution of pixel values for each surface
+median_models <- thermal_lm(metadata = tmeta,
+                            polygons = panels,
+                            surfaces = c("black", "gray", "white"),
+                            summary_functions = median)
+
+# Reading the first image of the dataset that contains the panels
+test_raster <- terra::rast(tmeta["DJI_0671", "SourceFile"], noflip = TRUE)
+
+# Computing the surface temperature (in Celisius) of that image
+surface_temp <- thermal_predict(test_raster,
+                                model = median_models$models[["DJI_0671"]])
+
+terra::plot(surface_temp, main = "Surface temperature")
+
+# Alternative parameterization using explicit slope and intercept
+surface_temp_alt <- thermal_predict(test_raster,
+                                    slope = median_models$metadata["DJI_0671", "slope"],
+                                    intercept = median_models$metadata["DJI_0671", "intercept"])
+
+identical(terra::values(surface_temp), terra::values(surface_temp_alt))
 }

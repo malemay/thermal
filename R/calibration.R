@@ -642,7 +642,7 @@ plot_pixtemp <- function(model_data, id = NULL, lcol = "black",
 
 		# Plotting a scatterplot of the pixel/temperature values
 		plot(pixel_values$thermal, pixel_values$temp,
-		     xlab = "Pixel value", ylab = "Surface temperature",
+		     xlab = "Pixel DN value", ylab = "Surface temperature",
 		     main = i,
 		     col = lcol[pixel_values$ID],
 		     ...)

@@ -4,25 +4,33 @@
 \alias{thermal_predict}
 \title{Compute temperature predictions from thermal model parameters}
 \usage{
-thermal_predict(metadata, dn_value)
+thermal_predict(x, model = NULL, slope = NULL, intercept = NULL)
 }
 \arguments{
-\item{metadata}{A data.frame of metadata on a given flight augmented with
-slope and intercept parameters of the relationship between digital number
-(DN) and temperature, such as returned in the metadata object of
-\code{\link{thermal_lm}}.}
+\item{x}{A SpatRaster object containing digital number (DN) values that
+should be converted to surface temperature.}
 
-\item{dn_value}{A numeric. The fixed digital number (DN) value for which to
-generate predictions.}
+\item{model}{A linear model of surface temperature as a function of digital
+number, which can be extracted from the "models" element of the list
+returned by \code{\link{thermal_lm}} or \code{\link{global_lm}}.
+Alternatively, the slope and intercept to use for prediction can be provided
+as the 'slope' and 'intercept' arguments. Supplying a model for this
+argument will override the explicitly provided slope and intercept.}
+
+\item{slope}{A numeric value corresponding to the slope of the linear model
+to use. Can be provided as an alternative to the 'model' argument.}
+
+\item{intercept}{A numeric value corresponding to the intercept of the
+linear model to use. Can be provided as an alternative to the 'model'
+argument.}
 }
 \value{
-A numeric vector of predicted temperature values for a fixed DN at
-each timepoint of the flight based on the linear model parameters.
+A SpatRaster object similar to the input one, but with values
+representing surface temperature instead of digital number.
 }
 \description{
-This function can be used to compute temperature predictions for a given
-digital number value based on linear model parameters that have been fit at
-various timepoints during a flight.
+This function can be used to compute surface temperature from a digital number raster
+based on radiometric calibration linear model parameters.
 }
 \examples{
 NULL

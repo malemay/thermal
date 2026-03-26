@@ -4,5 +4,6 @@ todo.txt
 inst/doc
 *.rds
 *.swp
+*.tiff
 /doc/
 /Meta/

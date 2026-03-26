@@ -33,9 +33,12 @@ thermal_models <- thermal_lm(metadata = tmeta_df,
 # Also creating a reference for the global_lm function
 global_model <- global_lm(thermal_models)
 
-thermal_models$metadata$prediction <- thermal_predict(thermal_models$metadata, dn = 3500)
+# Predicting a raster of surface temperature from the global model
+surface_temp <- thermal_predict(x = terra::rast(tmeta_df[1, "SourceFile"], noflip = TRUE),
+				model = global_model$models$global)
 
-# These two objects should be sufficient to test the stability of the calibration output
+# These three results should be sufficient to test the stability of the calibration output
 saveRDS(thermal_models, "thermal_models.rds")
 saveRDS(global_model, "global_model.rds")
+terra::writeRaster(surface_temp, filename = "surface_temp.tiff", datatype = "FLT8S", overwrite = TRUE)
 

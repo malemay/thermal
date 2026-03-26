@@ -378,9 +378,9 @@ plot(tmeta_df$DateTimeOriginal, tmeta_df$slope, main = "Slope", xlab = "Time", y
 lines(tmeta_df$DateTimeOriginal, tmeta_df$slope, lty = 2)
 
 # A plot of temperature predicted from a DN of 3500 from models fitted at various time points
-tmeta_df$prediction <- thermal_predict(tmeta_df, dn_value = 3500)
-plot(tmeta_df$DateTimeOriginal, tmeta_df$prediction, main = "Prediction", xlab = "Time", ylab = "Temp. predicted when DN = 3500 (°C)")
-lines(tmeta_df$DateTimeOriginal, tmeta_df$prediction, lty = 2)
+plot(tmeta_df$DateTimeOriginal,  3500 * tmeta_df$slope + tmeta_df$intercept,
+     main = "Prediction", xlab = "Time", ylab = "Temp. predicted when DN = 3500 (°C)")
+lines(tmeta_df$DateTimeOriginal, 3500 * tmeta_df$slope + tmeta_df$intercept, lty = 2)
 ```
 
 It is clear from the plot above that drift is occurring in the dataset. Indeed,
@@ -410,18 +410,18 @@ rownames(corrected_df) <- substr(basename(corrected_df$SourceFile), 1, 8)
 corrected_df <- add_temp_metadata(corrected_df, temperature, tolerance = as.difftime(5, units = "secs"))
 
 corrected_models <- thermal_lm(metadata = corrected_df,
-			       polygons = panels,
-			       summary_functions = median,
-			       surfaces = c("black", "gray", "white"),
-			       ncores = if(.Platform$OS.type == "unix") 2 else 1)
+                               polygons = panels,
+                               summary_functions = median,
+                               surfaces = c("black", "gray", "white"),
+                               ncores = if(.Platform$OS.type == "unix") 2 else 1)
 
 # Extracting the metadata from the output of thermal_lm
 corrected_df <- corrected_models$metadata
 
 # A plot of temperature predicted from a DN of 3500 from models fitted at various time points
-corrected_df$prediction <- thermal_predict(corrected_df, dn_value = 3500)
-plot(corrected_df$DateTimeOriginal, corrected_df$prediction, main = "Prediction", xlab = "Time", ylab = "Temp. predicted when DN = 3500 (°C)")
-lines(corrected_df$DateTimeOriginal, corrected_df$prediction, lty = 2)
+plot(corrected_df$DateTimeOriginal,  3500 * corrected_df$slope + corrected_df$intercept,
+     main = "Prediction", xlab = "Time", ylab = "Temp. predicted when DN = 3500 (°C)")
+lines(corrected_df$DateTimeOriginal, 3500 * corrected_df$slope + corrected_df$intercept, lty = 2)
 ```
 
 Although far from perfect, the stability of the predictions is better in the
@@ -430,23 +430,21 @@ corrected data
 # Radiometric calibration
 
 Finally, we can use the radiometric calibration models thus obtained to compute
-surface temperature for the images acquired during the flight. We can simply use
-the model coefficients of the model that we deem the best to predict the surface
-temperature from the DN values of a given raster. Here, we will fit a global model
-from the drift-corrected images used in the previous step:
+surface temperature for the images acquired during the flight. We can simply
+use the function `thermal_predict` with the model that we deem the best to
+predict the surface temperature from the DN values of a given raster. Here, we
+will fit a global model from the drift-corrected images used in the previous
+step:
 
 ```{r radiometric-calibration-rast, fig.width = 8, fig.height = 8}
 global_corrected <- global_lm(corrected_models)
 
-corrected_intercept <- coef(global_corrected$models$global)[1]
-corrected_slope <- coef(global_corrected$models$global)[2]
-
 par(mfrow = c(3, 3))
 
 for(i in rownames(corrected_df)[1:9]) {
-	i_rast <- terra::rast(corrected_df[i, "SourceFile"], noflip = TRUE)
-	i_rast <- i_rast * corrected_slope + corrected_intercept
-	terra::plot(i_rast, main = i)
+        i_rast <- terra::rast(corrected_df[i, "SourceFile"], noflip = TRUE)
+        i_rast <- thermal_predict(x = i_rast, model = global_corrected$models$global)
+        terra::plot(i_rast, main = i)
 }
 ```
 

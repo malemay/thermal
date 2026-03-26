@@ -527,31 +527,48 @@ max_density <- function(x) {
 	output$x[which.max(output$y)]
 }
 
-#' Compute temperature predictions from thermal model parameters
+#' Predict surface temperature from radiometric calibration model
 #'
-#' This function can be used to compute temperature predictions for a given
-#' digital number value based on linear model parameters that have been fit at
-#' various timepoints during a flight.
+#' This function can be used to compute surface temperature from a digital
+#' number raster based on radiometric calibration linear model parameters.
 #'
-#' @param metadata A data.frame of metadata on a given flight augmented with
-#' slope and intercept parameters of the relationship between digital number
-#' (DN) and temperature, such as returned in the metadata object of
-#' \code{\link{thermal_lm}}.
-#' @param dn_value A numeric. The fixed digital number (DN) value for which to
-#' generate predictions.
+#' @param x A SpatRaster object containing digital number (DN) values that
+#' should be converted to surface temperature.
+#' @param model A linear model of surface temperature as a function of digital
+#' number, which can be extracted from the "models" element of the list
+#' returned by \code{\link{thermal_lm}} or \code{\link{global_lm}}.
+#' Alternatively, the slope and intercept to use for prediction can be provided
+#' as the 'slope' and 'intercept' arguments. Supplying a model for this
+#' argument will override the explicitly provided slope and intercept.
+#' @param slope A numeric value corresponding to the slope of the linear model
+#' to use. Can be provided as an alternative to the 'model' argument.
+#' @param intercept A numeric value corresponding to the intercept of the
+#' linear model to use. Can be provided as an alternative to the 'model'
+#' argument.
 #'
-#' @return A numeric vector of predicted temperature values for a fixed DN at
-#' each timepoint of the flight based on the linear model parameters.
+#' @return A SpatRaster object similar to the input one, but with values
+#' representing surface temperature instead of digital number.
 #'
 #' @export
 #' @examples
 #' NULL
-thermal_predict <- function(metadata, dn_value) {
-	# Sanity check
-	stopifnot(all(c("slope", "intercept") %in% colnames(metadata)))
+thermal_predict <- function(x, model = NULL, slope = NULL, intercept = NULL) {
 
-	# Return a vector of the predictions
-	metadata$intercept + metadata$slope * dn_value
+	# Checking the validity of the arguments provided
+	if(!is.null(model)) {
+		if(!is.null(slope) || !is.null(intercept)) warning("model argument to thermal_predict will supersede explicitly provided slope and/or intercept")
+
+		intercept <- stats::coef(model)[1]
+		slope <- stats::coef(model)[2]
+	}
+
+	# By now the slope and intercept should be defined
+	if(is.null(slope) || is.null(intercept) || is.na(slope) || is.na(intercept)) {
+		stop("Model parameters must be provided to thermal_predict through 'model' or 'slope' and 'intercept' arguments")
+	}
+
+	# Return a raster with the predictions
+	return(x * slope + intercept)
 }
 
 

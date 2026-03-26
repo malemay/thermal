@@ -15,9 +15,6 @@ test_that("Radiometric calibration works as expected", {
 					       surfaces = c("black", "gray", "white"),
 					       ncores = 2)
 
-		  # Generating the prediction from the models
-		  thermal_models$metadata$prediction <- thermal_predict(thermal_models$metadata, dn = 3500)
-
 		  thermal_reference <- readRDS(test_path("test_files", "thermal_models.rds"))
 
 		  # Testing whether the pixels extracted from the panels are the same
@@ -33,9 +30,6 @@ test_that("Radiometric calibration works as expected", {
 		  thermal_models$metadata$slope <- round(thermal_models$metadata$slope, 12)
 		  reference_meta$slope <- round(reference_meta$slope, 12)
 
-		  thermal_models$metadata$prediction <- round(thermal_models$metadata$prediction, 12)
-		  reference_meta$prediction <- round(reference_meta$prediction, 12)
-
 		  expect_identical(thermal_models$metadata[, -1], reference_meta)
 		  
 		  # We want to check that thermal_lm works even when supplying a single value for summary_functions
@@ -45,30 +39,53 @@ test_that("Radiometric calibration works as expected", {
 						   surfaces = c("black", "gray", "white"),
 						   ncores = 2)
 		  
-		  single_func_models$metadata$prediction <- thermal_predict(single_func_models$metadata, dn = 3500)
-
 		  single_func_models$metadata$intercept <- round(single_func_models$metadata$intercept, 12)
 		  single_func_models$metadata$slope <- round(single_func_models$metadata$slope, 12)
-		  single_func_models$metadata$prediction <- round(single_func_models$metadata$prediction, 12)
 
 		  expect_identical(single_func_models$metadata[, -1], reference_meta)
 
 		  # Also testing global_lm functionality
 		  global_model <- global_lm(thermal_models)
-		  global_model$metadata$SourceFile <- NULL
-		  global_model$metadata$prediction <- NULL
 		  global_model$metadata$intercept <- round(global_model$metadata$intercept, 12)
 		  global_model$metadata$slope <- round(global_model$metadata$slope, 12)
 
 		  global_reference <- readRDS(test_path("test_files", "global_model.rds"))
-		  global_reference$metadata$SourceFile <- NULL
 		  global_reference$metadata$intercept <- round(global_reference$metadata$intercept, 12)
 		  global_reference$metadata$slope <- round(global_reference$metadata$slope, 12)
 
 		  # We do not test the models themselves because they contain complex data
 		  # However, we do test both the metadata and pixels
-		  global_model$models <- NULL
-		  global_reference$models <- NULL
+		  expect_identical(global_model$metadata[, -1], global_reference$metadata[, -1])
+		  expect_identical(global_model$pixels, global_reference$pixels)
 
-		  expect_identical(global_model, global_reference)
+		  # We also test that the predictions made using this model remain the same
+		  reference_temp <- terra::rast(test_path("test_files", "surface_temp.tiff"), noflip = TRUE)
+		  test_rast <- terra::rast(tmeta[1, "SourceFile"], noflip = TRUE)
+
+		  # We test both ways to pass the model parameters to thermal_predict
+		  # Up to some numerical precision
+		  expect_identical(round(terra::values(reference_temp), 6),
+				   round(terra::values(thermal_predict(x = test_rast,
+								       model = global_model$models$global)), 6))
+
+		  expect_identical(round(terra::values(reference_temp), 6),
+				   round(terra::values(thermal_predict(x = test_rast,
+								       slope = global_model$metadata$slope[1],
+								       intercept = global_model$metadata$intercept[1])), 6))
+
+		  # We test that thermal_predict generates the expected warnings and error
+		  expect_warning(thermal_predict(x = test_rast,
+						 model = global_model$models$global,
+						 slope = global_model$metadata$slope[1],
+						 intercept = global_model$metadata$intercept[1]))
+
+		  expect_warning(thermal_predict(x = test_rast,
+						 model = global_model$models$global,
+						 intercept = global_model$metadata$intercept[1]))
+
+		  expect_warning(thermal_predict(x = test_rast,
+						 model = global_model$models$global,
+						 slope = global_model$metadata$slope[1]))
+
+		  expect_error(thermal_predict(x = test_rast))
 })

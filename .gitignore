@@ -1,9 +1,4 @@
-data/
-inst/extdata
-todo.txt
 inst/doc
-*.rds
 *.swp
-*.tiff
 /doc/
 /Meta/

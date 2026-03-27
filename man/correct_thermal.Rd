@@ -57,7 +57,8 @@ adjusting the mean of the thermal pictures if drift correction is performed.
 If NULL (the default), then the median image is used.}
 
 \item{nuc_threshold}{The threshold to use for detecting non-uniformity
-correction events when correction_type is "lm" or "spline.}
+correction events when correction_type is "lm" or "spline. If left to the
+default value (NULL), will be set to 50 with a warning.}
 
 \item{spline_spar}{A numeric value, typically in the range (0, 1], used as a
 smoothing parameter when model_type = "spline". If NULL, (the default), then
@@ -83,5 +84,68 @@ in response to user-supplied parameters and returns a data.frame of metadata
 on the corrected pictures.
 }
 \examples{
-NULL
+# Reading the metadata from the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+
+# Creating a temporary directory in which to write the files created
+tmpdir <- tempfile("corr_example")
+dir.create(tmpdir)
+
+
+# Precomputing the mean of all images
+tmeta$mean <- thermal_mean(tmeta)
+
+### Overall drift correction
+# Assumes all variation in mean is due to thermal drift
+overall_meta <- correct_thermal(metadata = tmeta,
+                                correction_type = "overall",
+                                output_dir = tmpdir,
+                                camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4",
+                                tags = "minimal",
+                                overwrite_dst = TRUE,
+                                verbose = TRUE)
+
+### Linear model drift correction
+# Assumes thermal drift can be described using linear models
+lm_meta <- correct_thermal(metadata = tmeta,
+                           correction_type = "lm", nuc_threshold = 80,
+                           output_dir = tmpdir,
+                           camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4",
+                           tags = "minimal",
+                           overwrite_dst = TRUE,
+                           verbose = TRUE)
+
+### Spline model drift correction
+# Assumes thermal drift can be described using cubic splines
+spline_meta <- correct_thermal(metadata = tmeta,
+                               correction_type = "spline", spline_spar = 0.5, nuc_threshold = 80,
+                               output_dir = tmpdir,
+                               camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4",
+                               tags = "minimal",
+                               overwrite_dst = TRUE,
+                               verbose = TRUE)
+
+### Image overlap drift correction
+# Finds the differences in overlapping regions of successive images to adjust values
+
+# For this method we first need to find the transformation parameters
+# to determine the overlapping area of each picture.
+# We use permissive parameters in the search for transformation to speed up process
+tmeta <- compute_overlaps(metadata = tmeta,
+                          fact = 4, min_cor = 0.6,
+                          maxiter = 1, reltol = 0.05,
+                          verbose = FALSE)
+
+overlap_meta <- correct_thermal(metadata = tmeta,
+                                correction_type = "overlap",
+                                output_dir = tmpdir,
+                                camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4",
+                                tags = "minimal",
+                                overwrite_dst = TRUE,
+                                verbose = TRUE)
+
+# Cleaning up the temporary directory
+unlink(tmpdir, recursive = TRUE)
 }

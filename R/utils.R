@@ -7,7 +7,14 @@
 #' 
 #' @export
 #' @examples
-#' NULL
+#' # Reading the metadata from the test dataset
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#'
+#' # Adding the mean to the metadata
+#' tmeta$mean <- thermal_mean(tmeta)
+#' head(tmeta)
 thermal_mean <- function(metadata, ncores = 1) {
 	# Sanity check
 	stopifnot("SourceFile" %in% names(metadata) && all(file.exists(metadata$SourceFile)))
@@ -29,7 +36,14 @@ thermal_mean <- function(metadata, ncores = 1) {
 #'
 #' @export
 #' @examples
-#' NULL
+#' # Reading the metadata from the test dataset
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#'
+#' # Computing the vignetting pattern from the metadata
+#' vignetting <- compute_vignetting(tmeta)
+#' terra::plot(vignetting)
 compute_vignetting <- function(metadata) {
 
 	# Extracting the file names from the metadata
@@ -52,6 +66,12 @@ compute_vignetting <- function(metadata) {
 
 #' Add transformation parameters to a thermal picture dataset
 #'
+#' If a custom method is used to compute the transformation parameters between
+#' successive images, then this function is a convenience to add these
+#' parameters to a data.frame of metadata. Typically, it will be more
+#' convenient to compute and add these parameters directly with
+#' \code{\link{compute_overlaps}}.
+#'
 #' @param metadata A data.frame of metadata on a set of thermal pictures.
 #' @param tparams A set of transformation parameters, as determined by
 #' \code{\link{optimize_transform}}.
@@ -63,9 +83,30 @@ compute_vignetting <- function(metadata) {
 #' for the correlation between the two images when the transformation is
 #' applied is also added.
 #'
+#' @seealso compute_overlaps
+#'
 #' @export
 #' @examples
-#' NULL
+#' # Reading the metadata from the test dataset
+#' # We will only use the first 6 images for this example
+#' tfiles <- dir(system.file("extdata/", package = "thermal"),
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles[1:6], camera_tz = "Etc/GMT+5",
+#'                        display_tz = "Etc/GMT+4", tags = "minimal")
+#'
+#' # Using lapply to compute the transformation parameters on all image pairs
+#' # It is easier to use compute_overlaps but this method provides more control
+#' tparams <- lapply(2:nrow(tmeta), function(i) {
+#'     optimize_transform(x = terra::rast(tmeta[i - 1, "SourceFile"], noflip = TRUE),
+#'                        y = terra::rast(tmeta[i, "SourceFile"], noflip = TRUE),
+#'                        theta1 = (tmeta[i, "GimbalYawDegree"] - tmeta[i - 1, "GimbalYawDegree"]),
+#'                        fact = 4, min_cor = 0.4, reltol = 10^-2, verbose = FALSE)
+#'                        })
+#'
+#' # Adding the results of the optimization to the metadata
+#' # The first row is always going to be NA
+#' tmeta <- add_tparams(tmeta, tparams = tparams)
+#' tmeta
 add_tparams <- function(metadata, tparams) {
 	# A few sanity checks
 	if(!(length(tparams) == nrow(metadata) - 1)) stop("Length of tparams object is not the number of metadata rows - 1")
@@ -142,7 +183,29 @@ add_tparams <- function(metadata, tparams) {
 #'
 #' @export
 #' @examples
-#' NULL
+#' # Reading the metadata from the test dataset
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#'
+#' # Basic plotting functionality
+#' plot_metadata(tmeta, base_crs = sf::st_crs("EPSG:4326"))
+#'
+#' # Plotting under a different coordinate reference system
+#' plot_metadata(tmeta, base_crs = sf::st_crs("EPSG:4326"), new_crs = sf::st_crs("EPSG:32198"))
+#'
+#' # Adding arrows representing the trajectory of the drone
+#' plot_metadata(tmeta, base_crs = sf::st_crs("EPSG:4326"),
+#'               arrows = TRUE, arrow_angle = 20,
+#'               arrow_length = grid::unit(0.15, "inches"))
+#'
+#' # Coloring the datapoints using a factor variable
+#' bearing <- ifelse(abs(tmeta$GimbalYawDegree) > 150, "south",
+#'                   ifelse(abs(tmeta$GimbalYawDegree) < 50, "north", "west"))
+#' plot_metadata(tmeta, base_crs = sf::st_crs("EPSG:4326"), color = as.factor(bearing))
+#'
+#' # Coloring the datapoinnts using a numeric variable
+#' plot_metadata(tmeta, base_crs = sf::st_crs("EPSG:4326"), color = tmeta$GimbalYawDegree)
 plot_metadata <- function(metadata,
 			  coords = c("GPSLongitude", "GPSLatitude"), base_crs = NULL, new_crs = NULL,
 			  color = "black", color_palette = "RdBu", n_colors = 11, round_digits = 0,
@@ -276,7 +339,27 @@ plot_metadata <- function(metadata,
 #'
 #' @export
 #' @examples
-#' NULL
+#' # Reading the metadata from the test dataset
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#'
+#' # Pre-computing the mean value per image as this will save computing time
+#' tmeta$mean <- thermal_mean(tmeta)
+#'
+#' # Plotting the fit of a model assuming linear drift
+#' # Non-uniformity correction threhold set to 50
+#' plot_fit(tmeta, nuc_threshold = 50, method = "lm")
+#'
+#' # Plotting the fit of a model assuming linear drift
+#' # Non-uniformity correction threhold set to 80
+#' plot_fit(tmeta, nuc_threshold = 80, method = "lm")
+#'
+#' # Assuming that drift can be modeled using a spline
+#' plot_fit(tmeta, nuc_threshold = 80, method = "spline")
+#'
+#' # Using a more relaxed spline to model the drift
+#' plot_fit(tmeta, nuc_threshold = 80, method = "spline", spline_spar = 0.5)
 plot_fit <- function(metadata, nuc_threshold, method = c("lm", "spline"), spline_spar = NULL, ncores = 1) {
 
 	# Checking that the input data is sorted by time stamp
@@ -325,7 +408,19 @@ plot_fit <- function(metadata, nuc_threshold, method = c("lm", "spline"), spline
 #'
 #' @export
 #' @examples
-#' NULL
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#'
+#' # Pre-computing the mean value per image as this will save computing time
+#' tmeta$mean <- thermal_mean(tmeta)
+#'
+#' # Basic plotting with plot_drift
+#' plot_drift(tmeta)
+#'
+#' # Setting a non-uniformity correction threshold to see where NUC may have occured
+#' plot_drift(tmeta, nuc_threshold = 50)
+#' plot_drift(tmeta, nuc_threshold = 80)
 plot_drift <- function(metadata, nuc_threshold = NULL, ncores = 1) {
 
 	# Checking that the input data is sorted by time stamp
@@ -352,7 +447,8 @@ plot_drift <- function(metadata, nuc_threshold = NULL, ncores = 1) {
 		# Plotting the data, with NUC events as red lines
 		for(i in 1:(nrow(metadata) - 1)) {
 			graphics::lines(metadata[c(i, i + 1), "DateTimeOriginal"], metadata[c(i, i + 1), "mean"],
-					lty = 3, col = ifelse(metadata[i, "nuc"], "red", "black"))
+					lty = ifelse(metadata[i, "nuc"], 1, 3),
+					col = ifelse(metadata[i, "nuc"], "red", "black"))
 		}
 	}
 

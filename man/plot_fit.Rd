@@ -44,5 +44,25 @@ of various methodological choices on the model that will be used for thermal
 drift correction.
 }
 \examples{
-NULL
+# Reading the metadata from the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+
+# Pre-computing the mean value per image as this will save computing time
+tmeta$mean <- thermal_mean(tmeta)
+
+# Plotting the fit of a model assuming linear drift
+# Non-uniformity correction threhold set to 50
+plot_fit(tmeta, nuc_threshold = 50, method = "lm")
+
+# Plotting the fit of a model assuming linear drift
+# Non-uniformity correction threhold set to 80
+plot_fit(tmeta, nuc_threshold = 80, method = "lm")
+
+# Assuming that drift can be modeled using a spline
+plot_fit(tmeta, nuc_threshold = 80, method = "spline")
+
+# Using a more relaxed spline to model the drift
+plot_fit(tmeta, nuc_threshold = 80, method = "spline", spline_spar = 0.5)
 }

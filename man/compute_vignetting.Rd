@@ -16,5 +16,12 @@ A terra raster with the mean value of each pixel over the whole flight.
 Extract the vignetting pattern of a thermal dataset
 }
 \examples{
-NULL
+# Reading the metadata from the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+
+# Computing the vignetting pattern from the metadata
+vignetting <- compute_vignetting(tmeta)
+terra::plot(vignetting)
 }

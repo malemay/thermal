@@ -30,5 +30,17 @@ recorded values that is due to changes in sensor sensitivity rather than
 variation in the temperature of the surface being surveyed.
 }
 \examples{
-NULL
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+
+# Pre-computing the mean value per image as this will save computing time
+tmeta$mean <- thermal_mean(tmeta)
+
+# Basic plotting with plot_drift
+plot_drift(tmeta)
+
+# Setting a non-uniformity correction threshold to see where NUC may have occured
+plot_drift(tmeta, nuc_threshold = 50)
+plot_drift(tmeta, nuc_threshold = 80)
 }

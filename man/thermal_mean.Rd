@@ -18,5 +18,12 @@ a numeric vector of mean thermal values for all files in the dataset.
 Compute the mean value of all thermal pictures in a dataset
 }
 \examples{
-NULL
+# Reading the metadata from the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+
+# Adding the mean to the metadata
+tmeta$mean <- thermal_mean(tmeta)
+head(tmeta)
 }

@@ -21,8 +21,34 @@ for the correlation between the two images when the transformation is
 applied is also added.
 }
 \description{
-Add transformation parameters to a thermal picture dataset
+If a custom method is used to compute the transformation parameters between
+successive images, then this function is a convenience to add these
+parameters to a data.frame of metadata. Typically, it will be more
+convenient to compute and add these parameters directly with
+\code{\link{compute_overlaps}}.
 }
 \examples{
-NULL
+# Reading the metadata from the test dataset
+# We will only use the first 6 images for this example
+tfiles <- dir(system.file("extdata/", package = "thermal"),
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles[1:6], camera_tz = "Etc/GMT+5",
+                       display_tz = "Etc/GMT+4", tags = "minimal")
+
+# Using lapply to compute the transformation parameters on all image pairs
+# It is easier to use compute_overlaps but this method provides more control
+tparams <- lapply(2:nrow(tmeta), function(i) {
+    optimize_transform(x = terra::rast(tmeta[i - 1, "SourceFile"], noflip = TRUE),
+                       y = terra::rast(tmeta[i, "SourceFile"], noflip = TRUE),
+                       theta1 = (tmeta[i, "GimbalYawDegree"] - tmeta[i - 1, "GimbalYawDegree"]),
+                       fact = 4, min_cor = 0.4, reltol = 10^-2, verbose = FALSE)
+                       })
+
+# Adding the results of the optimization to the metadata
+# The first row is always going to be NA
+tmeta <- add_tparams(tmeta, tparams = tparams)
+tmeta
+}
+\seealso{
+compute_overlaps
 }

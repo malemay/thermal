@@ -92,5 +92,27 @@ The color parameter can be used to specify different colors for points
 depending on characteristics of the metadata.
 }
 \examples{
-NULL
+# Reading the metadata from the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+
+# Basic plotting functionality
+plot_metadata(tmeta, base_crs = sf::st_crs("EPSG:4326"))
+
+# Plotting under a different coordinate reference system
+plot_metadata(tmeta, base_crs = sf::st_crs("EPSG:4326"), new_crs = sf::st_crs("EPSG:32198"))
+
+# Adding arrows representing the trajectory of the drone
+plot_metadata(tmeta, base_crs = sf::st_crs("EPSG:4326"),
+              arrows = TRUE, arrow_angle = 20,
+              arrow_length = grid::unit(0.15, "inches"))
+
+# Coloring the datapoints using a factor variable
+bearing <- ifelse(abs(tmeta$GimbalYawDegree) > 150, "south",
+                  ifelse(abs(tmeta$GimbalYawDegree) < 50, "north", "west"))
+plot_metadata(tmeta, base_crs = sf::st_crs("EPSG:4326"), color = as.factor(bearing))
+
+# Coloring the datapoinnts using a numeric variable
+plot_metadata(tmeta, base_crs = sf::st_crs("EPSG:4326"), color = tmeta$GimbalYawDegree)
 }

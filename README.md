@@ -56,7 +56,8 @@ library(thermal)
 tfiles <- dir(system.file("extdata/", package = "thermal"), 
               pattern = "thermal.tiff$", full.names = TRUE)
 
-tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5",
+                       display_tz = "Etc/GMT+4", tags = "minimal")
 ```
 
 Next, we correct the images by assuming a linear model of drift. The corrected
@@ -121,7 +122,7 @@ surface_temp <- thermal_predict(image, model = global_model$models$global)
 terra::plot(surface_temp)
 ```
 
-# Detailed documentation
+# Documentation
 
 The `thermal` package provides two vignettes. One of them shows how to correct
 thermal drift, while the other shows how to conduct radiometric calibration. We

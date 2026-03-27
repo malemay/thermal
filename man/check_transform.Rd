@@ -40,5 +40,24 @@ distinct display devices whereas non-interactive analysis splits a display
 device into two parts.
 }
 \examples{
-NULL
+# We use the second and third images in the test dataset
+image1 <- terra::rast(system.file("extdata/DJI_0671_thermal.tiff", 
+                                  package = "thermal"),
+                      noflip = TRUE)
+image2 <- terra::rast(system.file("extdata/DJI_0677_thermal.tiff",
+                                  package = "thermal"),
+                      noflip = TRUE)
+
+# Compute the transformation parameters to match image1 from image2
+tparams <- optimize_transform(x = image1, y = image2,
+                              theta_length = 1, htrans_length = 3,
+                              fact = 2, min_cor = 0.6,
+                              maxiter = 2, reltol = 10^-2,
+                              verbose = TRUE)
+
+# Running check_transform to verify the accuracy
+check_transform(x = image1, y = image2, params = tparams)
+
+# Testing the interactive = TRUE argument
+if(interactive()) check_transform(x = image1, y = image2, params = tparams, interactive = TRUE)
 }

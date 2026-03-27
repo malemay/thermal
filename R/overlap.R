@@ -102,7 +102,34 @@ transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FA
 #' @export
 #'
 #' @examples
-#' NULL
+#' # We use the first image in the test dataset
+#' image <- system.file("extdata/DJI_0665_thermal.tiff", package = "thermal")
+#' image <- terra::rast(image, noflip = TRUE)
+#'
+#' # Let us pretend that we want to rotate 10 degrees counterclockwise,
+#' # shift 10 pixels to the right, and 5 pixels down
+#' transformed_raster <- transform_raster(image,
+#'                                        theta = 10,
+#'                                        htrans = 10,
+#'                                        vtrans = -5)
+#'
+#' # Visualizing the result
+#' opar <- par(mfrow = c(1, 3))
+#' terra::plot(image, main = "Original raster", legend = FALSE, mar = 1)
+#' terra::plot(transformed_raster, main = "Transformed raster", legend  = FALSE, mar = 1)
+#'
+#' # We can get the original raster back with the `reverse` argument
+#' # Except that the parts outside the extent were set to NA
+#' reversed_raster <- transform_raster(transformed_raster,
+#'                                     theta = 10,
+#'                                     htrans = 10,
+#'                                     vtrans = -5,
+#'                                     reverse = TRUE)
+#'
+#' terra::plot(reversed_raster, main = "Reversed raster", legend  = FALSE, mar = 1)
+#'
+#' # Restoring the graphical parameters
+#' par(opar)
 transform_raster <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 
 	# We compute the transformed x-y coordinates of the cells
@@ -159,7 +186,41 @@ transform_raster <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 #' @export
 #'
 #' @examples
-#' NULL
+#' # We use the second and third images in the test dataset
+#' image1 <- terra::rast(system.file("extdata/DJI_0671_thermal.tiff", 
+#'                                   package = "thermal"),
+#'                       noflip = TRUE)
+#' image2 <- terra::rast(system.file("extdata/DJI_0677_thermal.tiff",
+#'                                   package = "thermal"),
+#'                       noflip = TRUE)
+#'
+#' # Compute the transformation parameters to match image1 from image2
+#' tparams <- optimize_transform(x = image1, y = image2,
+#'                               fact = 2, min_cor = 0.6,
+#'                               maxiter = 2, reltol = 10^-2,
+#'                               verbose = TRUE)
+#'
+#' # Running check_transform to verify the accuracy
+#' check_transform(x = image1, y = image2, params = tparams)
+#'
+#' # Setting min_cor higher will result in more parameters tested by brute-force approach
+#' # before control is passed to optim
+#' tparams2 <- optimize_transform(x = image1, y = image2,
+#'                                fact = 2, min_cor = 0.8,
+#'                                maxiter = 2, reltol = 10^-2,
+#'                                verbose = TRUE)
+#'
+#' # In this case, the results obtained are sill the same
+#' identical(tparams$optim$par, tparams2$optim$par)
+#'
+#' # Since the transformation involves very little rotation
+#' # and horizontal translation, we can restrict the range
+#' # of theta and htrans values tested to speed up
+#' tparams3 <- optimize_transform(x = image1, y = image2,
+#'                                theta_length = 1, htrans_length = 3,
+#'                                fact = 2, min_cor = 0.8,
+#'                                maxiter = 2, reltol = 10^-2,
+#'                                verbose = TRUE)
 optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 			       theta_range = 5, theta_length = 9,
 			       htrans_range = 20, htrans_length = 5,
@@ -286,7 +347,26 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 #' @export
 #'
 #' @examples
-#' NULL
+#' # We use the second and third images in the test dataset
+#' image1 <- terra::rast(system.file("extdata/DJI_0671_thermal.tiff", 
+#'                                   package = "thermal"),
+#'                       noflip = TRUE)
+#' image2 <- terra::rast(system.file("extdata/DJI_0677_thermal.tiff",
+#'                                   package = "thermal"),
+#'                       noflip = TRUE)
+#'
+#' # Compute the transformation parameters to match image1 from image2
+#' tparams <- optimize_transform(x = image1, y = image2,
+#'                               theta_length = 1, htrans_length = 3,
+#'                               fact = 2, min_cor = 0.6,
+#'                               maxiter = 2, reltol = 10^-2,
+#'                               verbose = TRUE)
+#'
+#' # Running check_transform to verify the accuracy
+#' check_transform(x = image1, y = image2, params = tparams)
+#'
+#' # Testing the interactive = TRUE argument
+#' if(interactive()) check_transform(x = image1, y = image2, params = tparams, interactive = TRUE)
 check_transform <- function(x, y, params, reverse = TRUE, interactive = FALSE, n = 10) {
 	# Extracting the parameters from the list provided
 	params <- params$optim$par
@@ -320,6 +400,8 @@ check_transform <- function(x, y, params, reverse = TRUE, interactive = FALSE, n
 		grDevices::dev.set(grDevices::dev.prev())
 
 		# Lopping for as many clicks as required
+		message("Click ", n, " times on the active device to see the corresponding location on the other device")
+
 		for(i in 1:n) {
 			# Asking for clicks on the untransformed raster
 			raw_coords <- terra::click(x, n = 1, xy = TRUE, pch = 1)[, c("x", "y")]
@@ -340,7 +422,8 @@ check_transform <- function(x, y, params, reverse = TRUE, interactive = FALSE, n
 	} else {
 
 		# Split the plotting region in two
-		graphics::par(mfrow = c(1, 2))
+		opar <- graphics::par(mfrow = c(1, 2))
+		on.exit(graphics::par(opar))
 
 		# Generate points randomly from the raster to transform
 		rpoints <- terra::xyFromCell(x, 1:(terra::ncell(x)))[sample(terra::ncell(x), n), ]
@@ -471,7 +554,24 @@ find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, min_overlap
 #'
 #' @export
 #' @examples
-#' NULL
+#' # Reading the metadata from the test dataset
+#' tfiles <- dir(system.file("extdata/", package = "thermal"), 
+#'               pattern = "thermal.tiff$", full.names = TRUE)
+#' tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+#'
+#' # Computing transformation parameters for all image pairs and adding
+#' # the results to the metadata data.frame.
+#' # We use permissive parameters in the search for transformation to speed up process
+#' tmeta <- compute_overlaps(metadata = tmeta,
+#'                           fact = 4, min_cor = 0.6,
+#'                           maxiter = 1, reltol = 0.05,
+#'                           verbose = TRUE)
+#' head(tmeta)
+#'
+#' # Looking at the distribution of correlation values
+#' # There are a few bad cases because the parameters were too permissive
+#' # and the test images are very low resolution
+#' hist(tmeta$corr, breaks = 15)
 compute_overlaps <- function(metadata, theta_guess = TRUE,
 			     theta1 = NULL, htrans1 = 0, vtrans1 = 0,
 			     theta_range = 5, theta_length = 9,

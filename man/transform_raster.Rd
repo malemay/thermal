@@ -29,5 +29,32 @@ rotated.
 Transform a raster by rotation and translation
 }
 \examples{
-NULL
+# We use the first image in the test dataset
+image <- system.file("extdata/DJI_0665_thermal.tiff", package = "thermal")
+image <- terra::rast(image, noflip = TRUE)
+
+# Let us pretend that we want to rotate 10 degrees counterclockwise,
+# shift 10 pixels to the right, and 5 pixels down
+transformed_raster <- transform_raster(image,
+                                       theta = 10,
+                                       htrans = 10,
+                                       vtrans = -5)
+
+# Visualizing the result
+opar <- par(mfrow = c(1, 3))
+terra::plot(image, main = "Original raster", legend = FALSE, mar = 1)
+terra::plot(transformed_raster, main = "Transformed raster", legend  = FALSE, mar = 1)
+
+# We can get the original raster back with the `reverse` argument
+# Except that the parts outside the extent were set to NA
+reversed_raster <- transform_raster(transformed_raster,
+                                    theta = 10,
+                                    htrans = 10,
+                                    vtrans = -5,
+                                    reverse = TRUE)
+
+terra::plot(reversed_raster, main = "Reversed raster", legend  = FALSE, mar = 1)
+
+# Restoring the graphical parameters
+par(opar)
 }

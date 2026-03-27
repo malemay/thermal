@@ -104,5 +104,22 @@ work or gain finer control over the analysis should read their respective
 documentation.
 }
 \examples{
-NULL
+# Reading the metadata from the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+
+# Computing transformation parameters for all image pairs and adding
+# the results to the metadata data.frame.
+# We use permissive parameters in the search for transformation to speed up process
+tmeta <- compute_overlaps(metadata = tmeta,
+                          fact = 4, min_cor = 0.6,
+                          maxiter = 1, reltol = 0.05,
+                          verbose = TRUE)
+head(tmeta)
+
+# Looking at the distribution of correlation values
+# There are a few bad cases because the parameters were too permissive
+# and the test images are very low resolution
+hist(tmeta$corr, breaks = 15)
 }

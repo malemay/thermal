@@ -89,5 +89,39 @@ to the target raster x.
 Optimize the transformation for a raster to match its target
 }
 \examples{
-NULL
+# We use the second and third images in the test dataset
+image1 <- terra::rast(system.file("extdata/DJI_0671_thermal.tiff", 
+                                  package = "thermal"),
+                      noflip = TRUE)
+image2 <- terra::rast(system.file("extdata/DJI_0677_thermal.tiff",
+                                  package = "thermal"),
+                      noflip = TRUE)
+
+# Compute the transformation parameters to match image1 from image2
+tparams <- optimize_transform(x = image1, y = image2,
+                              fact = 2, min_cor = 0.6,
+                              maxiter = 2, reltol = 10^-2,
+                              verbose = TRUE)
+
+# Running check_transform to verify the accuracy
+check_transform(x = image1, y = image2, params = tparams)
+
+# Setting min_cor higher will result in more parameters tested by brute-force approach
+# before control is passed to optim
+tparams2 <- optimize_transform(x = image1, y = image2,
+                               fact = 2, min_cor = 0.8,
+                               maxiter = 2, reltol = 10^-2,
+                               verbose = TRUE)
+
+# In this case, the results obtained are sill the same
+identical(tparams$optim$par, tparams2$optim$par)
+
+# Since the transformation involves very little rotation
+# and horizontal translation, we can restrict the range
+# of theta and htrans values tested to speed up
+tparams3 <- optimize_transform(x = image1, y = image2,
+                               theta_length = 1, htrans_length = 3,
+                               fact = 2, min_cor = 0.8,
+                               maxiter = 2, reltol = 10^-2,
+                               verbose = TRUE)
 }

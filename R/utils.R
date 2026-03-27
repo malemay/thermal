@@ -78,7 +78,7 @@ add_tparams <- function(metadata, tparams) {
 	params$corr <- sapply(tparams, function(x) -x$optim$value)
 
 	# If any of the parameters were already in the metadata then they are overriden
-	for(i in c("theta", "htrans", "vtrans")) {
+	for(i in c("corr", "theta", "htrans", "vtrans")) {
 		if(i %in% colnames(metadata)) metadata[[i]] <- NULL
 	}
 

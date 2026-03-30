@@ -15,7 +15,7 @@ tmeta <- read_metadata(thermal_files, camera_tz = "Etc/GMT+5", display_tz = "Etc
 ### RESULTS OF THE OVERALL MEAN CORRECTION
 overall_tmpdir <- withr::local_tempdir(pattern = "overall_test")
 
-overall_tmeta <- correct_thermal(base_data = tmeta,
+overall_tmeta <- correct_thermal(metadata = tmeta,
                                  correction_type = "overall",
                                  output_dir = overall_tmpdir,
                                  camera_tz = "Etc/GMT+5",
@@ -28,7 +28,7 @@ overall_tmeta$mean <- thermal_mean(overall_tmeta)
 ### RESULTS OF THE LINEAR MODEL CORRECTION
 lm_tmpdir <- withr::local_tempdir(pattern = "lm_test")
 
-lm_tmeta <- correct_thermal(base_data = tmeta,
+lm_tmeta <- correct_thermal(metadata = tmeta,
                             correction_type = "lm",
                             output_dir = lm_tmpdir,
                             camera_tz = "Etc/GMT+5",
@@ -42,12 +42,13 @@ lm_tmeta$mean <- thermal_mean(lm_tmeta)
 ### RESULTS OF THE SPLINE CORRECTION
 spline_tmpdir <- withr::local_tempdir(pattern = "spline_test")
 
-spline_tmeta <- correct_thermal(base_data = tmeta,
+spline_tmeta <- correct_thermal(metadata = tmeta,
 				correction_type = "spline",
 				output_dir = spline_tmpdir,
 				camera_tz = "Etc/GMT+5",
 				display_tz = "Etc/GMT+4",
 				tags = "minimal",
+				spline_spar = 0.5,
 				nuc_threshold = 80,
 				overwrite_dst = TRUE)
 
@@ -75,7 +76,7 @@ for(i in 2:nrow(tmeta)) {
 # Performing the overlap correction
 overlap_tmpdir <- withr::local_tempdir(pattern = "overlap_test")
 
-overlap_tmeta <- correct_thermal(base_data = tmeta,
+overlap_tmeta <- correct_thermal(metadata = tmeta,
                                  correction_type = "overlap",
                                  output_dir = overlap_tmpdir,
                                  camera_tz = "Etc/GMT+5",

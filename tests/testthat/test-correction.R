@@ -53,6 +53,7 @@ test_that("Spline correction works as expected", {
 						  camera_tz = "Etc/GMT+5",
 						  display_tz = "Etc/GMT+4",
 						  tags = "minimal",
+						  spline_spar = 0.5,
 						  nuc_threshold = 80,
 						  overwrite_dst = TRUE,
 						  verbose = FALSE)

@@ -1,6 +1,6 @@
 Package: thermal
-Title: Correct Thermal Infrared Images Acquired by Drones
-Version: 0.0.0.9000
+Title: Correct Thermal Infrared Images Acquired from UAVs
+Version: 0.1
 Authors@R: c(
     person("Marc-André", "Lemay", , "marc-andre.lemay@uqat.ca", role = c("cre", "aut"),
            comment = c(ORCID = "0000-0003-2484-8447")),
@@ -10,10 +10,12 @@ Authors@R: c(
     person("Fabio", "Gennaretti", role = "aut")
   )
 Description: This package provides software for processing thermal
-    infrared images acquired using drones with specific focus on how
+    infrared images acquired using UAVs with specific focus on how
     thermal drift can be corrected through data post-processing. It
     includes methods for correcting drift based on linear models, splines,
-    and image overlap.
+    and image overlap. It also includes functions for performing
+    radiometric calibration using time series of surface temperature
+    from reference surfaces.
 License: GPL (>= 3)
 Depends: 
     R (>= 4.0.0)
@@ -40,3 +42,5 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 SystemRequirements: GDAL (>= 3.8.0 but != 3.9.X)
 LazyData: true
+URL: https://github.com/malemay/thermal
+BugReports: https://github.com/malemay/thermal/issues

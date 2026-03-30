@@ -152,4 +152,4 @@ follows:
  
 Lemay M, Olugbadieye G, Maylal B, Rosa É, Gennaretti F (2026).
   _thermal: Correct Thermal Infrared Images Acquired by Drones_. R
-  package version 0.0.0.9000.
+  package version 0.1.

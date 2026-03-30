@@ -13,7 +13,7 @@ test_that("Radiometric calibration works as expected", {
 					       polygons = panels,
 					       summary_functions = list(black = median, gray = median, white = median),
 					       surfaces = c("black", "gray", "white"),
-					       ncores = 2)
+					       ncores = if(.Platform$OS.type == "unix") 2 else 1)
 
 		  thermal_reference <- readRDS(test_path("test_files", "thermal_models.rds"))
 
@@ -37,7 +37,7 @@ test_that("Radiometric calibration works as expected", {
 						   polygons = panels,
 						   summary_functions = median,
 						   surfaces = c("black", "gray", "white"),
-						   ncores = 2)
+						   ncores = if(.Platform$OS.type == "unix") 2 else 1)
 		  
 		  single_func_models$metadata$intercept <- round(single_func_models$metadata$intercept, 12)
 		  single_func_models$metadata$slope <- round(single_func_models$metadata$slope, 12)

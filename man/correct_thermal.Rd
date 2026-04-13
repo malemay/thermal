@@ -15,6 +15,7 @@ correct_thermal(
   midpoint = NULL,
   nuc_threshold = NULL,
   spline_spar = NULL,
+  crop = 0,
   overwrite_dst = FALSE,
   verbose = TRUE,
   ncores = 1
@@ -64,6 +65,12 @@ default value (NULL), will be set to 50 with a warning.}
 smoothing parameter when model_type = "spline". If NULL, (the default), then
 the smoothing parameter will be algorithmically determined. See
 \code{\link[stats]{smooth.spline}} for more details.}
+
+\item{crop}{A numeric value indicating the number of pixels to crop from the
+margin of the rasters prior to computing the difference in overlapping areas
+when method is "overlap". Such cropping can reduce the potential effect of
+vignetting by limiting the extent used to pixels near the middle of the
+image. Defaults to 0 (no cropping is done).}
 
 \item{overwrite_dst}{A logical value. Whether overwriting destination files
 (the corrected images) should be allowed.}

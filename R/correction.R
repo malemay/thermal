@@ -40,11 +40,13 @@ get_corners <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 #' @param htrans A numeric. A horizontal translation parameter for the
 #' transform.
 #' @param vtrans A numeric. A vertical translation parameter for the transform.
+#' @param crop A numeric value indicating the number of pixels to crop from the
+#' margin of the image. See \code{\link{correct_thermal}} for more details.
 #'
 #' @return A numeric value. The difference of the mean of raster y to that of
 #' raster x in their shared extent.
 #' @noRd
-get_diff <- function(x, y, theta, htrans, vtrans) {
+get_diff <- function(x, y, theta, htrans, vtrans, crop = 0) {
 
 	# Polygon of the extent of raster y in the coordinate system of x
 	x_corners <- get_corners(x = y,
@@ -59,8 +61,21 @@ get_diff <- function(x, y, theta, htrans, vtrans) {
 				 vtrans = vtrans, 
 				 reverse = TRUE)
 
-	x_mean <- terra::extract(x, x_corners, mean, ID = FALSE)$FLIR_RAW_THERMAL_IMAGE
-	y_mean <- terra::extract(y, y_corners, mean, ID = FALSE)$FLIR_RAW_THERMAL_IMAGE
+
+	# Cropping the rasters if crop != 0
+	if(crop != 0) {
+		x_ext  <- terra::ext(x)
+		x_mask <- terra::ext(c(x_ext[1] + crop, x_ext[2] - crop, x_ext[3] + crop, x_ext[4] - crop))
+
+		y_ext  <- terra::ext(y)
+		y_mask <- terra::ext(c(y_ext[1] + crop, y_ext[2] - crop, y_ext[3] + crop, y_ext[4] - crop))
+
+		x <- terra::mask(x, x_mask)
+		y <- terra::mask(y, y_mask)
+	}
+
+	x_mean <- terra::extract(x, x_corners, mean, ID = FALSE, na.rm = crop != 0)$FLIR_RAW_THERMAL_IMAGE
+	y_mean <- terra::extract(y, y_corners, mean, ID = FALSE, na.rm = crop != 0)$FLIR_RAW_THERMAL_IMAGE
 
 	# Getting the difference of y relative to x
 	y_mean - x_mean
@@ -73,6 +88,8 @@ get_diff <- function(x, y, theta, htrans, vtrans) {
 #'
 #' @param metadata A data.frame of metadata on a set of thermal pictures,
 #' including transformation parameters (theta, htrans, vtrans).
+#' @param crop A numeric value indicating the number of pixels to crop from the
+#' margin of the image. See \code{\link{correct_thermal}} for more details.
 #' @param ncores An integer. The number of processes to launch (passed to
 #' \code{\link[parallel]{mclapply}})
 #' @param verbose A logical. Whether the function should output information on
@@ -82,7 +99,7 @@ get_diff <- function(x, y, theta, htrans, vtrans) {
 #' input data.frame. The first value will be NA because the first picture has
 #' no previous picture.
 #' @noRd
-compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
+compute_diffs <- function(metadata, crop = 0, ncores = 1, verbose = TRUE) {
 	# Sanity checks
 	if(! all(c("theta", "htrans", "vtrans") %in% names(metadata))) {
 		stop("Metadata columns must include transformation parameters theta, htrans and vtrans.")
@@ -101,7 +118,8 @@ compute_diffs <- function(metadata, ncores = 1, verbose = TRUE) {
 						      y = terra::rast(params[i, "SourceFile"], noflip = TRUE),
 						      theta = params[i, "theta"],
 						      htrans = params[i, "htrans"],
-						      vtrans = params[i, "vtrans"])
+						      vtrans = params[i, "vtrans"],
+						      crop = crop)
 
 				 }, params = metadata, verbose = verbose, mc.cores = ncores)
 
@@ -347,6 +365,11 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 #' smoothing parameter when model_type = "spline". If NULL, (the default), then
 #' the smoothing parameter will be algorithmically determined. See
 #' \code{\link[stats]{smooth.spline}} for more details.
+#' @param crop A numeric value indicating the number of pixels to crop from the
+#' margin of the rasters prior to computing the difference in overlapping areas
+#' when method is "overlap". Such cropping can reduce the potential effect of
+#' vignetting by limiting the extent used to pixels near the middle of the
+#' image. Defaults to 0 (no cropping is done).
 #' @param overwrite_dst A logical value. Whether overwriting destination files
 #' (the corrected images) should be allowed.
 #' @param verbose A logical. Whether the function should output information on
@@ -426,7 +449,8 @@ correct_thermal <- function(metadata, correction_type, output_dir,
 			    camera_tz, display_tz,
 			    tags = NULL, tparams = NULL,
 			    midpoint = NULL, nuc_threshold = NULL,
-			    spline_spar = NULL, overwrite_dst = FALSE,
+			    spline_spar = NULL, crop = 0,
+			    overwrite_dst = FALSE,
 			    verbose = TRUE, ncores = 1) {
 
 	# metadata must be a data.frame of preprocessed metadata
@@ -465,7 +489,7 @@ correct_thermal <- function(metadata, correction_type, output_dir,
 		}
 
 		# We compute the differences based on coordinate transform parameters
-		metadata$diff <- compute_diffs(metadata, ncores = ncores, verbose = verbose)
+		metadata$diff <- compute_diffs(metadata, crop = crop, ncores = ncores, verbose = verbose)
 
 		# We then run the correction routine, which returns the names of the modified files
 		corrected_files <- correct_drift(metadata = metadata, output_dir = output_dir,

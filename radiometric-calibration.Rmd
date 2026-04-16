@@ -1,0 +1,471 @@
+---
+title: "Radiometric calibration with reference surfaces using the thermal package"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Radiometric calibration with reference surfaces using the thermal package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r options, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 6,
+  fig.align = "center")
+```
+
+# Introduction
+
+In addition to correcting drift in thermal infrared (TIR) images, the `thermal`
+package can perform radiometric calibration of images or orthomosaics by
+combining images with information on the temperature and position of reference
+surfaces. This vignette will show a step-by-step procedure to perform such
+radiometric calibration, i.e., translating digital number (DN) values returned
+by a camera into actual surface temperature readings.
+
+# Dataset
+
+The dataset used here is based on the same flight as the vignette on thermal
+drift correction, which we advise to read first. In brief, this dataset
+comprises 30 TIR images taken around noon on September 1, 2023.
+
+Of particular importance for this vignette is that three reference sufaces were
+placed in the study area during the flight for the purposes of radiometric
+calibration. Those surfaces are aluminum panels painted with matte paint for
+concrete of three different colors (black, gray and white) to allow for
+differences in panel temperature through absorbed solar radiation. The
+temperature of the panels was monitored by type T thermocouples plugged into
+CR1000X dataloggers that recorded temperature every five seconds. This allowed
+thermal infrared radiation as detected by the camera to be directly linked to
+high-quality temperature measurements which we will use for radiometric
+calibration.
+
+The images were downgraded from their original 640x512 resolution to 80x64 to
+reduce their size for shipping along with the package and to speed up
+processing for testing purposes. While the quality of the images is reduced,
+this is of little relevance to the examples presented in this vignette.
+
+Image metadata can be read using the `read_metadata` function:
+
+```{r read-metadata}
+# Loading the package
+library(thermal)
+
+# The functions would work without explicitly loading the sf package
+# However, this will enhance the display of spatial objects in this vignette
+library(sf)
+
+# Getting a vector of absolute paths to the test TIR images
+thermal_files <- dir(system.file("extdata", package = "thermal"),
+                     pattern = "thermal\\.tiff$", full.names = TRUE)
+
+# Reading metadata from EXIF tags
+# Setting the proper display time zone is critical here because we need to
+# match the time zone of the separately recorded surface temperature data
+tmeta_df <- read_metadata(thermal_files,
+                          camera_tz = "Etc/GMT+5",
+                          display_tz = "Etc/GMT+4",
+                          tags = "minimal")
+
+# Providing IDs for each picture as row names
+# This is necessary to match the panel coordinates with each picture
+rownames(tmeta_df) <- substr(basename(tmeta_df$SourceFile), 1, 8)
+
+head(tmeta_df)
+```
+
+For the sake of radiometric calibration, we also provided row names to the
+metadata. We will use these as IDs to uniquely identify individual pictures and
+link them to the coordinates of the reference surfaces.
+
+# Formatting data for radiometric calibration
+
+Radiometric calibration of TIR images requires two additional sources of data
+in addition to the images themselves:
+
+* Spatial location of the reference surfaces in the images
+* Time series of temperature for each of the reference surfaces
+
+These are included in the package as datasets with names `panels` and
+`temperature`, respectively. The `panels` dataset is list of `sf` objects with
+the coordinates of the reference surfaces (panels) in each of the images:
+
+```{r panels}
+length(panels)
+head(panels, n = 3)
+```
+
+The number of objects in the list is 27 rather than 30 (the total number of
+images) because three of the images did not include the panels in their frame.
+The names of the list elements (`DJI_0671`, `DJI_0677`, `DJI_0683`, ...) link
+the panel coordinates to the image that they relate to. In addition to the
+panel coordinates, the `ID` column of each sf object identifies the panel that
+they correspond to.
+
+Getting the panel coordinates in the right format for radiometric calibration
+(named list of sf objects, with an `ID` column for the identifier of the
+surface) is probably the trickiest part of conducting radiometric calibration.
+The panel coordinates of the dataset used here were obtained through a
+semi-automated approach, but `thermal` also provides the function
+`create_surfaces` to interactively and graphically derive surface coordinates
+from the `R` console.
+
+`thermal` also provides the `temperature` object as an example of surface
+temperature data to be used for radiometric calibration:
+
+```{r temperature}
+str(temperature)
+```
+
+The package does not provide functions to read temperature data given the
+diversity of formats in which such data may be provided. However, as long as
+the following guidelines are followed for formatting temperature data,
+downstream analyses should work seamlessly:
+
+* Data is provided as a list with as many elements as the number of reference
+  surfaces used.
+* The name of each list element should match the `"ID"` column of the
+  objects containing surface coordinates.
+* Each list element should be a data.frame containing the columns `"time"`
+  (vector of class POSIXct in the same time zone as the timestamps of the
+  images) and `"temp"` (surface temperature). Here, the temperature is provided
+  in degrees Celsius, but any temperature scale should work.
+
+The function `plot_temp` is provided to display the time series of temperature
+data, with one line per reference surface. By default, all lines will be black,
+but here we request specific colors for each surface and add a legend to the
+plot.
+
+```{r plot-temp, fig.width = 8, fig.height = 6}
+plot_temp(temperature,
+          lcol = c("black" = "black", "gray" = "gray", "white" = "blue"),
+          legend.pos = "topright")
+```
+
+Plotting the location of the panels on top of the thermal images is easy using
+functionality from the `sf` and `terra` packages:
+
+```{r plot-panels, fig.width = 8, fig.height = 6}
+# We can use identifiers to index the metadata because we have set row names
+terra::plot(terra::rast(tmeta_df["DJI_0671", "SourceFile"], noflip = TRUE))
+
+# The argument add = TRUE plots the shapes on top of the raster
+plot(panels[["DJI_0671"]],
+     col = "transparent",
+     border = c("black", "gray", "white"),
+     lwd = 2, add = TRUE)
+```
+
+Although image resolution is low, we can see that the black and gray panels are
+warmer than the white one, as we would expect.
+
+# Rationale for radiometric calibration with `thermal`
+
+The `thermal` package performs radiometric calibration by assuming linear
+models to compute surface temperature from thermal DN. By default, the
+functions used to compute these linear models will summarize the pixels
+corresponding to a given surface to a single value representing the maximum
+density of the DN distribution. This summarized measure is less sensitive to
+pixels ouside the surface than would be the mean, for example. However, other
+functions can be provided to summarize the pixels corresponding to each
+surface.
+
+Using the default approach means that, in the case of the test dataset, linear
+models of temperature will be computed for each image from three values, one
+for each of the panels. As we will see below, it is also possible to fit a
+linear model of radiometric calibration from all images taken during a flight
+which include the reference surfaces instead of from a single image.
+
+# Basic functionality: fitting linear models of temperature as a function of digital number
+
+From a practical standpoint, fitting linear models of surface temperature as a
+function of thermal DN involves the following steps for each picture:
+
+* Getting the temperature corresponding to each surface at the time when the
+  picture was taken.
+* Retrieving the values of the pixels corresponding to the surfaces.
+* Optionally processing the distribution of DN values to summarize or filter
+  them.
+* Using the temperature and DN data to fit a linear model.
+
+Many of these steps occur under the hood, but it is important to understand the
+sequence of computations because `thermal` exposes functionality to manipulate
+some of these steps through the functions `add_temp_metadata` and `thermal_lm`.
+
+The function `add_temp_metadata` adds columns for the temperature of the
+reference surfaces to the data.frame of flight metadata. Using the flight
+metadata and surface temperature as input, it will create a new temperature
+column for each of the reference surfaces. The temperature values are queried
+such that they are the closest measurement in time to when each picture was
+taken. A user-controllable threshold returns an error when no temperature
+measurement is close enough (default: 10 seconds) to a picture.
+
+```{r add-temp-metadata}
+# Will return an error if any picture was taken more than 5 seconds apart from
+# the closest temperature measurement
+tmeta_df <- add_temp_metadata(tmeta_df, temperature, tolerance = as.difftime(5, units = "secs"))
+
+head(tmeta_df)
+```
+
+As can be seen from the output above, three new columns have been added to the
+metadata, one for the temperature of each of the three panels.
+
+Next, the function `thermal_lm` fits the radiometric calibration models by
+combining information from three sources: the thermal infrared images, the
+spatial location of the reference surfaces in the images, and the temperature
+of the surfaces at the time when the pictures were taken. This step requires
+the row names of the flight metadata to match the IDs of the spatial polygons
+representing the positions of the panels as these IDs will be used to associate
+the polygons with their image. The images themselves do not need to be
+explicitly loaded in memory. They will instead be read on the fly from the path
+to the `SourceFile` listed in the metadata. Therefore, it is preferable to read
+the metadata using absolute file paths when using `read_metadata`.
+
+Internally, `thermal_lm` will first extract the pixels corresponding to each
+surface from the images. A function has to be provided to process the
+distribution of DN values obtained, for example by using the mean or median.
+The values can also be filtered or left as is, in which case the radiometric
+calibration model will be fitted on several values per panel. By default, the
+function used is `max_density`, a function that determines where the density of
+the distribution is maximal. However, since the images that we use here have
+very low resolution, we will use the median instead such that the analysis
+works even with a single pixel per surface.
+
+Once the DN values of a surface have been extracted and processed, `thermal_lm`
+will fit one linear model of surface temperature as a function of measured
+thermal infrared radiation for each picture in the dataset for which such
+information is available. The `surfaces` argument controls which surfaces we
+want to include in the computation of the models. Here, we use them all.
+
+```{r thermal-lm}
+# Parallel processing is supported through argument ncores
+# However, this does not work on Windows as it uses function mclapply from the
+# parallel package
+thermal_models <- thermal_lm(metadata = tmeta_df,
+                             polygons = panels,
+                             summary_functions = median,
+                             surfaces = c("black", "gray", "white"),
+                             ncores = if(.Platform$OS.type == "unix") 2 else 1)
+```
+
+The value returned by `thermal_lm` is a list of three elements, the first of
+which is the flight metadata updated with the results of the linear models for
+each picture. Pictures for which no panels were in the frame display `NA` for
+linear model-related columns `slope` and `intercept`:
+
+```{r thermal-lm-metadata}
+head(thermal_models$metadata)
+```
+
+While most of the necessary information for downstream analyses is embedded in
+that metadata, other outputs are stored to allow for quality control and
+troubleshooting. For example, the second element of the list contains the
+models themselves:
+
+```{r thermal-model-output}
+# Looking at the linear model for the first image
+thermal_models$models[["DJI_0671"]]
+```
+
+Finally, the third element of the returned list contains information on the
+values of all the pixels that were extracted from the reference surfaces, prior
+to being processed through the summary functions. This can be useful for
+diagnosing any issues with radiometric calibration.
+
+```{r thermal-model-pixels}
+head(thermal_models$pixels)
+```
+
+# Quality control and advanced functionality
+
+At this stage, it may by worth assessing the results critically. We can use the
+function `plot_pixtemp` to look at the linear models and the temperature/DN
+values that they were fitted with. The argument `lcol` allows to specify the
+colors to use for displaying the data of each reference surface whereas the
+argument `id` allows to identify a vector of images to display (by default, it
+will display them all).  The red points show the summarized values (here, the
+median) that were used to fit the models.
+
+```{r plot-pixtemp, fig.width = 8, fig.height = 8}
+# We will display data for the first 9 images
+par(mfrow = c(3, 3))
+
+plot_pixtemp(model_data = thermal_models,
+             id = names(panels)[1:9],
+             lcol = c(black = "black", gray = "gray", white = "blue"))
+```
+
+We can see that the models are a bit off for some of the images, which is to be
+expected given the low resolution of the images that we are using. If we were
+to do any serious analysis using this data, it would be worth removing these
+pictures or finding out why their results are bad.
+
+It is also possible to use different summary functions to summarize the data
+for different reference surfaces (for example, if the distinct properties of
+the surfaces warrant it) by providing a named list of functions with each name
+corresponding to the ID of a surface. For example, let us suppose that for some
+reason we want to use the the mean for the white panel, the median for the gray
+panel, and all values for the black panel. Such models can be fitted and
+visualized as follows:
+
+```{r plot-pixtemp-alternative, fig.width = 8, fig.height = 8}
+alternative_models <- thermal_lm(metadata = tmeta_df,
+                                 polygons = panels,
+                                 summary_functions = c(white = mean,
+                                                       gray = median,
+                                                       black = identity),
+                                 surfaces = c("black", "gray", "white"),
+                                 ncores = if(.Platform$OS.type == "unix") 2 else 1)
+
+par(mfrow = c(3, 3))
+
+plot_pixtemp(model_data = alternative_models,
+             id = names(panels)[1:9],
+             lcol = c(black = "black", gray = "gray", white = "blue"))
+```
+
+Alternatively, we may want to fit the models using only the white and black
+panels because we have found that the temperature or DN values of the gray
+panel could not be trusted for this flight:
+
+```{r plot-pixtemp-white-black, fig.width = 8, fig.height = 8}
+bw_models <- thermal_lm(metadata = tmeta_df,
+                        polygons = panels,
+                        summary_functions = median,
+                        surfaces = c("black", "white"),
+                        ncores = if(.Platform$OS.type == "unix") 2 else 1)
+
+par(mfrow = c(3, 3))
+
+plot_pixtemp(model_data = bw_models,
+             id = names(panels)[1:9],
+             lcol = c(black = "black", white = "blue"))
+```
+
+Finally, we may be interested in using the data to fit a global radiometric
+calibration model for the whole flight instead of using models that were
+individually fitted from each image. The `global_lm` function accomplishes this
+by using the output from `thermal_lm` to fit a model on the data that was
+already summarized for a whole flight. The object returned by `global_lm` has
+the same structure as the one returned by `thermal_lm` and can thus also be
+visualized with `plot_pixtemp` to see what data were used to fit the model:
+
+```{r global-pixtemp}
+global_model <- global_lm(thermal_models)
+
+plot_pixtemp(model_data = global_model,
+             lcol = c(black = "black", gray = "gray", white = "blue"))
+```
+
+# Radiometric calibration and drift correction
+
+It may also be worth looking at the shift in linear model parameters over time,
+which may be an indication of thermal drift occurring. We will look at the
+intercept, slope, and the predicted temperature for a relatively average DN of 3500.
+
+```{r lm-drift, fig.width = 6, fig.height = 8}
+# We rename tmeta_df to the metadata stored by the output of thermal_models
+tmeta_df <- thermal_models$metadata
+
+par(mfrow = c(3, 1))
+
+# A plot of linear model intercept over time
+plot(tmeta_df$DateTimeOriginal, tmeta_df$intercept,
+     main = "Intercept", xlab = "Time", ylab = "Intercept")
+lines(tmeta_df$DateTimeOriginal, tmeta_df$intercept, lty = 2)
+
+# A plot of linear model slope over time
+plot(tmeta_df$DateTimeOriginal, tmeta_df$slope,
+     main = "Slope", xlab = "Time", ylab = "Slope")
+lines(tmeta_df$DateTimeOriginal, tmeta_df$slope, lty = 2)
+
+# A plot of temperature predicted from a DN of 3500 from models fitted at various time points
+plot(tmeta_df$DateTimeOriginal,  3500 * tmeta_df$slope + tmeta_df$intercept,
+     main = "Prediction", xlab = "Time", ylab = "Temp. predicted when DN = 3500 (°C)")
+lines(tmeta_df$DateTimeOriginal, 3500 * tmeta_df$slope + tmeta_df$intercept, lty = 2)
+```
+
+It is clear from the plot above that drift is occurring in the dataset. Indeed,
+the temperature predicted from a fixed DN value varies depending on the image
+that was used to fit the models, indicating instability in radiometric
+calibration parameters.  If we correct the images assuming a linear model of
+drift, the results are considerably improved, although not perfect:
+
+```{r lm-correction-calibration, fig.width = 6, fig.height = 6}
+corrected_df <- read_metadata(thermal_files,
+                              camera_tz = "Etc/GMT+5",
+                              display_tz = "Etc/GMT+4",
+                              tags = "minimal")
+
+corrected_df <- correct_thermal(metadata = corrected_df,
+                                correction_type = "lm",
+                                output_dir = tempdir(),
+                                camera_tz = "Etc/GMT+5",
+                                display_tz = "Etc/GMT+4",
+                                tags = "minimal",
+                                nuc_threshold = 80,
+                                overwrite_dst = TRUE,
+                                verbose = FALSE)
+
+rownames(corrected_df) <- substr(basename(corrected_df$SourceFile), 1, 8)
+
+corrected_df <- add_temp_metadata(corrected_df, temperature,
+                                  tolerance = as.difftime(5, units = "secs"))
+
+corrected_models <- thermal_lm(metadata = corrected_df,
+                               polygons = panels,
+                               summary_functions = median,
+                               surfaces = c("black", "gray", "white"),
+                               ncores = if(.Platform$OS.type == "unix") 2 else 1)
+
+# Extracting the metadata from the output of thermal_lm
+corrected_df <- corrected_models$metadata
+
+# A plot of temperature predicted from a DN of 3500 from models fitted at various time points
+plot(corrected_df$DateTimeOriginal,  3500 * corrected_df$slope + corrected_df$intercept,
+     main = "Prediction", xlab = "Time", ylab = "Temp. predicted when DN = 3500 (°C)")
+lines(x = corrected_df$DateTimeOriginal,
+      y = 3500 * corrected_df$slope + corrected_df$intercept,
+      lty = 2)
+```
+
+Although far from perfect, the stability of the predictions is better in the
+corrected data
+
+# Computing surface temperature from radiometric calibration models
+
+Finally, we can use the radiometric calibration models to compute surface
+temperature for the images acquired during the flight. We can simply use the
+function `thermal_predict` with the model that we deem the best to predict the
+surface temperature from the DN values of a given raster. Here, we will fit a
+global model from the drift-corrected images used in the previous step:
+
+```{r radiometric-calibration-pixtemp}
+global_corrected <- global_lm(corrected_models)
+
+plot_pixtemp(global_corrected,
+             lcol = c(black = "black", gray = "gray", white = "blue"))
+
+```
+
+```{r radiometric-calibration-rast, fig.width = 8, fig.height = 8}
+par(mfrow = c(3, 3))
+
+for(i in rownames(corrected_df)[1:9]) {
+        i_rast <- terra::rast(corrected_df[i, "SourceFile"], noflip = TRUE)
+        i_rast <- thermal_predict(x = i_rast, model = global_corrected$models$global)
+        terra::plot(i_rast, main = i)
+}
+```
+
+# Session info
+
+This vignette was produced under the following system:
+
+```{r session-info}
+sessionInfo()
+```
+

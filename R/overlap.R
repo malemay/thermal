@@ -135,7 +135,7 @@ transform_raster <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 	# We compute the transformed x-y coordinates of the cells
 	new_coords <- transform_coords(terra::xyFromCell(x, 1:(terra::ncell(x))),
 				       theta = theta,
-				       center = c(terra::xmax(x) - terra::xmin(x), terra::ymax(x) - terra::ymin(x)) / 2,
+				       center = c(terra::xmax(x) + terra::xmin(x), terra::ymax(x) + terra::ymin(x)) / 2,
 				       htrans = htrans,
 				       vtrans = vtrans,
 				       reverse = reverse)
@@ -232,7 +232,7 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 
 	# Pre-processing the data that does not vary from one call to another
 	optim_coords <- terra::xyFromCell(y, 1:(terra::ncell(y)))
-	center <- c(terra::xmax(y) - terra::xmin(y), terra::ymax(y) - terra::ymin(y)) / 2
+	center <- c(terra::xmax(y) + terra::xmin(y), terra::ymax(y) + terra::ymin(y)) / 2
 	optim_coords <- cbind(optim_coords, rep(1, nrow(optim_coords)))
 	optim_coords[, 1] <- optim_coords[, 1] - center[1]
 	optim_coords[, 2] <- optim_coords[, 2] - center[2]
@@ -498,7 +498,7 @@ find_initial <- function(x, y, theta_vect, htrans_vect, vtrans_vect, min_overlap
 
 	# Pre-processing the data for assess_transform_cpp
 	optim_coords <- terra::xyFromCell(y, 1:(terra::ncell(y)))
-	center <- c(terra::xmax(y) - terra::xmin(y), terra::ymax(y) - terra::ymin(y)) / 2
+	center <- c(terra::xmax(y) + terra::xmin(y), terra::ymax(y) + terra::ymin(y)) / 2
 	optim_coords <- cbind(optim_coords, rep(1, nrow(optim_coords)))
 	optim_coords[, 1] <- optim_coords[, 1] - center[1]
 	optim_coords[, 2] <- optim_coords[, 2] - center[2]

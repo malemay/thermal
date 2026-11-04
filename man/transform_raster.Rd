@@ -31,7 +31,7 @@ Transform a raster by rotation and translation
 \examples{
 # We use the first image in the test dataset
 image <- system.file("extdata/DJI_0665_thermal.tiff", package = "thermal")
-image <- terra::rast(image, noflip = TRUE)
+image <- terra::rast(image, noflip = TRUE, subds = 1)
 
 # Let us pretend that we want to rotate 10 degrees counterclockwise,
 # shift 10 pixels to the right, and 5 pixels down

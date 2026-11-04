@@ -38,8 +38,8 @@ tmeta <- read_metadata(tfiles[1:6], camera_tz = "Etc/GMT+5",
 # Using lapply to compute the transformation parameters on all image pairs
 # It is easier to use compute_overlaps but this method provides more control
 tparams <- lapply(2:nrow(tmeta), function(i) {
-    optimize_transform(x = terra::rast(tmeta[i - 1, "SourceFile"], noflip = TRUE),
-                       y = terra::rast(tmeta[i, "SourceFile"], noflip = TRUE),
+    optimize_transform(x = terra::rast(tmeta[i - 1, "SourceFile"], noflip = TRUE, subds = 1),
+                       y = terra::rast(tmeta[i, "SourceFile"], noflip = TRUE, subds = 1),
                        theta1 = (tmeta[i, "GimbalYawDegree"] - tmeta[i - 1, "GimbalYawDegree"]),
                        fact = 4, min_cor = 0.4, reltol = 10^-2, verbose = FALSE)
                        })

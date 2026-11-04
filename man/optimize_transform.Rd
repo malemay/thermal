@@ -92,10 +92,10 @@ Optimize the transformation for a raster to match its target
 # We use the second and third images in the test dataset
 image1 <- terra::rast(system.file("extdata/DJI_0671_thermal.tiff", 
                                   package = "thermal"),
-                      noflip = TRUE)
+                      noflip = TRUE, subds = 1)
 image2 <- terra::rast(system.file("extdata/DJI_0677_thermal.tiff",
                                   package = "thermal"),
-                      noflip = TRUE)
+                      noflip = TRUE, subds = 1)
 
 # Compute the transformation parameters to match image1 from image2
 tparams <- optimize_transform(x = image1, y = image2,

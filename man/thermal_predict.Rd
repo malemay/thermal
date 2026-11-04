@@ -50,7 +50,7 @@ median_models <- thermal_lm(metadata = tmeta,
                             summary_functions = median)
 
 # Reading the first image of the dataset that contains the panels
-test_raster <- terra::rast(tmeta["DJI_0671", "SourceFile"], noflip = TRUE)
+test_raster <- terra::rast(tmeta["DJI_0671", "SourceFile"], noflip = TRUE, subds = 1)
 
 # Computing the surface temperature (in Celisius) of that image
 surface_temp <- thermal_predict(test_raster,

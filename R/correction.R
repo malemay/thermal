@@ -114,8 +114,8 @@ compute_diffs <- function(metadata, crop = 0, ncores = 1, verbose = TRUE) {
 	diffs <- parallel::mclapply(2:nrow(metadata), FUN = function(i, params, verbose) {
 					     if(verbose) message("compute_diffs: processing row ", i, " out of ", nrow(params))
 
-					     get_diff(x = terra::rast(params[i - 1, "SourceFile"], noflip = TRUE),
-						      y = terra::rast(params[i, "SourceFile"], noflip = TRUE),
+					     get_diff(x = terra::rast(params[i - 1, "SourceFile"], noflip = TRUE, subds = 1),
+						      y = terra::rast(params[i, "SourceFile"], noflip = TRUE, subds = 1),
 						      theta = params[i, "theta"],
 						      htrans = params[i, "htrans"],
 						      vtrans = params[i, "vtrans"],
@@ -300,7 +300,7 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 				   src <- src_files[i]
 				   dst <- dst_files[i]
 
-				   raw_image <- suppressWarnings(terra::rast(src, noflip = TRUE))
+				   raw_image <- suppressWarnings(terra::rast(src, noflip = TRUE, subds = 1))
 
 				   if(verbose) message("Processing index ", i, " with adjustment = ", adj_factors[i])
 

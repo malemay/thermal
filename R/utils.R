@@ -21,7 +21,7 @@ thermal_mean <- function(metadata, ncores = 1) {
 
 	# Computing the means in parallel
 	output <- parallel::mclapply(metadata$SourceFile, function(x) {
-					     terra::global(suppressWarnings(terra::rast(x, noflip = TRUE)), mean)$mean
+					     terra::global(suppressWarnings(terra::rast(x, noflip = TRUE, subds = 1)), mean)$mean
                                      },
 				     mc.cores = ncores)
 	
@@ -50,7 +50,7 @@ compute_vignetting <- function(metadata) {
 	stopifnot("SourceFile" %in% names(metadata) && all(file.exists(metadata$SourceFile)))
 	filenames <- metadata$SourceFile
 
-	output <- suppressWarnings(terra::rast(filenames[1], noflip = TRUE))
+	output <- suppressWarnings(terra::rast(filenames[1], noflip = TRUE, subds = 1))
 
 	if(length(filenames) == 1) {
 		warning("Only one picture found in dataset. Vignetting pattern is simply that picture.")
@@ -58,7 +58,7 @@ compute_vignetting <- function(metadata) {
 	}
 
 	for(i in 2:length(filenames)) {
-		output <- output + suppressWarnings(terra::rast(filenames[i], noflip = TRUE))
+		output <- output + suppressWarnings(terra::rast(filenames[i], noflip = TRUE, subds = 1))
 	}
 
 	output / length(filenames)
@@ -97,8 +97,8 @@ compute_vignetting <- function(metadata) {
 #' # Using lapply to compute the transformation parameters on all image pairs
 #' # It is easier to use compute_overlaps but this method provides more control
 #' tparams <- lapply(2:nrow(tmeta), function(i) {
-#'     optimize_transform(x = terra::rast(tmeta[i - 1, "SourceFile"], noflip = TRUE),
-#'                        y = terra::rast(tmeta[i, "SourceFile"], noflip = TRUE),
+#'     optimize_transform(x = terra::rast(tmeta[i - 1, "SourceFile"], noflip = TRUE, subds = 1),
+#'                        y = terra::rast(tmeta[i, "SourceFile"], noflip = TRUE, subds = 1),
 #'                        theta1 = (tmeta[i, "GimbalYawDegree"] - tmeta[i - 1, "GimbalYawDegree"]),
 #'                        fact = 4, min_cor = 0.4, reltol = 10^-2, verbose = FALSE)
 #'                        })

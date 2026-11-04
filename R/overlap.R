@@ -104,7 +104,7 @@ transform_coords <- function(coords, theta, center, htrans, vtrans, reverse = FA
 #' @examples
 #' # We use the first image in the test dataset
 #' image <- system.file("extdata/DJI_0665_thermal.tiff", package = "thermal")
-#' image <- terra::rast(image, noflip = TRUE)
+#' image <- terra::rast(image, noflip = TRUE, subds = 1)
 #'
 #' # Let us pretend that we want to rotate 10 degrees counterclockwise,
 #' # shift 10 pixels to the right, and 5 pixels down
@@ -189,10 +189,10 @@ transform_raster <- function(x, theta, htrans, vtrans, reverse = FALSE) {
 #' # We use the second and third images in the test dataset
 #' image1 <- terra::rast(system.file("extdata/DJI_0671_thermal.tiff", 
 #'                                   package = "thermal"),
-#'                       noflip = TRUE)
+#'                       noflip = TRUE, subds = 1)
 #' image2 <- terra::rast(system.file("extdata/DJI_0677_thermal.tiff",
 #'                                   package = "thermal"),
-#'                       noflip = TRUE)
+#'                       noflip = TRUE, subds = 1)
 #'
 #' # Compute the transformation parameters to match image1 from image2
 #' tparams <- optimize_transform(x = image1, y = image2,
@@ -350,10 +350,10 @@ optimize_transform <- function(x, y, theta1 = 0, htrans1 = 0, vtrans1 = 0,
 #' # We use the second and third images in the test dataset
 #' image1 <- terra::rast(system.file("extdata/DJI_0671_thermal.tiff", 
 #'                                   package = "thermal"),
-#'                       noflip = TRUE)
+#'                       noflip = TRUE, subds = 1)
 #' image2 <- terra::rast(system.file("extdata/DJI_0677_thermal.tiff",
 #'                                   package = "thermal"),
-#'                       noflip = TRUE)
+#'                       noflip = TRUE, subds = 1)
 #'
 #' # Compute the transformation parameters to match image1 from image2
 #' tparams <- optimize_transform(x = image1, y = image2,
@@ -607,8 +607,8 @@ compute_overlaps <- function(metadata, theta_guess = TRUE,
 		if(theta_guess) theta1 <- -(metadata[i, "GimbalYawDegree"] - metadata[i - 1, "GimbalYawDegree"])
 
 		# Filling the tparams list with the parameter estimates
-		tparams[[i - 1]] <- optimize_transform(x = terra::rast(metadata[i - 1, "SourceFile"], noflip = TRUE),
-						       y = terra::rast(metadata[i, "SourceFile"], noflip = TRUE),
+		tparams[[i - 1]] <- optimize_transform(x = terra::rast(metadata[i - 1, "SourceFile"], noflip = TRUE, subds = 1),
+						       y = terra::rast(metadata[i, "SourceFile"], noflip = TRUE, subds = 1),
 						       theta1 = theta1, theta_range = theta_range, theta_length = theta_length,
 						       htrans1 = htrans1, htrans_range = htrans_range, htrans_length = htrans_length,
 						       vtrans1 = vtrans1, vtrans_range = vtrans_range, vtrans_length = vtrans_length,

@@ -83,7 +83,7 @@ create_surfaces <- function(image, ids, nclicks = 4) {
 	if(!interactive()) stop("create_surfaces can only be called in interactive mode")
 
 	# Reading a picture if provided with a file path
-	if(is.character(image)) image <- terra::rast(image, noflip = TRUE)
+	if(is.character(image)) image <- terra::rast(image, noflip = TRUE, subds = 1)
 
 	# Querying for an area to zoom on the picture
 	message("Click on the image twice to zoom on an area of interest (top left and botton right corners)")
@@ -349,7 +349,7 @@ join_thermal <- function(metadata, polygons, surfaces, ncores = 1) {
 
 					     # Extracting the values from the thermal raster and naming the column
 					     stopifnot(file.exists(mdata[i, "SourceFile"]))
-					     irast <- suppressWarnings(terra::rast(mdata[i, "SourceFile"], noflip = TRUE))
+					     irast <- suppressWarnings(terra::rast(mdata[i, "SourceFile"], noflip = TRUE, subds = 1))
 					     pix_values <- terra::extract(irast, i_poly)
 					     names(pix_values)[2] <- "thermal"
 
@@ -691,7 +691,7 @@ max_density <- function(x) {
 #'                             summary_functions = median)
 #'
 #' # Reading the first image of the dataset that contains the panels
-#' test_raster <- terra::rast(tmeta["DJI_0671", "SourceFile"], noflip = TRUE)
+#' test_raster <- terra::rast(tmeta["DJI_0671", "SourceFile"], noflip = TRUE, subds = 1)
 #'
 #' # Computing the surface temperature (in Celisius) of that image
 #' surface_temp <- thermal_predict(test_raster,

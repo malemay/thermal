@@ -74,7 +74,7 @@ The first four images of the dataset look as follows:
 par(mfrow = c(2, 2))
 
 for(i in thermal_files[1:4]) {
-	terra::plot(terra::rast(i), mar = rep(0.5, 4), legend = FALSE, axes = FALSE)
+	terra::plot(terra::rast(i, noflip = TRUE, subds = 1), mar = rep(0.5, 4), legend = FALSE, axes = FALSE)
 }
 ```
 
@@ -508,8 +508,8 @@ dataset.
 # difference in gimbal yaw angle recorded by the camera at the two time points
 theta_guess <- -(tmeta_df[2, "GimbalYawDegree"] - tmeta_df[1, "GimbalYawDegree"])
 
-trans_params <- optimize_transform(x = terra::rast(tmeta_df[1, "SourceFile"]),
-                                   y = terra::rast(tmeta_df[2, "SourceFile"]),
+trans_params <- optimize_transform(x = terra::rast(tmeta_df[1, "SourceFile"], noflip = TRUE, subds = 1),
+                                   y = terra::rast(tmeta_df[2, "SourceFile"], noflip = TRUE, subds = 1),
                                    theta1 = theta_guess,
                                    reltol = 10^-3)
 ```
@@ -529,8 +529,8 @@ transformation parameters are reasonably accurate.
 set.seed(1)
 
 # Verifying the transformation parameters non-interactively
-check_transform(x = terra::rast(tmeta_df[1, "SourceFile"]),
-                y = terra::rast(tmeta_df[2, "SourceFile"]),
+check_transform(x = terra::rast(tmeta_df[1, "SourceFile"], noflip = TRUE, subds = 1),
+                y = terra::rast(tmeta_df[2, "SourceFile"], noflip = TRUE, subds = 1),
                 params = trans_params, n = 40)
 ```
 
@@ -598,8 +598,8 @@ set.seed(1)
 min_image <- which.min(tmeta_df$corr)
 
 # Verifying the transformation parameters non-interactively
-check_transform(x = terra::rast(tmeta_df[min_image - 1, "SourceFile"]),
-                y = terra::rast(tmeta_df[min_image, "SourceFile"]),
+check_transform(x = terra::rast(tmeta_df[min_image - 1, "SourceFile"], noflip = TRUE, subds = 1),
+                y = terra::rast(tmeta_df[min_image, "SourceFile"], noflip = TRUE, subds = 1),
                 params = trans_params, n = 40)
 ```
 

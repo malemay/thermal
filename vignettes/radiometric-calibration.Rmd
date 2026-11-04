@@ -149,7 +149,7 @@ functionality from the `sf` and `terra` packages:
 
 ```{r plot-panels, fig.width = 8, fig.height = 6}
 # We can use identifiers to index the metadata because we have set row names
-terra::plot(terra::rast(tmeta_df["DJI_0671", "SourceFile"], noflip = TRUE))
+terra::plot(terra::rast(tmeta_df["DJI_0671", "SourceFile"], noflip = TRUE, subds = 1))
 
 # The argument add = TRUE plots the shapes on top of the raster
 plot(panels[["DJI_0671"]],
@@ -455,7 +455,7 @@ plot_pixtemp(global_corrected,
 par(mfrow = c(3, 3))
 
 for(i in rownames(corrected_df)[1:9]) {
-        i_rast <- terra::rast(corrected_df[i, "SourceFile"], noflip = TRUE)
+        i_rast <- terra::rast(corrected_df[i, "SourceFile"], noflip = TRUE, subds = 1)
         i_rast <- thermal_predict(x = i_rast, model = global_corrected$models$global)
         terra::plot(i_rast, main = i)
 }

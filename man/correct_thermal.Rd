@@ -16,6 +16,8 @@ correct_thermal(
   nuc_threshold = NULL,
   spline_spar = NULL,
   crop = 0,
+  drat_peak = NULL,
+  drat_threshold = NULL,
   overwrite_dst = FALSE,
   verbose = TRUE,
   ncores = 1
@@ -26,8 +28,8 @@ correct_thermal(
 returned by \code{\link{read_metadata}}.}
 
 \item{correction_type}{A character. The type of correction to apply to the
-images. At the moment, the values "overall", "overlap", "lm", and "spline"
-are supported.}
+images. At the moment, the values "overall", "overlap", "lm", "spline",
+and "drat" are supported.}
 
 \item{output_dir}{A character. The directory to which the corrected images
 should be output. The directory will be created if it does not already
@@ -72,6 +74,21 @@ when method is "overlap". Such cropping can reduce the potential effect of
 vignetting by limiting the extent used to pixels near the middle of the
 image. Defaults to 0 (no cropping is done).}
 
+\item{drat_peak}{A character string. When using the "drat" correction,
+specifies which peak (local maximum) should be selected to extract the
+representative digital number. Supported values are "minimum" (the peak with
+the lowest DN value"), "median" (the peak with the median DN value; in case
+of ties the lower peak is chosen), or "maximum" (the peak with the highest
+DN value).  Defaults to "minimum" with a warning, therefore the land cover
+type with the lowest surface temperature is selected by default.}
+
+\item{drat_threshold}{A numeric value between 0 and 1, interpreted as a
+proportion. Peaks (local maxima) identified from the probability density
+function of the DN values are filtered out if their density is lower than
+this proportion compared to the global maximum. Defaults to a rather
+permissive value of 0.1 with a warning. The global maximum can be
+consistently selected by using a very high value (e.g. 0.99).}
+
 \item{overwrite_dst}{A logical value. Whether overwriting destination files
 (the corrected images) should be allowed.}
 
@@ -88,7 +105,8 @@ A data.frame of metadata describing the corrected images.
 From a metadata data.frame, such as returned by \code{\link{read_metadata}}
 and other thermal flight related data, it performs thermal drift correction
 in response to user-supplied parameters and returns a data.frame of metadata
-on the corrected pictures.
+on the corrected pictures. The "drat" option is implemented from the DRAT
+approach outlined by Wang et al. (2023).
 }
 \examples{
 # Reading the metadata from the test dataset
@@ -134,6 +152,18 @@ spline_meta <- correct_thermal(metadata = tmeta,
                                overwrite_dst = TRUE,
                                verbose = TRUE)
 
+### DRAT drift correction
+# Determines drift between successive images based on representative digital
+# numbers extracted from the proability density function of the distribution
+# of digital numbers
+drat_meta <- correct_thermal(metadata = tmeta,
+                             correction_type = "drat", drat_peak = "minimum", drat_threshold = 0.9,
+                             output_dir = tmpdir,
+                             camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4",
+                             tags = "minimal",
+                             overwrite_dst = TRUE,
+                             verbose = TRUE)
+
 ### Image overlap drift correction
 # Finds the differences in overlapping regions of successive images to adjust values
 
@@ -155,4 +185,11 @@ overlap_meta <- correct_thermal(metadata = tmeta,
 
 # Cleaning up the temporary directory
 unlink(tmpdir, recursive = TRUE)
+}
+\references{
+Wang, Z., Zhou, J., Ma, J., Wang, Y., Liu, S., Ding, L., Tang, W., Pakezhamu,
+N. and Meng, L., 2023. Removing temperature drift and temporal variation in
+thermal infrared images of a UAV uncooled thermal infrared imager. ISPRS
+Journal of Photogrammetry and Remote Sensing, 203, pp.392-411.
+\url{https://doi.org/10.1016/j.isprsjprs.2023.08.011}
 }

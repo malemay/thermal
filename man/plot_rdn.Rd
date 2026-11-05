@@ -4,23 +4,37 @@
 \alias{plot_rdn}
 \title{Plot the probability density functions and RDNs of a dataset}
 \usage{
-plot_rdn(metadata, peak, max_threshold = 0.1, alpha = 0.5)
+plot_rdn(
+  metadata,
+  drat_peak,
+  drat_threshold = 0.1,
+  alpha = 0.5,
+  verbose = FALSE,
+  ncores = 1
+)
 }
 \arguments{
 \item{metadata}{A data.frame of metadata on a flight, as returned by
 \code{\link{read_metadata}}.}
 
-\item{peak}{A character indicating which peak to select from the local
+\item{drat_peak}{A character indicating which peak to select from the local
 maxima of the digital number probability density function. Supported values
 are currently "minimum", "median", and "maximum", which respectively select
 the peak with the lowest, median, and highest DN.}
 
-\item{max_threshold}{A numeric value between 0 and 1, interpreted as a
+\item{drat_threshold}{A numeric value between 0 and 1, interpreted as a
 proportion. Any local maximum must be at least that much relative to the
 global maximum to be considered for selection as the RDN. Defaults to 0.1.}
 
 \item{alpha}{A numeric value between 0 and 1. The transparency value to use
 for plotting. Values closer to 0 mean more transparency.}
+
+\item{verbose}{A logical value. Whether or not progress and RDN values are
+printed as part of the computation.}
+
+\item{ncores}{An integer value, the number of cores to use for computing the
+probability density functions in parallel. Defaults no 1 (no parallel
+computation).}
 }
 \value{
 Invisibly, a list of three elements:
@@ -46,4 +60,5 @@ Wang, Z., Zhou, J., Ma, J., Wang, Y., Liu, S., Ding, L., Tang, W., Pakezhamu,
 N. and Meng, L., 2023. Removing temperature drift and temporal variation in
 thermal infrared images of a UAV uncooled thermal infrared imager. ISPRS
 Journal of Photogrammetry and Remote Sensing, 203, pp.392-411.
+\url{https://doi.org/10.1016/j.isprsjprs.2023.08.011}
 }

@@ -8,6 +8,11 @@
 #' @param max_threshold A numeric value between 0 and 1, interpreted as a
 #' proportion. Any local maximum must be at least that much relative to the
 #' global maximum to be considered for selection as the RDN. Defaults to 0.1.
+#' @param verbose A logical value. Whether or not progress and RDN values are
+#' printed as part of the computation.
+#' @param ncores An integer value, the number of cores to use for computing the
+#' probability density functions in parallel. Defaults no 1 (no parallel
+#' computation).
 #'
 #' @return A list of three elements:
 #' - A vector of numeric values containing the representative DNs (RDN) for
@@ -17,11 +22,12 @@
 #' - The probability density function computed from the DNs, used for plotting
 #' and diagnostics.
 #' @noRd
-compute_rdn <- function(metadata, peak, max_threshold = 0.1) {
+compute_rdn <- function(metadata, peak, max_threshold = 0.1, verbose = TRUE, ncores = 1) {
 	# Computing the densities for each image
-	densities <- lapply(metadata$SourceFile, function(x) {
-				    values <- terra::values(terra::rast(x, noflip = TRUE, subds = 1))
-				    stats::density(values)})
+	densities <- parallel::mclapply(1:nrow(metadata), function(i, meta) {
+						if(verbose) message("compute_rdn: processing row ", i, " out of ", nrow(meta))
+						values <- terra::values(terra::rast(meta[i, "SourceFile"], noflip = TRUE, subds = 1))
+						stats::density(values)}, meta = metadata, mc.cores = ncores)
 
 	# Compute the position and density value of all local maxima in the distribution
 	maxima <- lapply(densities, function(x) {
@@ -54,10 +60,19 @@ compute_rdn <- function(metadata, peak, max_threshold = 0.1) {
 				    })
 	}
 
-	# Computing the local maxima and selecting
-	return(list(rdn = sapply(rdn, function(x) x$x),
-		    y   = sapply(rdn, function(x) x$y),
-		    density = densities))
+	# Preparing the output list
+	output <- list(rdn = sapply(rdn, function(x) x$x),
+		       y   = sapply(rdn, function(x) x$y),
+		       density = densities)
+
+	# Printing the RDNs if verbose is TRUE
+	if(verbose) {
+		message("RDN values identified for this flight: ")
+		verbose_df <- data.frame(file = basename(metadata$SourceFile), RDN = output$rdn)
+		print(verbose_df)
+	}
+
+	return(output)
 }
 
 #' Find the index of local maxima in a probability density function
@@ -102,15 +117,20 @@ local_maxima <- function(x) {
 #'
 #' @param metadata A data.frame of metadata on a flight, as returned by
 #' \code{\link{read_metadata}}.
-#' @param peak A character indicating which peak to select from the local
+#' @param drat_peak A character indicating which peak to select from the local
 #' maxima of the digital number probability density function. Supported values
 #' are currently "minimum", "median", and "maximum", which respectively select
 #' the peak with the lowest, median, and highest DN.
-#' @param max_threshold A numeric value between 0 and 1, interpreted as a
+#' @param drat_threshold A numeric value between 0 and 1, interpreted as a
 #' proportion. Any local maximum must be at least that much relative to the
 #' global maximum to be considered for selection as the RDN. Defaults to 0.1.
 #' @param alpha A numeric value between 0 and 1. The transparency value to use
 #' for plotting. Values closer to 0 mean more transparency.
+#' @param verbose A logical value. Whether or not progress and RDN values are
+#' printed as part of the computation.
+#' @param ncores An integer value, the number of cores to use for computing the
+#' probability density functions in parallel. Defaults no 1 (no parallel
+#' computation).
 #'
 #' @return Invisibly, a list of three elements:
 #' \itemize{
@@ -126,13 +146,14 @@ local_maxima <- function(x) {
 #' N. and Meng, L., 2023. Removing temperature drift and temporal variation in
 #' thermal infrared images of a UAV uncooled thermal infrared imager. ISPRS
 #' Journal of Photogrammetry and Remote Sensing, 203, pp.392-411.
+#' \url{https://doi.org/10.1016/j.isprsjprs.2023.08.011}
 #'
 #' @export
 #' @examples
 #' NULL
-plot_rdn <- function(metadata, peak, max_threshold = 0.1, alpha = 0.5) {
+plot_rdn <- function(metadata, drat_peak, drat_threshold = 0.1, alpha = 0.5, verbose = FALSE, ncores = 1) {
 	# Computing the RDNs from the metadata
-	rdn <- compute_rdn(metadata, peak, max_threshold)
+	rdn <- compute_rdn(metadata, peak = drat_peak, max_threshold = drat_threshold, verbose = verbose, ncores = ncores)
 
 	# Extracting the range of x and y values to set up the plot limits
 	xrange <- range(sapply(rdn$density, '[[', "x"))

@@ -206,7 +206,7 @@ fit_model <- function(x, nuc_threshold, model_type = c("lm", "spline"), spline_s
 #' the output directory should be different from the one containing the source
 #' data. The directory will be created if it does not already exist.
 #' @param method A character. The method to use for drift correction. At the
-#' moment "overlap", "overall", "lm", and "spline" are supported.
+#' moment "overlap", "overall", "lm", "spline", and "drat" are supported.
 #' @param midpoint An integer. The index to start the correction from. Image
 #' values will be adjusted to match the image at that index. If NULL (the
 #' default), then the middle of the range is used.
@@ -257,8 +257,8 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 	if(is.null(midpoint)) midpoint <- floor(length(src_files) / 2)
 
 	# Overlap method adjusts the mean value of images based on the shared overlap between successive images
-	if(method == "overlap") {
-		if(! "diff" %in% names(metadata)) stop("The difference between successive images must be precomputed to use method = 'overlap'")
+	if(method %in% c("overlap", "drat")) {
+		if(! "diff" %in% names(metadata)) stop("The difference between successive images must be precomputed to use method = 'overlap' or method = 'drat'")
 
 		# Computing the pre- and post-midpoint adjustment factors
 		pre_midpoint  <- if(midpoint == 1) c() else rev(cumsum(metadata[midpoint:2, "diff"]))
@@ -329,13 +329,14 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 #' From a metadata data.frame, such as returned by \code{\link{read_metadata}}
 #' and other thermal flight related data, it performs thermal drift correction
 #' in response to user-supplied parameters and returns a data.frame of metadata
-#' on the corrected pictures.
+#' on the corrected pictures. The "drat" option is implemented from the DRAT
+#' approach outlined by Wang et al. (2023).
 #'
 #' @param metadata A metadata data.frame of the pictures to correct, such as
 #' returned by \code{\link{read_metadata}}.
 #' @param correction_type A character. The type of correction to apply to the
-#' images. At the moment, the values "overall", "overlap", "lm", and "spline"
-#' are supported.
+#' images. At the moment, the values "overall", "overlap", "lm", "spline",
+#' and "drat" are supported.
 #' @param output_dir A character. The directory to which the corrected images
 #' should be output. The directory will be created if it does not already
 #' exist.
@@ -370,6 +371,19 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 #' when method is "overlap". Such cropping can reduce the potential effect of
 #' vignetting by limiting the extent used to pixels near the middle of the
 #' image. Defaults to 0 (no cropping is done).
+#' @param drat_peak A character string. When using the "drat" correction,
+#' specifies which peak (local maximum) should be selected to extract the
+#' representative digital number. Supported values are "minimum" (the peak with
+#' the lowest DN value"), "median" (the peak with the median DN value; in case
+#' of ties the lower peak is chosen), or "maximum" (the peak with the highest
+#' DN value).  Defaults to "minimum" with a warning, therefore the land cover
+#' type with the lowest surface temperature is selected by default.
+#' @param drat_threshold A numeric value between 0 and 1, interpreted as a
+#' proportion. Peaks (local maxima) identified from the probability density
+#' function of the DN values are filtered out if their density is lower than
+#' this proportion compared to the global maximum. Defaults to a rather
+#' permissive value of 0.1 with a warning. The global maximum can be
+#' consistently selected by using a very high value (e.g. 0.99).
 #' @param overwrite_dst A logical value. Whether overwriting destination files
 #' (the corrected images) should be allowed.
 #' @param verbose A logical. Whether the function should output information on
@@ -378,6 +392,13 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 #' for specific parts of the workflow. Defaults to 1 (no multithreading).
 #'
 #' @return A data.frame of metadata describing the corrected images.
+#'
+#' @references
+#' Wang, Z., Zhou, J., Ma, J., Wang, Y., Liu, S., Ding, L., Tang, W., Pakezhamu,
+#' N. and Meng, L., 2023. Removing temperature drift and temporal variation in
+#' thermal infrared images of a UAV uncooled thermal infrared imager. ISPRS
+#' Journal of Photogrammetry and Remote Sensing, 203, pp.392-411.
+#' \url{https://doi.org/10.1016/j.isprsjprs.2023.08.011}
 #'
 #' @export
 #' @examples
@@ -424,6 +445,18 @@ correct_drift <- function(metadata, output_dir, method = "overlap", midpoint = N
 #'                                overwrite_dst = TRUE,
 #'                                verbose = TRUE)
 #'
+#' ### DRAT drift correction
+#' # Determines drift between successive images based on representative digital
+#' # numbers extracted from the proability density function of the distribution
+#' # of digital numbers
+#' drat_meta <- correct_thermal(metadata = tmeta,
+#'                              correction_type = "drat", drat_peak = "minimum", drat_threshold = 0.9,
+#'                              output_dir = tmpdir,
+#'                              camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4",
+#'                              tags = "minimal",
+#'                              overwrite_dst = TRUE,
+#'                              verbose = TRUE)
+#'
 #' ### Image overlap drift correction
 #' # Finds the differences in overlapping regions of successive images to adjust values
 #'
@@ -450,6 +483,7 @@ correct_thermal <- function(metadata, correction_type, output_dir,
 			    tags = NULL, tparams = NULL,
 			    midpoint = NULL, nuc_threshold = NULL,
 			    spline_spar = NULL, crop = 0,
+			    drat_peak = NULL, drat_threshold = NULL,
 			    overwrite_dst = FALSE,
 			    verbose = TRUE, ncores = 1) {
 
@@ -465,13 +499,6 @@ correct_thermal <- function(metadata, correction_type, output_dir,
 
 		# For these methods we need to pre-compute the mean of each image in the dataset
 		metadata$mean <- thermal_mean(metadata, ncores = ncores)
-
-		# We then run the corretion routine, which returns the names of the modified files
-		corrected_files <- correct_drift(metadata = metadata, output_dir = output_dir,
-						 method = correction_type, midpoint = midpoint,
-						 overwrite_dst = overwrite_dst, ncores = ncores,
-						 nuc_threshold = nuc_threshold, spline_spar = spline_spar,
-						 tags = tags, verbose = verbose)
 
 	} else if(correction_type == "overlap") {
 		# We add the transformation parameters to the data.frame if necessary
@@ -491,16 +518,39 @@ correct_thermal <- function(metadata, correction_type, output_dir,
 		# We compute the differences based on coordinate transform parameters
 		metadata$diff <- compute_diffs(metadata, crop = crop, ncores = ncores, verbose = verbose)
 
-		# We then run the correction routine, which returns the names of the modified files
-		corrected_files <- correct_drift(metadata = metadata, output_dir = output_dir,
-						 method = "overlap", midpoint = midpoint,
-						 overwrite_dst = overwrite_dst, ncores = ncores,
-						 nuc_threshold = nuc_threshold,
-						 tags = tags, verbose = verbose)
+	} else if(correction_type == "drat") {
+		# Checking for the parameters and setting them to defaults with a warning
+		if(is.null(drat_peak)) {
+			warning("'drat_peak' needs a value for drat correction: setting drat_peak to 'minimum'")
+			drat_peak <- "minimum"
+		}
+
+		if(is.null(drat_threshold)) {
+			warning("'drat_threshold' needs a value for drat correction: setting drat_threshold to 0.1")
+			drat_threshold <- 0.1
+		}
+
+		# Computing the representative digital numbers (RDNs) from the probability density function using the specified parameters
+		rdn <- compute_rdn(metadata, peak = drat_peak, max_threshold = drat_threshold, verbose = verbose, ncores = ncores)
+
+		# Computing the differences between successive pictures using the RDNs
+		# The first value is always NA because it has no value to compare it to
+		# We use the "diff" column so we can use the same code logic as for the overlap method
+		# in downstream function calls
+		metadata$diff <- c(NA, diff(rdn$rdn))
 
 	} else {
 		stop("Unsupported correction type ", correction_type)
 	}
+
+	# We run the correction routine with the correctly prepared metadata and arguments
+	# It returns the names of the corrected files
+	corrected_files <- correct_drift(metadata = metadata, output_dir = output_dir,
+					 method = correction_type, midpoint = midpoint,
+					 overwrite_dst = overwrite_dst, ncores = ncores,
+					 nuc_threshold = nuc_threshold, spline_spar = spline_spar,
+					 tags = tags, verbose = verbose)
+
 
 	# Now we need to re-read the metadata from the files we just created
 	corrected_meta <- read_metadata(corrected_files, camera_tz = camera_tz, display_tz = display_tz, tags = tags)

@@ -53,7 +53,22 @@ location of the representative digital numbers (RDNs) identified
 according to the DRAT method of Wang et al. (2023b)
 }
 \examples{
-NULL
+# Reading the metadata from the test dataset
+tfiles <- dir(system.file("extdata/", package = "thermal"), 
+              pattern = "thermal.tiff$", full.names = TRUE)
+tmeta <- read_metadata(tfiles, camera_tz = "Etc/GMT+5", display_tz = "Etc/GMT+4", tags = "minimal")
+
+# Plotting the RDNs in the test dataset using the default threshold
+plot_rdn(tmeta, drat_peak = "minimum", drat_threshold = 0.1)
+
+# Using a ridiculously low threshold to show that earlier peaks are detected
+plot_rdn(tmeta, drat_peak = "minimum", drat_threshold = 0.01)
+
+# Using the same threshold with drat_peak = "maximum"
+plot_rdn(tmeta, drat_peak = "maximum", drat_threshold = 0.01)
+
+# Using the same threshold with drat_peak = "median"
+plot_rdn(tmeta, drat_peak = "median", drat_threshold = 0.01)
 }
 \references{
 Wang, Z., Zhou, J., Ma, J., Wang, Y., Liu, S., Ding, L., Tang, W., Pakezhamu,

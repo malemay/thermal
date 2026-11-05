@@ -87,9 +87,25 @@ overlap_tmeta <- correct_thermal(metadata = tmeta,
 
 overlap_tmeta$mean <- thermal_mean(overlap_tmeta)
 
+### RESULTS OF THE DRAT CORRECTION
+drat_tmpdir <- withr::local_tempdir(pattern = "drat_test")
+
+drat_tmeta <- correct_thermal(metadata = tmeta,
+			      correction_type = "drat",
+			      drat_peak = "minimum",
+			      drat_threshold = 1,
+			      output_dir = drat_tmpdir,
+			      camera_tz = "Etc/GMT+5",
+			      display_tz = "Etc/GMT+4",
+			      tags = "minimal",
+			      overwrite_dst = TRUE)
+			      
+drat_tmeta$mean <- thermal_mean(drat_tmeta)
+
 # Saving all the results to file
 saveRDS(overall_tmeta, file = "overall_tmeta.rds")
 saveRDS(lm_tmeta, file = "lm_tmeta.rds")
 saveRDS(spline_tmeta, file = "spline_tmeta.rds")
 saveRDS(overlap_tmeta, file = "overlap_tmeta.rds")
+saveRDS(drat_tmeta, file = "drat_tmeta.rds")
 

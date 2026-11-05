@@ -92,3 +92,24 @@ test_that("Overlap correction works as expected", {
 		  expect_identical(overlap_tmeta[, -1], readRDS(test_path("test_files", "overlap_tmeta.rds"))[, -1])
 })
 
+# Testing the DRAT correction method
+test_that("DRAT correction works as expected", {
+
+		  drat_tmpdir <- withr::local_tempdir(pattern = "drat_test")
+
+		  drat_tmeta <- correct_thermal(metadata = tmeta,
+						correction_type = "drat",
+						drat_peak = "minimum",
+						drat_threshold = 1,
+						output_dir = drat_tmpdir,
+						camera_tz = "Etc/GMT+5",
+						display_tz = "Etc/GMT+4",
+						tags = "minimal",
+						overwrite_dst = TRUE,
+						verbose = FALSE)
+
+		  drat_tmeta$mean <- thermal_mean(drat_tmeta)
+
+		  expect_identical(drat_tmeta[, -1], readRDS(test_path("test_files", "drat_tmeta.rds"))[, -1])
+})
+

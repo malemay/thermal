@@ -160,7 +160,7 @@ plot_rdn <- function(metadata, drat_peak, drat_threshold = 0.1, alpha = 0.5, ver
 	yrange <- range(sapply(rdn$density, '[[', "y"))
 
 	# Creating a dummy plotting window with the right limits
-	plot(0, ylab = "", xlab = "", type = "n", xlim = xrange, ylim = yrange)
+	plot(0, ylab = "Density", xlab = "Digital number", type = "n", xlim = xrange, ylim = yrange)
 
 	# Computing the hex value for the color based on the alpha value
 	alpha <- floor(alpha * 255)

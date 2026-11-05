@@ -15,7 +15,7 @@ correct_thermal(
   midpoint = NULL,
   nuc_threshold = NULL,
   spline_spar = NULL,
-  crop = 0,
+  overlap_crop = 0,
   drat_peak = NULL,
   drat_threshold = NULL,
   overwrite_dst = FALSE,
@@ -68,11 +68,11 @@ smoothing parameter when model_type = "spline". If NULL, (the default), then
 the smoothing parameter will be algorithmically determined. See
 \code{\link[stats]{smooth.spline}} for more details.}
 
-\item{crop}{A numeric value indicating the number of pixels to crop from the
-margin of the rasters prior to computing the difference in overlapping areas
-when method is "overlap". Such cropping can reduce the potential effect of
-vignetting by limiting the extent used to pixels near the middle of the
-image. Defaults to 0 (no cropping is done).}
+\item{overlap_crop}{A numeric value indicating the number of pixels to crop
+from the margin of the rasters prior to computing the difference in
+overlapping areas when method is "overlap". Such cropping can reduce the
+potential effect of vignetting by limiting the extent used to pixels near
+the middle of the image. Defaults to 0 (no cropping is done).}
 
 \item{drat_peak}{A character string. When using the "drat" correction,
 specifies which peak (local maximum) should be selected to extract the

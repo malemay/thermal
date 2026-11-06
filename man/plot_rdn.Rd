@@ -10,7 +10,8 @@ plot_rdn(
   drat_threshold = 0.1,
   alpha = 0.5,
   verbose = FALSE,
-  ncores = 1
+  ncores = 1,
+  ...
 )
 }
 \arguments{
@@ -35,6 +36,8 @@ printed as part of the computation.}
 \item{ncores}{An integer value, the number of cores to use for computing the
 probability density functions in parallel. Defaults no 1 (no parallel
 computation).}
+
+\item{...}{Other graphical parametres passed to the main plotting function}
 }
 \value{
 Invisibly, a list of three elements:

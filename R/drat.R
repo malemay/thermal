@@ -131,6 +131,7 @@ local_maxima <- function(x) {
 #' @param ncores An integer value, the number of cores to use for computing the
 #' probability density functions in parallel. Defaults no 1 (no parallel
 #' computation).
+#' @param ... Other graphical parametres passed to the main plotting function
 #'
 #' @return Invisibly, a list of three elements:
 #' \itemize{
@@ -166,7 +167,7 @@ local_maxima <- function(x) {
 #'
 #' # Using the same threshold with drat_peak = "median"
 #' plot_rdn(tmeta, drat_peak = "median", drat_threshold = 0.01)
-plot_rdn <- function(metadata, drat_peak, drat_threshold = 0.1, alpha = 0.5, verbose = FALSE, ncores = 1) {
+plot_rdn <- function(metadata, drat_peak, drat_threshold = 0.1, alpha = 0.5, verbose = FALSE, ncores = 1, ...) {
 	# Computing the RDNs from the metadata
 	rdn <- compute_rdn(metadata, peak = drat_peak, max_threshold = drat_threshold, verbose = verbose, ncores = ncores)
 
@@ -175,7 +176,7 @@ plot_rdn <- function(metadata, drat_peak, drat_threshold = 0.1, alpha = 0.5, ver
 	yrange <- range(sapply(rdn$density, '[[', "y"))
 
 	# Creating a dummy plotting window with the right limits
-	plot(0, ylab = "Density", xlab = "Digital number", type = "n", xlim = xrange, ylim = yrange)
+	plot(0, ylab = "Density", xlab = "Digital number", type = "n", xlim = xrange, ylim = yrange, ...)
 
 	# Computing the hex value for the color based on the alpha value
 	alpha <- floor(alpha * 255)
